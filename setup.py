@@ -101,8 +101,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'alignak_backend_import = alignak_backend_import.main:main',
-            'cfg_to_backend = alignak_backend_import.tools.cfg_to_backend:main',
+            'alignak_backend_import = alignak_backend_import.cfg_to_backend:main',
         ],
     },
 
