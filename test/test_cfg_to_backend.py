@@ -42,7 +42,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
     def test_host_with_double_template(self):
 
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         r = self.backend.get('host')
@@ -56,7 +56,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
     def test_host_with_template(self):
 
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts2.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts2.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         r = self.backend.get('host')
@@ -70,7 +70,7 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(reg_comm['max_check_attempts'], 6)
 
     def test_timeperiod(self):
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         r = self.backend.get('timeperiod')
@@ -92,7 +92,7 @@ class TestCfgToBackend(unittest2.TestCase):
              self.assertEqual(comm, ref)
 
     def test_timeperiod_complex(self):
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods_complex.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods_complex.cfg'])
         (_, _) = q.communicate() # now wait
 
         r = self.backend.get_all('timeperiod')
@@ -133,7 +133,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
     @unittest2.skip("Broken test ...")
     def test_host_multiple_link_later(self):
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         t = self.backend.get('timeperiod')
@@ -168,7 +168,7 @@ class TestCfgToBackend(unittest2.TestCase):
         :return: None
         """
         # host.hostgroups
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_hostgroup.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_hostgroup.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         r = self.backend.get('host')
@@ -184,7 +184,7 @@ class TestCfgToBackend(unittest2.TestCase):
             # self.assertEqual(comm['members'], [host_id])
 
     def test_command_with_args(self):
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         c = self.backend.get('command')
@@ -208,7 +208,7 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(co[0]['name'], "check_tcp")
 
     def test_contact_is_admin(self):
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/contact_admin.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contact_admin.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         co = self.backend.get_all('contact')
@@ -223,7 +223,7 @@ class TestCfgToBackend(unittest2.TestCase):
         # TODO: disabled temporarily... customs field in host is not filled!
         return
 
-        q = subprocess.Popen(['../cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_custom_variables.cfg'])
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_custom_variables.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
         ho = self.backend.get_all('host')
