@@ -33,7 +33,7 @@ You can find online documentation on `Read The Docs <http://alignak-backend-impo
 Short description
 -------------------
 
-This package contains an utility tool `cfg_to_backend`that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
+This package contains an utility tool `alignak_backend_import`that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
 
 Bugs, issues and contributing
 ----------------------------------------
