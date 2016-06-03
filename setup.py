@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ï»¿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2015:
@@ -81,9 +81,9 @@ setup(
     license=__license__,
 
     # metadata for upload to PyPI
-    author="Frédéric MOHIER",
+    author="FrÃ©dÃ©ric MOHIER",
     author_email="frederic.mohier@gmail.com",
-    keywords="alignak REST backend web ui",
+    keywords="alignak REST backend tool",
     url="https://github.com/Alignak-monitoring-contrib/alignak-webui",
     description=package.__doc__.strip(),
     long_description=open('README.rst').read(),
@@ -95,7 +95,7 @@ setup(
     # package_data={
         # 'sample': ['package_data.dat'],
     # },
-    data_files = [(paths['etc'], ['etc/settings.cfg'])],
+    # data_files = [(paths['etc'], ['etc/settings.cfg'])],
 
     install_requires=install_requires,
 

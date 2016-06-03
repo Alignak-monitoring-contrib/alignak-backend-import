@@ -3,17 +3,24 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Alignak Backend Import tools documentation!
+Alignak Backend Import tools documentation!
 ======================================================
 
-Contents:
+Project version:
+--------------------------------------------------
+
+Main version: |version|, release: |release|
+
+Documentation content:
+--------------------------------------------------
+
 
 .. toctree::
    :maxdepth: 2
 
    intro
    install
-   run
+   utilities
 
 Indices and tables
 ==================
