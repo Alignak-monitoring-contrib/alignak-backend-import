@@ -20,44 +20,45 @@
 # along with Alignak Backend Import.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Usage:
-    {command} [-h] [-v] [-d] [-b=url] [-u=username] [-p=password] [-t=type] [<cfg_file>...]
+alignak_backend_import command line interface::
 
-Options:
-    -h, --help                  Show this screen.
-    -V, --version               Show application version.
-    -b, --backend url           Specify backend URL [default: http://127.0.0.1:5000]
-    -d, --delete                Delete existing backend data
-    -u, --username username     Backend login username [default: admin]
-    -p, --password password     Backend login password [default: admin]
-    -v, --verbose               Run in verbose mode (more info to display)
-    -t, --type type             Only manages this object type [default: all]
+    Usage:
+        {command} [-h] [-v] [-d] [-b=url] [-u=username] [-p=password] [-t=type] [<cfg_file>...]
 
-Use cases:
-    Display help message:
-        {command} -h
-    Display current version:
-        {command} -v
+    Options:
+        -h, --help                  Show this screen.
+        -V, --version               Show application version.
+        -b, --backend url           Specify backend URL [default: http://127.0.0.1:5000]
+        -d, --delete                Delete existing backend data
+        -u, --username username     Backend login username [default: admin]
+        -p, --password password     Backend login password [default: admin]
+        -v, --verbose               Run in verbose mode (more info to display)
+        -t, --type type             Only manages this object type [default: all]
 
-    Delete current backend data:
-        {command} -d [-b=backend] [-u=username] [-p=password]
+    Use cases:
+        Display help message:
+            {command} -h
+        Display current version:
+            {command} -v
 
-    Add some data in current backend:
-        {command} [-b=backend] [-u=username] [-p=password] <cfg_file>
+        Delete current backend data:
+            {command} -d [-b=backend] [-u=username] [-p=password]
 
-    Replace current backend data:
-        {command} -d [-b=backend] [-u=username] [-p=password] <cfg_file>
+        Add some data in current backend:
+            {command} [-b=backend] [-u=username] [-p=password] <cfg_file>
 
-    Exit code:
-        0 if required operation succeeded
-        1 if Alignak is not installed on your system
-        2 if backend access is denied (check provided username/password)
-        3 if required configuration cannot be loaded by Alignak
-        4 if some problems were encountered during backend importation
-        5 if an exception occured when creating/updating data in the Alignak backend
+        Replace current backend data:
+            {command} -d [-b=backend] [-u=username] [-p=password] <cfg_file>
 
-        64 if command line parameters are not used correctly
+        Exit code:
+            0 if required operation succeeded
+            1 if Alignak is not installed on your system
+            2 if backend access is denied (check provided username/password)
+            3 if required configuration cannot be loaded by Alignak
+            4 if some problems were encountered during backend importation
+            5 if an exception occured when creating/updating data in the Alignak backend
 
+            64 if command line parameters are not used correctly
 """
 from __future__ import print_function
 import re
@@ -637,7 +638,7 @@ class CfgToBackend(object):
                 del item[id_name]
 
             # Force imported_from with Alignak ...
-            # item['imported_from'] = 'cfg_to_backend'
+            # item['imported_from'] = 'alignak_backend_import'
 
             # Remove Shinken template link...
             if 'use' in item:
@@ -1009,12 +1010,12 @@ def main():
     Main function
     """
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("cfg_to_backend, version: %s" % __version__)
+    print("alignak_backend_import, version: %s" % __version__)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     fill = CfgToBackend()
     if not fill.result:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("cfg_to_backend, some problems were encountered during importation")
+        print("alignak_backend_import, some problems were encountered during importation")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         exit(4)
 
