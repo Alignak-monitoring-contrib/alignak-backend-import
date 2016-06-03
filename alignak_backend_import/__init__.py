@@ -4,9 +4,9 @@
 
 """
     Alignak backend import
-	
-	This module contains utility tools to import Nagios-like flat files configuration into
-	an Alignak REST backend.
+
+    This module contains utility tools to import Nagios-like flat files configuration into
+    an Alignak REST backend.
 """
 # Application version and manifest
 VERSION = (0, 4, 3)
