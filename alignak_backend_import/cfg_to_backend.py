@@ -395,15 +395,10 @@ class CfgToBackend(object):
                         source[prop] = getattr(source[prop], name)
                         break
             elif isinstance(source[prop], object):
-                self.log("vvvvvvvvvvvvvvvvvvvvvvv")
-                self.log(prop)
-                # self.log(dir(source[prop]))
-                self.log(source[prop])
-                self.log("^^^^^^^^^^^^^^^^^^^^^^^")
+                self.log("%s = %s" % (prop, source[prop]))
 
         source.update(addprop)
-        self.log('***********************************************')
-        self.log(source)
+        self.log("Converted: %s" % source)
         return source
 
     def update_later(self, resource, field):
