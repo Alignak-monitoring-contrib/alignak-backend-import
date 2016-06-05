@@ -328,6 +328,8 @@ class CfgToBackend(object):
                 self.backend.delete('livestate', headers)
             if self.type == 'livesynthesis' or self.type == 'all':
                 self.backend.delete('livesynthesis', headers)
+            if self.type == 'all':
+                self.backend.delete('uipref', headers)
             self.log("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~")
 
     def recompose_dateranges(self):
