@@ -294,7 +294,6 @@ class CfgToBackend(object):
                 realms = self.backend.get_all('realm')
                 headers_realm = {'Content-Type': 'application/json'}
                 for realm in realms['_items']:
-                    print ("Realm: %s" % realm)
                     if realm['name'] != 'All' and realm['_level'] != 0:
 
                         headers_realm['If-Match'] = realm['_etag']
@@ -330,7 +329,7 @@ class CfgToBackend(object):
                 self.backend.delete('livesynthesis', headers)
             if self.type == 'all':
                 self.backend.delete('uipref', headers)
-            self.log("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
 
     def recompose_dateranges(self):
         """
