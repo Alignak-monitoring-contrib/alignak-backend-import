@@ -211,12 +211,19 @@ class TestCfgToBackend(unittest2.TestCase):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contact_admin.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        co = self.backend.get_all('contact')
-        co = co['_items']
-        self.assertEqual(len(co), 2)
+        result = self.backend.get_all('contact')
+        contacts = result['_items']
+        self.assertEqual(len(contacts), 2)
 
-        self.assertEqual(co[1]['is_admin'], True)
-        self.assertEqual(co[1]['back_role_super_admin'], True)
+        print "Found contacts: "
+        for contact in contacts:
+            print "-", contact['name']
+            if contact['name'] == 'admin':
+                self.assertEqual(contact['is_admin'], False)
+                self.assertEqual(contact['back_role_super_admin'], True)
+            else:
+                self.assertEqual(contact['is_admin'], True)
+                self.assertEqual(contact['back_role_super_admin'], False)
 
     @unittest2.skip("Broken test ...")
     def test_host_customvariables(self):
