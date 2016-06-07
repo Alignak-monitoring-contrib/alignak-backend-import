@@ -233,3 +233,40 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(ho[0]['_GPS_LOC'], '45')
         self.assertEqual(ho[0]['_GPS_LOC'], '45')
 
+
+class TestContacts(unittest2.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.p = subprocess.Popen(['alignak_backend'])
+        print ("Backend PID: %s" % cls.p)
+        time.sleep(3)
+
+        cls.backend = Backend('http://127.0.0.1:5000')
+        cls.backend.login("admin", "admin", "force")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.p.kill()
+
+    @classmethod
+    def tearDown(cls):
+        print ""
+
+    def test_contacts(self):
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contacts.cfg'])
+        (stdoutdata, stderrdata) = q.communicate() # now wait
+
+        result = self.backend.get_all('contact')
+        contacts = result['_items']
+        self.assertEqual(len(contacts), 4)
+
+        print "Found contacts: "
+        for contact in contacts:
+            print "-", contact['name']
+            if contact['name'] == 'admin':
+                self.assertEqual(contact['is_admin'], False)
+                self.assertEqual(contact['back_role_super_admin'], True)
+            else:
+                # self.assertEqual(contact['is_admin'], True)
+                self.assertEqual(contact['back_role_super_admin'], False)
