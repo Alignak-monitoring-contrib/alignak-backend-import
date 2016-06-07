@@ -131,36 +131,51 @@ class TestCfgToBackend(unittest2.TestCase):
         del comm['_realm']
         self.assertItemsEqual(comm, ref)
 
-    @unittest2.skip("Broken test ...")
     def test_host_multiple_link_later(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        t = self.backend.get('timeperiod')
-        print t
-        for timep in t['_items']:
-            timeperiod = timep['_id']
+        result = self.backend.get('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 3)
+        for host in hosts:
+            print "Host:", host['name']
+            if host['name'] == 'webui':
+                webui = host.copy()
+            if host['name'] == 'backend':
+                backend = host.copy()
+            if host['name'] == 'mongo':
+                mongo = host.copy()
 
-        r = self.backend.get('host')
-        print r['_items']
-        self.assertEqual(len(r['_items']), 3)
-        hosts = {}
-        for comm in r['_items']:
-            if comm['name'] == 'webui':
-                webui_host = comm.copy()
-            else:
-                hosts[comm['name']] = comm['_id']
+        print backend['parents']
+        self.assertEqual(backend['parents'], [])
+        print mongo['parents']
+        self.assertEqual(mongo['parents'], [backend['_id']])
+        print webui['parents']
+        self.assertEqual(webui['parents'], [backend['_id'], mongo['_id']])
 
-        parents = []
-        parents.append(hosts['backend'])
-        parents.append(hosts['mongo'])
-        print webui_host['name']
-        self.assertEqual(webui_host['name'], 'webui')
-        print webui_host['parents']
-        # TODO: check why this does not match!!!
-        # self.assertEqual(webui_host['parents'], parents)
+    def test_hostgroups_links(self):
+        """
+        """
+        # host.hostgroups
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hostgroups_links_hostgroup.cfg'])
+        (stdoutdata, stderrdata) = q.communicate() # now wait
 
-    @unittest2.skip("Broken test ...")
+        result = self.backend.get('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 1)
+        host_id = hosts[0]['_id']
+
+        result = self.backend.get('hostgroup')
+        hostgroups = result['_items']
+        self.assertEqual(len(hostgroups), 2)
+        for hostgroup in hostgroups:
+            print "Hostgroup:", hostgroup
+            print "Hostgroup groups members:", hostgroup['hostgroup_members']
+            print "Hostgroup members:", hostgroup['members']
+            if hostgroup['name'] == 'freebsd':
+                self.assertEqual(len(hostgroup['hostgroup_members']), 1)
+
     def test_host_multiple_link_now(self):
         """
         The host will be added in host_group endpoint
@@ -171,17 +186,17 @@ class TestCfgToBackend(unittest2.TestCase):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_hostgroup.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        r = self.backend.get('host')
-        r = r['_items']
-        self.assertEqual(len(r), 1)
-        for comm in r:
-            host_id = comm['_id']
-        hostgroups = []
-        rhg = self.backend.get('hostgroup')
-        for comm in rhg['_items']:
-            print "members:", comm['members']
-            # TODO: check why this does not match!!!
-            # self.assertEqual(comm['members'], [host_id])
+        result = self.backend.get('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 1)
+        host_id = hosts[0]['_id']
+        result = self.backend.get('hostgroup')
+        hostgroups = result['_items']
+        self.assertEqual(len(hostgroups), 2)
+        for hostgroup in hostgroups:
+            print "Hostgroup:", hostgroup
+            print "Hostgroup members:", hostgroup['members']
+            self.assertEqual(hostgroup['members'], [host_id])
 
     def test_command_with_args(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])

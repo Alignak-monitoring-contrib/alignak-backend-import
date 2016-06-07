@@ -439,8 +439,9 @@ class CfgToBackend(object):
                             elif val in self.inserted[item['resource']].values():
                                 idx = self.inserted[item['resource']].values().index(val)
                                 data[field].append(self.inserted[item['resource']].keys()[idx])
-                            elif val in self.inserted_uuid[item['resource']]:
-                                data[field].append(self.inserted_uuid[item['resource']][val])
+                            elif val in self.inserted_uuid[item['resource']].values():
+                                idx = self.inserted_uuid[item['resource']].values().index(val)
+                                data[field].append(self.inserted[item['resource']].keys()[idx])
 
             try:
                 headers['If-Match'] = item['_etag']
