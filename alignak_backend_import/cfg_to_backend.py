@@ -516,15 +516,6 @@ class CfgToBackend(object):
                 print ("-> do not import this command.")
                 continue
 
-            # TODO
-            # Only import element custom variables if schema allows unknown fields ...
-            # ... not the best solution. They should be imported in 'customs' defined array field!
-            if 'allow_unknown' in schema and schema['allow_unknown']:
-                for prop in item_obj.customs.keys():
-                    item[prop] = item_obj.customs[prop]
-            elif 'customs' in schema:
-                item['customs'] = item_obj.customs
-
             # convert objects
             item = self.convert_objects(item)
             # Remove properties
@@ -551,6 +542,15 @@ class CfgToBackend(object):
             for prop in prop_to_del:
                 del item[prop]
             later_tmp = {}
+
+            # Special case of custom variables
+            # Only import element custom variables if schema allows unknown fields ...
+            # ... not the best solution. They should be imported in 'customs' defined array field!
+            if 'customs' in schema['schema']:
+                item['customs'] = item_obj.customs
+            elif 'allow_unknown' in schema and schema['allow_unknown']:
+                for prop in item_obj.customs.keys():
+                    item[prop] = item_obj.customs[prop]
 
             # Special case of contacts
             if r_name == 'contact':

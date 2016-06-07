@@ -225,20 +225,18 @@ class TestCfgToBackend(unittest2.TestCase):
                 self.assertEqual(contact['is_admin'], True)
                 self.assertEqual(contact['back_role_super_admin'], False)
 
-    @unittest2.skip("Broken test ...")
     def test_host_customvariables(self):
-        # TODO: disabled temporarily... customs field in host is not filled!
-        return
-
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_custom_variables.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        ho = self.backend.get_all('host')
-        ho = ho['_items']
-        print ho
-        self.assertEqual(len(ho), 1)
-        self.assertEqual(ho[0]['_GPS_LOC'], '45')
-        self.assertEqual(ho[0]['_GPS_LOC'], '45')
+        result = self.backend.get_all('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 1)
+
+        print "Found hosts: "
+        for host in hosts:
+            print "- %s, customs: %s" % (host['name'], host['customs'])
+            self.assertEqual(host['customs'], {u'_LOC_LAT': u'45.054700', u'_LOC_LNG': u'5.080856'})
 
 
 class TestContacts(unittest2.TestCase):
