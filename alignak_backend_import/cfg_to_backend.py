@@ -550,7 +550,7 @@ class CfgToBackend(object):
                 break
 
             # TODO
-            # Special case of contacts (still)
+            # Special case of contacts
             # Always define timeperiods ... good idea to confirm ?
             if r_name == 'contact':
                 item['back_role_super_admin'] = False
@@ -565,6 +565,25 @@ class CfgToBackend(object):
                    not item['service_notification_period']:
                     item['service_notification_period'] = self.default_tp
 
+            # Special case of timeperiods for hosts and services
+            # Always define timeperiods if they do not exit
+            if r_name == 'host' or r_name == 'service':
+                if 'check_period' not in item or \
+                   not item['check_period']:
+                    item['check_period'] = self.default_tp
+
+                if 'notification_period' not in item or \
+                   not item['notification_period']:
+                    item['notification_period'] = self.default_tp
+
+                if 'maintenance_period' not in item or \
+                   not item['maintenance_period']:
+                    item['maintenance_period'] = self.default_tp
+
+                if 'snapshot_period' not in item or \
+                   not item['snapshot_period']:
+                    item['snapshot_period'] = self.default_tp
+
             # Hack for check_command_args
             if 'check_command_args' in item and isinstance(item['check_command_args'], list):
                 item['check_command_args'] = '!'.join(item['check_command_args'])
@@ -572,9 +591,9 @@ class CfgToBackend(object):
             self.log("Creating links with other objects (data_later)")
             for dummy, values in enumerate(data_later):
                 if values['field'] in item and values['type'] == 'simple':
-                    if values['now'] \
-                            and values['resource'] in self.inserted \
-                            and item[values['field']] in self.inserted[values['resource']]:
+                    if values['now'] and \
+                       values['resource'] in self.inserted and \
+                       item[values['field']] in self.inserted[values['resource']]:
                         self.log("***Found: %s = %s" % (values['field'], item[values['field']]))
                         # print("***Found: %s = %s" % (values['field'], item[values['field']]))
                     else:
@@ -827,6 +846,14 @@ class CfgToBackend(object):
                 {
                     'field': 'escalations', 'type': 'list',
                     'resource': 'escalation', 'now': True
+                },
+                {
+                    'field': 'maintenance_period', 'type': 'simple',
+                    'resource': 'timeperiod', 'now': True
+                },
+                {
+                    'field': 'snapshot_period', 'type': 'simple',
+                    'resource': 'timeperiod', 'now': True
                 }
             ]
             schema = host.get_schema()
@@ -961,6 +988,10 @@ class CfgToBackend(object):
                 },
                 {
                     'field': 'maintenance_period', 'type': 'simple',
+                    'resource': 'timeperiod', 'now': True
+                },
+                {
+                    'field': 'snapshot_period', 'type': 'simple',
                     'resource': 'timeperiod', 'now': True
                 },
                 {
