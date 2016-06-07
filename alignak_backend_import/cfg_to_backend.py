@@ -1050,6 +1050,14 @@ def main():
         print("alignak_backend_import, some problems were encountered during importation")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         exit(4)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import, inserted elements: ")
+    for object_type in fill.inserted:
+        if len(fill.inserted[object_type]):
+            print(" - %s %s(s)" % (len(fill.inserted[object_type]), object_type))
+        else:
+            print(" - no %s(s)" % (object_type))
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 if __name__ == "__main__":  # pragma: no cover
     main()
