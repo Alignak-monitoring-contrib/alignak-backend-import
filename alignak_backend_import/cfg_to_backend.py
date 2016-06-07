@@ -512,7 +512,7 @@ class CfgToBackend(object):
                 continue
 
             #  - specific commands
-            if r_name == 'contact' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
+            if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
                 print ("-> do not import this command.")
                 continue
 
