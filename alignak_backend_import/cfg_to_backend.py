@@ -552,15 +552,9 @@ class CfgToBackend(object):
                 del item[prop]
             later_tmp = {}
 
-            # TODO
             # Special case of contacts
-            # Always define timeperiods ... good idea to confirm ?
             if r_name == 'contact':
                 item['back_role_super_admin'] = False
-                # TODO: really ? a previous is_admin user can be super admin for the backend ???
-                # I deactivate this!
-                # if 'is_admin' in item and item['is_admin']:
-                # item['back_role_super_admin'] = True
 
                 if 'host_notification_period' not in item or \
                    not item['host_notification_period']:
