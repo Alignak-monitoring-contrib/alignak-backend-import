@@ -506,7 +506,14 @@ class CfgToBackend(object):
             # As of it, ignore attributes (use, name, definition_order and register) !
 
             # Ignore specific items ...
-            if item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
+            #  - admin contact
+            if r_name == 'contact' and item[id_name] == "admin":
+                print ("-> do not change anything for admin contact.")
+                continue
+
+            #  - specific commands
+            if r_name == 'contact' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
+                print ("-> do not import this command.")
                 continue
 
             # TODO
@@ -544,10 +551,6 @@ class CfgToBackend(object):
             for prop in prop_to_del:
                 del item[prop]
             later_tmp = {}
-
-            # Special case of contacts
-            if r_name == 'contact' and 'contact_name' in item and item['contact_name'] == "admin":
-                break
 
             # TODO
             # Special case of contacts
