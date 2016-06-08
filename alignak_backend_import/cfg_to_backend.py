@@ -605,7 +605,7 @@ class CfgToBackend(object):
                         idx = self.inserted_uuid[values['resource']].values().index(
                             item[values['field']]
                         )
-                        item[values['field']] = self.inserted[values['resource']].keys()[idx]
+                        item[values['field']] = self.inserted_uuid[values['resource']].keys()[idx]
                     else:
                         print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
                             values['field'], item[values['field']], values['resource']
@@ -701,7 +701,7 @@ class CfgToBackend(object):
                 self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
 
                 for dummy, values in enumerate(data_later):
-                    if values['field'] in later_tmp and later_tmp[values['field']]:
+                    if values['field'] in later_tmp:
                         print("***Update later: %s/%s, with %s = %s" % (
                             r_name, response['_id'], values['field'], later_tmp[values['field']]
                         ))
