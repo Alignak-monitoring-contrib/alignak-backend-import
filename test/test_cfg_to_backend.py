@@ -47,7 +47,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
         result = self.backend.get('timeperiod')
         tps = result['_items']
-        self.assertEqual(len(), 1)
+        self.assertEqual(len(tps), 1)
         for comm in tps:
              ref = {u"name": u"workhours",
                     u"definition_order": 100,
@@ -181,14 +181,16 @@ class TestCfgToBackend(unittest2.TestCase):
         for co in c['_items']:
             command_id = co['_id']
 
-        r = self.backend.get('host')
-        self.assertEqual(len(r['_items']), 1)
-        for comm in r['_items']:
-            reg_comm = comm.copy()
-
-        self.assertEqual(reg_comm['name'], 'srv01')
-        self.assertEqual(reg_comm['check_command_args'], '3306!5!8')
-        self.assertEqual(reg_comm['check_command'], command_id)
+        result = self.backend.get('host')
+        self.assertEqual(len(result['_items']), 3)
+        for host in result['_items']:
+            self.assertEqual(host['check_command'], command_id)
+            if host['name'] == 'srv01':
+                self.assertEqual(host['check_command_args'], '3306!5!8')
+            if host['name'] == 'srv02':
+                self.assertEqual(host['check_command_args'], '80!5!8')
+            if host['name'] == 'srv03':
+                self.assertEqual(host['check_command_args'], '')
 
         co = self.backend.get_all('command')
         co = co['_items']
@@ -289,8 +291,17 @@ class TestHosts(unittest2.TestCase):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        result = self.backend.get('timeperiod', {'where': json.dumps({'name': '24x7'})})
+        result = self.backend.get('timeperiod')
         tps = result['_items']
+        for tp in tps:
+            print tp['_id'], tp['name']
+            if tp['name'] == '24x7':
+                tp_always = tp['_id']
+            if tp['name'] == 'none':
+                tp_never = tp['_id']
+            if tp['name'] == 'All time default 24x7':
+                tp_default = tp['_id']
+        self.assertEqual(len(tps), 3)
 
         result = self.backend.get('host')
         hosts = result['_items']
@@ -310,7 +321,7 @@ class TestHosts(unittest2.TestCase):
 
             # Host template fields - must have a valid check period
             self.assertIn('check_period', host)
-            self.assertEqual(host['check_period'], tps[0]['_id'])
+            self.assertEqual(host['check_period'], tp_always)
 
 
     def test_host_with_double_template(self):
