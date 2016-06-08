@@ -3,6 +3,7 @@
 
 import unittest2
 import time
+import json
 import subprocess
 from alignak_backend_client.client import Backend
 
@@ -40,42 +41,14 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
-    def test_host_with_double_template(self):
-
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
-        (stdoutdata, stderrdata) = q.communicate() # now wait
-
-        r = self.backend.get('host')
-        self.assertEqual(len(r['_items']), 1)
-        for comm in r['_items']:
-            reg_comm = comm.copy()
-
-        self.assertEqual(reg_comm['name'], 'srv01')
-        self.assertEqual(reg_comm['max_check_attempts'], 6)
-        self.assertEqual(reg_comm['check_interval'], 2)
-
-    def test_host_with_template(self):
-
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts2.cfg'])
-        (stdoutdata, stderrdata) = q.communicate() # now wait
-
-        r = self.backend.get('host')
-        self.assertEqual(len(r['_items']), 1)
-        for comm in r['_items']:
-            reg_comm = comm.copy()
-
-        self.assertEqual(reg_comm['name'], 'srv01')
-        self.assertEqual(reg_comm['address'], '192.168.1.10')
-        self.assertEqual(reg_comm['check_interval'], 4)
-        self.assertEqual(reg_comm['max_check_attempts'], 6)
-
     def test_timeperiod(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        r = self.backend.get('timeperiod')
-        self.assertEqual(len(r['_items']), 1)
-        for comm in r['_items']:
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(), 1)
+        for comm in tps:
              ref = {u"name": u"workhours",
                     u"definition_order": 100,
                     u"alias": u"Normal Work Hours",
@@ -131,6 +104,28 @@ class TestCfgToBackend(unittest2.TestCase):
         del comm['_realm']
         self.assertItemsEqual(comm, ref)
 
+    def test_host_multiple_link_now(self):
+        """
+        The host will be added in host_group endpoint
+
+        :return: None
+        """
+        # host.hostgroups
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_hostgroup.cfg'])
+        (stdoutdata, stderrdata) = q.communicate() # now wait
+
+        result = self.backend.get('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 1)
+        host_id = hosts[0]['_id']
+        result = self.backend.get('hostgroup')
+        hostgroups = result['_items']
+        self.assertEqual(len(hostgroups), 2)
+        for hostgroup in hostgroups:
+            print "Hostgroup:", hostgroup
+            print "Hostgroup members:", hostgroup['members']
+            self.assertEqual(hostgroup['members'], [host_id])
+
     def test_host_multiple_link_later(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
@@ -176,28 +171,6 @@ class TestCfgToBackend(unittest2.TestCase):
             if hostgroup['name'] == 'freebsd':
                 self.assertEqual(len(hostgroup['hostgroup_members']), 1)
 
-    def test_host_multiple_link_now(self):
-        """
-        The host will be added in host_group endpoint
-
-        :return: None
-        """
-        # host.hostgroups
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_hostgroup.cfg'])
-        (stdoutdata, stderrdata) = q.communicate() # now wait
-
-        result = self.backend.get('host')
-        hosts = result['_items']
-        self.assertEqual(len(hosts), 1)
-        host_id = hosts[0]['_id']
-        result = self.backend.get('hostgroup')
-        hostgroups = result['_items']
-        self.assertEqual(len(hostgroups), 2)
-        for hostgroup in hostgroups:
-            print "Hostgroup:", hostgroup
-            print "Hostgroup members:", hostgroup['members']
-            self.assertEqual(hostgroup['members'], [host_id])
-
     def test_command_with_args(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
@@ -221,24 +194,6 @@ class TestCfgToBackend(unittest2.TestCase):
         co = co['_items']
         self.assertEqual(len(co), 1)
         self.assertEqual(co[0]['name'], "check_tcp")
-
-    def test_contact_is_admin(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contact_admin.cfg'])
-        (stdoutdata, stderrdata) = q.communicate() # now wait
-
-        result = self.backend.get_all('contact')
-        contacts = result['_items']
-        self.assertEqual(len(contacts), 2)
-
-        print "Found contacts: "
-        for contact in contacts:
-            print "-", contact['name']
-            if contact['name'] == 'admin':
-                self.assertEqual(contact['is_admin'], False)
-                self.assertEqual(contact['back_role_super_admin'], True)
-            else:
-                self.assertEqual(contact['is_admin'], True)
-                self.assertEqual(contact['back_role_super_admin'], False)
 
     def test_host_customvariables(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_custom_variables.cfg'])
@@ -290,3 +245,85 @@ class TestContacts(unittest2.TestCase):
             else:
                 # self.assertEqual(contact['is_admin'], True)
                 self.assertEqual(contact['back_role_super_admin'], False)
+
+    def test_contact_is_admin(self):
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contact_admin.cfg'])
+        (stdoutdata, stderrdata) = q.communicate() # now wait
+
+        result = self.backend.get_all('contact')
+        contacts = result['_items']
+        self.assertEqual(len(contacts), 2)
+
+        print "Found contacts: "
+        for contact in contacts:
+            print "-", contact['name']
+            if contact['name'] == 'admin':
+                self.assertEqual(contact['is_admin'], False)
+                self.assertEqual(contact['back_role_super_admin'], True)
+            else:
+                self.assertEqual(contact['is_admin'], True)
+                self.assertEqual(contact['back_role_super_admin'], False)
+
+
+class TestHosts(unittest2.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.p = subprocess.Popen(['alignak_backend'])
+        print ("Backend PID: %s" % cls.p)
+        time.sleep(3)
+
+        cls.backend = Backend('http://127.0.0.1:5000')
+        cls.backend.login("admin", "admin", "force")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.p.kill()
+
+    @classmethod
+    def tearDown(cls):
+        print ""
+
+    def test_hosts(self):
+
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])
+        (stdoutdata, stderrdata) = q.communicate() # now wait
+
+        result = self.backend.get('timeperiod', {'where': json.dumps({'name': '24x7'})})
+        tps = result['_items']
+
+        result = self.backend.get('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 3)
+        for host in hosts:
+            # Hosts specific fields
+            if host['name'] == 'srv01':
+                self.assertEqual(host['address'], '192.168.1.11')
+            if host['name'] == 'srv02':
+                self.assertEqual(host['address'], '192.168.1.12')
+            if host['name'] == 'srv03':
+                self.assertEqual(host['address'], '192.168.1.13')
+
+            # Host template fields
+            self.assertEqual(host['check_interval'], 4)
+            self.assertEqual(host['max_check_attempts'], 6)
+
+            # Host template fields - must have a valid check period
+            self.assertIn('check_period', host)
+            self.assertEqual(host['check_period'], tps[0]['_id'])
+
+
+    def test_host_with_double_template(self):
+
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_2_templates.cfg'])
+        (stdoutdata, stderrdata) = q.communicate() # now wait
+
+        r = self.backend.get('host')
+        self.assertEqual(len(r['_items']), 1)
+        for comm in r['_items']:
+            reg_comm = comm.copy()
+
+        self.assertEqual(reg_comm['name'], 'srv01')
+        self.assertEqual(reg_comm['max_check_attempts'], 6)
+        self.assertEqual(reg_comm['check_interval'], 2)
+

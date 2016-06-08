@@ -594,25 +594,23 @@ class CfgToBackend(object):
                     if values['now'] and \
                        values['resource'] in self.inserted and \
                        item[values['field']] in self.inserted[values['resource']]:
+                        # Link is still existing and should be valid
                         self.log("***Found: %s = %s" % (values['field'], item[values['field']]))
-                        # print("***Found: %s = %s" % (values['field'], item[values['field']]))
+                    elif item[values['field']] in self.inserted[values['resource']].values():
+                        index = self.inserted[values['resource']].values().index(
+                            item[values['field']]
+                        )
+                        item[values['field']] = self.inserted[values['resource']].keys()[index]
+                    elif item[values['field']]  in self.inserted_uuid[values['resource']].values():
+                        idx = self.inserted_uuid[values['resource']].values().index(item[values['field']] )
+                        item[values['field']] = self.inserted[values['resource']].keys()[idx]
                     else:
-                        # print("***Not found: %s = %s in inserted %ss identifiers" % (
-                            # values['field'], item[values['field']], values['resource']
-                        # ))
-                        if item[values['field']] in self.inserted[values['resource']].values():
-                            index = self.inserted[values['resource']].values().index(
-                                item[values['field']]
-                            )
-                            # print("   but found in stored values %s" % index)
-                            item[values['field']] = \
-                                self.inserted[values['resource']].keys()[index]
-                        else:
-                            print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
-                                values['field'], item[values['field']], values['resource']
-                            ))
-                            later_tmp[values['field']] = item[values['field']]
-                            del item[values['field']]
+                        print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
+                            values['field'], item[values['field']], values['resource']
+                        ))
+                        later_tmp[values['field']] = item[values['field']]
+                        del item[values['field']]
+
                 elif values['field'] in item and values['type'] == 'list' and values['now']:
                     add = True
                     objectsid = []

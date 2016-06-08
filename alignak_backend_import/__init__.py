@@ -9,7 +9,7 @@
     an Alignak REST backend.
 """
 # Application version and manifest
-VERSION = (0, 4, 5, 'beta2')
+VERSION = (0, 4, 5, 'beta3')
 
 __application__ = u"Alignak backend import"
 __short_version__ = '.'.join((str(each) for each in VERSION[:2]))
