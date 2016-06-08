@@ -71,8 +71,6 @@ from docopt import DocoptExit
 
 from future.utils import iteritems
 
-from alignak_backend_client.client import Backend, BackendException
-
 try:
     from alignak.daemons.arbiterdaemon import Arbiter
     from alignak.objects.item import Item
@@ -81,6 +79,8 @@ try:
 except ImportError:
     print("Alignak is not installed...")
     exit(1)
+
+from alignak_backend_client.client import Backend, BackendException
 
 from alignak_backend_import import __version__
 
@@ -601,8 +601,10 @@ class CfgToBackend(object):
                             item[values['field']]
                         )
                         item[values['field']] = self.inserted[values['resource']].keys()[index]
-                    elif item[values['field']]  in self.inserted_uuid[values['resource']].values():
-                        idx = self.inserted_uuid[values['resource']].values().index(item[values['field']] )
+                    elif item[values['field']] in self.inserted_uuid[values['resource']].values():
+                        idx = self.inserted_uuid[values['resource']].values().index(
+                            item[values['field']]
+                        )
                         item[values['field']] = self.inserted[values['resource']].keys()[idx]
                     else:
                         print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
@@ -699,7 +701,7 @@ class CfgToBackend(object):
                 self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
 
                 for dummy, values in enumerate(data_later):
-                    if values['field'] in later_tmp:
+                    if values['field'] in later_tmp and later_tmp[values['field']]:
                         print("***Update later: %s/%s, with %s = %s" % (
                             r_name, response['_id'], values['field'], later_tmp[values['field']]
                         ))
