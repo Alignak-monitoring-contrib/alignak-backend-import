@@ -23,7 +23,6 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
-        cls.backend.delete("timeperiod", {})
         cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
@@ -37,7 +36,6 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
-        cls.backend.delete("timeperiod", {})
         cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
@@ -47,22 +45,23 @@ class TestCfgToBackend(unittest2.TestCase):
 
         result = self.backend.get('timeperiod')
         tps = result['_items']
-        self.assertEqual(len(tps), 1)
-        for comm in tps:
-             ref = {u"name": u"workhours",
-                    u"definition_order": 100,
-                    u"alias": u"Normal Work Hours",
-                    u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
-                                   {u'friday': u'09:00-12:00,14:00-16:00'}, {u'wednesday': u'09:00-17:00'},
-                                   {u'thursday': u'09:00-17:00'}],
-                    u"exclude": [], u"is_active": False, u"imported_from": u""}
-             del comm['_links']
-             del comm['_id']
-             del comm['_etag']
-             del comm['_created']
-             del comm['_updated']
-             del comm['_realm']
-             self.assertEqual(comm, ref)
+        # our timeperiod + timeperiod 24x7 by default in backend
+        self.assertEqual(len(tps), 2)
+        comm = tps[1]
+        ref = {u"name": u"workhours",
+               u"definition_order": 100,
+               u"alias": u"Normal Work Hours",
+               u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
+                               {u'friday': u'09:00-12:00,14:00-16:00'}, {u'wednesday': u'09:00-17:00'},
+                               {u'thursday': u'09:00-17:00'}],
+               u"exclude": [], u"is_active": False, u"imported_from": u""}
+        del comm['_links']
+        del comm['_id']
+        del comm['_etag']
+        del comm['_created']
+        del comm['_updated']
+        del comm['_realm']
+        self.assertEqual(comm, ref)
 
     def test_timeperiod_complex(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods_complex.cfg'])
@@ -70,7 +69,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
         r = self.backend.get_all('timeperiod')
         r = r['_items']
-        self.assertEqual(len(r), 2)
+        self.assertEqual(len(r), 3)
         ref = {u"name": u"workhours",
                u"definition_order": 100,
                u"alias": u"Normal Work Hours",
@@ -78,7 +77,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                {u'friday': u'09:00-12:00,14:00-16:00'}, {u'wednesday': u'09:00-17:00'},
                                {u'thursday': u'09:00-17:00'}],
                u"exclude": [u'us-holidays'], u"is_active": False, u"imported_from": u""}
-        comm = r[0]
+        comm = r[1]
         del comm['_links']
         del comm['_id']
         del comm['_etag']
@@ -95,7 +94,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                {u'january 1': u'00:00-00:00'},
                                {u'december 25': u'00:00-00:00'}, {u'july 4': u'00:00-00:00'}],
                u"exclude": [], u"is_active": False, u"imported_from": u""}
-        comm = r[1]
+        comm = r[2]
         del comm['_links']
         del comm['_id']
         del comm['_etag']
@@ -299,9 +298,7 @@ class TestHosts(unittest2.TestCase):
                 tp_always = tp['_id']
             if tp['name'] == 'none':
                 tp_never = tp['_id']
-            if tp['name'] == 'All time default 24x7':
-                tp_default = tp['_id']
-        self.assertEqual(len(tps), 3)
+        self.assertEqual(len(tps), 2)
 
         result = self.backend.get('host')
         hosts = result['_items']
