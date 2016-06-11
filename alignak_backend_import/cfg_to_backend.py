@@ -266,10 +266,9 @@ class CfgToBackend(object):
                 timeperiods = self.backend.get_all('timeperiod')
                 headers_realm = {'Content-Type': 'application/json'}
                 for tp in timeperiods['_items']:
-                    if tp['name'] == 'All time default 24x7':
+                    if tp['name'] == '24x7':
                         self.inserted['timeperiod'] = {}
-                        # self.inserted['timeperiod']['All time default 24x7'] = tp['_id']
-                        self.inserted['timeperiod'][tp['_id']] = 'All time default 24x7'
+                        self.inserted['timeperiod'][tp['_id']] = '24x7'
                         self.default_tp = tp['_id']
                     else:
                         headers_realm['If-Match'] = tp['_etag']
@@ -355,7 +354,13 @@ class CfgToBackend(object):
                         explode_dr = recomp.split('  ')
                         dateranges.append({explode_dr[0]: explode_dr[-1].strip()})
                     else:
-                        dateranges.append({propti: ','.join(ti[propti])})
+                        for times in ti[propti]:
+                            if '  ' in times:
+                                recomp = propti + ' ' + times
+                                explode_dr = recomp.split('  ')
+                                dateranges.append({explode_dr[0]: explode_dr[-1].strip()})
+                            else:
+                                dateranges.append({propti: times})
             ti['dr'] = dateranges
 
     def convert_objects(self, source):
@@ -515,6 +520,12 @@ class CfgToBackend(object):
             #  - specific commands
             if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
                 print ("-> do not import this command.")
+                continue
+
+            #  - timeperiod 24x7
+            if r_name == 'timeperiod' and item[id_name] == "24x7":
+                self.inserted_uuid[r_name][self.default_tp] = item_obj.uuid
+                print ("-> do not change anything for 24x7 timeperiod.")
                 continue
 
             # convert objects
