@@ -354,7 +354,13 @@ class CfgToBackend(object):
                         explode_dr = recomp.split('  ')
                         dateranges.append({explode_dr[0]: explode_dr[-1].strip()})
                     else:
-                        dateranges.append({propti: ','.join(ti[propti])})
+                        for times in ti[propti]:
+                            if '  ' in times:
+                                recomp = propti + ' ' + times
+                                explode_dr = recomp.split('  ')
+                                dateranges.append({explode_dr[0]: explode_dr[-1].strip()})
+                            else:
+                                dateranges.append({propti: times})
             ti['dr'] = dateranges
 
     def convert_objects(self, source):
