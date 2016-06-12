@@ -536,13 +536,9 @@ class CfgToBackend(object):
                             'snapshot_period', 'escalation_period', 'dependency_period']:
                 if tp_name not in item:
                     continue
-                print("TP for %s: %s = %s" % (
-                    r_name, tp_name, item[tp_name]
-                ))
-                if item[tp_name] in timeperiods:
-                    print("TP is %s" % (
-                        timeperiods[item[tp_name]]
-                    ))
+                # print("TP for %s: %s = %s" % (r_name, tp_name, item[tp_name]))
+                # if item[tp_name] in timeperiods:
+                # print("TP is %s" % (timeperiods[item[tp_name]]))
                 if item[tp_name] == '24x7':
                     print("Changed TP: %s to default TP." % (tp_name))
                     item[tp_name] = self.default_tp
