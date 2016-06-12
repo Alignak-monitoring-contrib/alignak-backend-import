@@ -266,10 +266,9 @@ class CfgToBackend(object):
                 timeperiods = self.backend.get_all('timeperiod')
                 headers_realm = {'Content-Type': 'application/json'}
                 for tp in timeperiods['_items']:
-                    if tp['name'] == 'All time default 24x7':
+                    if tp['name'] == '24x7':
                         self.inserted['timeperiod'] = {}
-                        # self.inserted['timeperiod']['All time default 24x7'] = tp['_id']
-                        self.inserted['timeperiod'][tp['_id']] = 'All time default 24x7'
+                        self.inserted['timeperiod'][tp['_id']] = '24x7'
                         self.default_tp = tp['_id']
                     else:
                         headers_realm['If-Match'] = tp['_etag']
@@ -492,6 +491,9 @@ class CfgToBackend(object):
         elif r_name == 'serviceextinfo':
             alignak_resource = 'servicesextinfo'
 
+        # Alignak defined timeperiods
+        timeperiods = getattr(self.arbiter.conf, 'timeperiods')
+
         for item_obj in getattr(self.arbiter.conf, alignak_resource):
             item = {}
 
@@ -512,10 +514,38 @@ class CfgToBackend(object):
                 print ("-> do not change anything for admin contact.")
                 continue
 
+            #  - default timeperiod
+            if r_name == 'timeperiod' and item[id_name] == "24x7":
+                print ("-> do not change anything for default timeperiod.")
+                continue
+
             #  - specific commands
             if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
                 print ("-> do not import this command.")
                 continue
+
+            # Special case of timeperiods
+            for tp_name in ['host_notification_period', 'service_notification_period',
+                            'check_period', 'notification_period', 'maintenance_period',
+                            'snapshot_period', 'escalation_period', 'dependency_period']:
+                if tp_name not in item:
+                    continue
+                print("TP for %s: %s = %s" % (
+                    r_name, tp_name, item[tp_name]
+                ))
+                if item[tp_name] in timeperiods:
+                    print("TP is %s" % (
+                        timeperiods[item[tp_name]]
+                    ))
+                if item[tp_name] == '24x7':
+                    print("Changed TP: %s to default TP." % (tp_name))
+                    item[tp_name] = self.default_tp
+                    continue
+
+                if timeperiods[item[tp_name]] and \
+                   timeperiods[item[tp_name]].timeperiod_name == '24x7':
+                    print("Changed TP: %s to default TP." % (tp_name))
+                    item[tp_name] = self.default_tp
 
             # convert objects
             item = self.convert_objects(item)
@@ -566,7 +596,7 @@ class CfgToBackend(object):
                     item['service_notification_period'] = self.default_tp
 
             # Special case of timeperiods for hosts and services
-            # Always define timeperiods if they do not exit
+            # Always define timeperiods if they do not exist
             if r_name == 'host' or r_name == 'service':
                 if 'check_period' not in item or \
                    not item['check_period']:

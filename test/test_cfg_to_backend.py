@@ -301,7 +301,7 @@ class TestHosts(unittest2.TestCase):
                 tp_never = tp['_id']
             if tp['name'] == 'All time default 24x7':
                 tp_default = tp['_id']
-        self.assertEqual(len(tps), 3)
+        self.assertEqual(len(tps), 2)
 
         result = self.backend.get('host')
         hosts = result['_items']
