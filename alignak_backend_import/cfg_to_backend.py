@@ -91,9 +91,9 @@ from alignak_backend.models import hostdependency
 from alignak_backend.models import servicedependency
 from alignak_backend.models import serviceextinfo
 from alignak_backend.models import trigger
-from alignak_backend.models import contact
-from alignak_backend.models import contactgroup
-from alignak_backend.models import contactrestrictrole
+from alignak_backend.models import user
+from alignak_backend.models import usergroup
+from alignak_backend.models import userrestrictrole
 from alignak_backend.models import escalation
 from alignak_backend.models import host
 from alignak_backend.models import hostextinfo
@@ -205,10 +205,10 @@ class CfgToBackend(object):
         # SERVICEDEPENDENCY
         # SERVICEEXTINFO
         # TRIGGER
-        # CONTACT
+        # USER
         # CONTACTGROUP
-        #    contact.contactgroups / contactgroup.contactgroup_members
-        # CONTACTRESTRICTROLE
+        #    user.usergroups / usergroup.usergroup_members
+        # USERRESTRICTROLE
         # ESCALATION
         # HOST
         #    hostgroup.members / host.use / host.parents
@@ -283,13 +283,13 @@ class CfgToBackend(object):
                 self.backend.delete('serviceextinfo', headers)
             if self.type == 'trigger' or self.type == 'all':
                 self.backend.delete('trigger', headers)
-            if self.type == 'contact' or self.type == 'all':
-                contacts = self.backend.get_all('contact')
-                headers_contact = {'Content-Type': 'application/json'}
-                for cont in contacts['_items']:
+            if self.type == 'user' or self.type == 'all':
+                users = self.backend.get_all('user')
+                headers_user = {'Content-Type': 'application/json'}
+                for cont in users['_items']:
                     if cont['name'] != 'admin':
-                        headers_contact['If-Match'] = cont['_etag']
-                        self.backend.delete('contact/' + cont['_id'], headers_contact)
+                        headers_user['If-Match'] = cont['_etag']
+                        self.backend.delete('user/' + cont['_id'], headers_user)
                 realms = self.backend.get_all('realm')
                 headers_realm = {'Content-Type': 'application/json'}
                 for realm in realms['_items']:
@@ -304,10 +304,10 @@ class CfgToBackend(object):
 
                         # self.backend.delete('realm/' + realm['_id'], headers_realm)
                         # self.backend.delete('realm/' + realm['_id'], headers=None)
-            if self.type == 'contactgroup' or self.type == 'all':
-                self.backend.delete('contactgroup', headers)
-            if self.type == 'contactrestrictrole' or self.type == 'all':
-                self.backend.delete('contactrestrictrole', headers)
+            if self.type == 'usergroup' or self.type == 'all':
+                self.backend.delete('usergroup', headers)
+            if self.type == 'userrestrictrole' or self.type == 'all':
+                self.backend.delete('userrestrictrole', headers)
             if self.type == 'escalation' or self.type == 'all':
                 self.backend.delete('escalation', headers)
             if self.type == 'host' or self.type == 'all':
@@ -372,7 +372,7 @@ class CfgToBackend(object):
         :return: properties modified
         :rtype: dict
         """
-        names = ['service_description', 'host_name', 'dependent_host_name',
+        names = ['service_description', 'host', 'dependent_host',
                  'dependent_hostgroup_name', 'command_name', 'timeperiod_name']
         addprop = {}
         for prop in source:
@@ -404,6 +404,33 @@ class CfgToBackend(object):
             elif isinstance(source[prop], object):
                 self.log("%s = %s" % (prop, source[prop]))
 
+            # Rename contact as user ...
+            if prop == 'contacts':
+                source['users'] = source[prop]
+                source.pop('contacts')
+            if prop == 'contact_name':
+                source['name'] = source[prop]
+                # Do not remove this attribute, else dict size changes! Mange this later...
+                # source.pop('contact_name')
+            if prop == 'contactgroup_name':
+                source['name'] = source[prop]
+                # Do not remove this attribute, else dict size changes! Mange this later...
+                # source.pop('contactgroup_name')
+            if prop == 'contact_groups':
+                source['usergroups'] = source[prop]
+                source.pop('contact_groups')
+            if prop == 'contactgroups':
+                source['usergroups'] = source[prop]
+                source.pop('contactgroups')
+
+            # Relations are host and not host_name...
+            if prop == 'dependent_host_name':
+                source['dependent_host'] = source[prop]
+                source.pop('dependent_host_name')
+            if prop == 'merge_host_contacts':
+                source['merge_host_users'] = source[prop]
+                source.pop('merge_host_contacts')
+
         source.update(addprop)
         self.log("Converted: %s" % source)
         return source
@@ -412,7 +439,7 @@ class CfgToBackend(object):
         """
         Update field of resource having a link with other resources (objectid in backend)
 
-        :param resource: resource name (command, contact, host...)
+        :param resource: resource name (command, user, host...)
         :type resource: str
         :param field: field of resource to update
         :type field: str
@@ -496,6 +523,10 @@ class CfgToBackend(object):
             alignak_resource = 'hostsextinfo'
         elif r_name == 'serviceextinfo':
             alignak_resource = 'servicesextinfo'
+        elif r_name == 'user':
+            alignak_resource = 'contacts'
+        elif r_name == 'usergroup':
+            alignak_resource = 'contactgroups'
 
         # Alignak defined timeperiods
         timeperiods = getattr(self.arbiter.conf, 'timeperiods')
@@ -515,10 +546,14 @@ class CfgToBackend(object):
             # As of it, ignore attributes (use, name, definition_order and register) !
 
             # Ignore specific items ...
-            #  - admin contact
-            if r_name == 'contact' and item[id_name] == "admin":
-                print ("-> do not change anything for admin contact.")
-                continue
+            #  - admin user
+            if r_name == 'user':
+                if item[id_name] == "admin":
+                    print ("-> do not change anything for admin user.")
+                    continue
+                if 'contact_name' in item and item['contact_name'] == 'admin':
+                    print ("-> do not import another admin user.")
+                    continue
 
             #  - default timeperiod
             if r_name == 'timeperiod' and item[id_name] == "24x7":
@@ -585,9 +620,28 @@ class CfgToBackend(object):
                 for prop in item_obj.customs.keys():
                     item[prop] = item_obj.customs[prop]
 
-            # Special case of contacts
-            if r_name == 'contact':
+            # Special case of hostdependency / service
+            if r_name == 'hostdependency' or r_name == 'service':
+                if 'host_name' in item:
+                    item['host'] = item['host_name']
+                    item.pop('host_name')
+
+            # Special case of usergroups
+            if r_name == 'usergroup':
+                if 'members' in item:
+                    item['users'] = item['members']
+                    item.pop('members')
+                if 'contactgroup_name' in item:
+                    # Remove contactgroup_name, replaced with name...
+                    item.pop('contactgroup_name')
+
+            # Special case of users
+            if r_name == 'user':
                 item['back_role_super_admin'] = False
+
+                if 'contact_name' in item:
+                    # Remove contact_name, replaced with name...
+                    item.pop('contact_name')
 
                 if 'host_notification_period' not in item or \
                    not item['host_notification_period']:
@@ -768,12 +822,12 @@ class CfgToBackend(object):
             schema = trigger.get_schema()
             self.manage_resource('trigger', data_later, 'trigger_name', schema)
 
-        if self.type == 'contact' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add contact ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        if self.type == 'user' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'contactgroups', 'type': 'list',
-                    'resource': 'contactgroup', 'now': False
+                    'field': 'usergroups', 'type': 'list',
+                    'resource': 'usergroup', 'now': False
                 },
                 {
                     'field': 'host_notification_period', 'type': 'simple',
@@ -792,36 +846,36 @@ class CfgToBackend(object):
                     'resource': 'command', 'now': True
                 }
             ]
-            schema = contact.get_schema()
-            self.manage_resource('contact', data_later, 'contact_name', schema)
+            schema = user.get_schema()
+            self.manage_resource('user', data_later, 'name', schema)
 
-        if self.type == 'contactgroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add contactgroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        if self.type == 'usergroup' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'members', 'type': 'list',
-                    'resource': 'contact', 'now': True
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 },
                 {
-                    'field': 'contactgroup_members', 'type': 'list',
-                    'resource': 'contactgroup', 'now': False
+                    'field': 'usergroup_members', 'type': 'list',
+                    'resource': 'usergroup', 'now': False
                 }
             ]
-            schema = contactgroup.get_schema()
-            self.manage_resource('contactgroup', data_later, 'contactgroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post contactgroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('contactgroup', 'contactgroup_members')
+            schema = usergroup.get_schema()
+            self.manage_resource('usergroup', data_later, 'name', schema)
+            print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('usergroup', 'usergroup_members')
 
         if self.type == 'escalation' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add escalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'contacts', 'type': 'list',
-                    'resource': 'contact', 'now': True
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 },
                 {
-                    'field': 'contact_groups', 'type': 'list',
-                    'resource': 'contactgroup', 'now': True
+                    'field': 'usergroups', 'type': 'list',
+                    'resource': 'usergroup', 'now': True
                 }
             ]
             schema = escalation.get_schema()
@@ -864,12 +918,12 @@ class CfgToBackend(object):
                     'resource': 'timeperiod', 'now': True
                 },
                 {
-                    'field': 'contacts', 'type': 'list',
-                    'resource': 'contact', 'now': True
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 },
                 {
-                    'field': 'contact_groups', 'type': 'list',
-                    'resource': 'contactgroup', 'now': True
+                    'field': 'usergroups', 'type': 'list',
+                    'resource': 'usergroup', 'now': True
                 },
                 {
                     'field': 'notification_period', 'type': 'simple',
@@ -898,17 +952,17 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostextinfo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = []
             schema = hostextinfo.get_schema()
-            self.manage_resource('hostextinfo', data_later, 'host_name', schema)
+            self.manage_resource('hostextinfo', data_later, 'host', schema)
 
         if self.type == 'hostdependency' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'host_name', 'type': 'list',
+                    'field': 'host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
-                    'field': 'dependent_host_name', 'type': 'list',
+                    'field': 'dependent_host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -927,7 +981,7 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'dependent_host_name', 'type': 'list',
+                    'field': 'dependent_host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -939,7 +993,7 @@ class CfgToBackend(object):
                     'resource': 'service', 'now': True
                 },
                 {
-                    'field': 'host_name', 'type': 'list',
+                    'field': 'host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -954,16 +1008,16 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'contacts', 'type': 'list',
-                    'resource': 'contact', 'now': True
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 },
                 {
-                    'field': 'contact_groups', 'type': 'list',
-                    'resource': 'contactgroup', 'now': True
+                    'field': 'usergroups', 'type': 'list',
+                    'resource': 'usergroup', 'now': True
                 }
             ]
             schema = hostescalation.get_schema()
-            self.manage_resource('hostescalation', data_later, 'host_name', schema)
+            self.manage_resource('hostescalation', data_later, 'host', schema)
 
         if self.type == 'servicegroup' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -986,7 +1040,7 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'host_name', 'type': 'simple',
+                    'field': 'host', 'type': 'simple',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -1006,12 +1060,12 @@ class CfgToBackend(object):
                     'resource': 'timeperiod', 'now': True
                 },
                 {
-                    'field': 'contacts', 'type': 'list',
-                    'resource': 'contact', 'now': True
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 },
                 {
-                    'field': 'contact_groups', 'type': 'list',
-                    'resource': 'contactgroup',
+                    'field': 'usergroups', 'type': 'list',
+                    'resource': 'usergroup',
                     'now': True
                 },
                 {
@@ -1046,16 +1100,16 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'contacts', 'type': 'list',
-                    'resource': 'contact', 'now': True
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 },
                 {
-                    'field': 'contact_groups', 'type': 'list',
-                    'resource': 'contactgroup', 'now': True
+                    'field': 'usergroups', 'type': 'list',
+                    'resource': 'usergroup', 'now': True
                 }
             ]
             schema = serviceescalation.get_schema()
-            self.manage_resource('serviceescalation', data_later, 'host_name', schema)
+            self.manage_resource('serviceescalation', data_later, 'host', schema)
 
     def log(self, message):
         """

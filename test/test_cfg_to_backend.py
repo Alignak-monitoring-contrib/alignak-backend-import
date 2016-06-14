@@ -29,7 +29,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.backend.delete("contact", {})
+        cls.backend.delete("user", {})
         cls.p.kill()
 
     @classmethod
@@ -230,41 +230,41 @@ class TestContacts(unittest2.TestCase):
     def tearDown(cls):
         print ""
 
-    def test_contacts(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contacts.cfg'])
+    def test_users(self):
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/users.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        result = self.backend.get_all('contact')
-        contacts = result['_items']
-        self.assertEqual(len(contacts), 4)
+        result = self.backend.get_all('user')
+        users = result['_items']
+        self.assertEqual(len(users), 4)
 
-        print "Found contacts: "
-        for contact in contacts:
-            print "-", contact['name']
-            if contact['name'] == 'admin':
-                self.assertEqual(contact['is_admin'], False)
-                self.assertEqual(contact['back_role_super_admin'], True)
+        print "Found users: "
+        for user in users:
+            print "-", user['name']
+            if user['name'] == 'admin':
+                self.assertEqual(user['is_admin'], False)
+                self.assertEqual(user['back_role_super_admin'], True)
             else:
-                # self.assertEqual(contact['is_admin'], True)
-                self.assertEqual(contact['back_role_super_admin'], False)
+                # self.assertEqual(user['is_admin'], True)
+                self.assertEqual(user['back_role_super_admin'], False)
 
-    def test_contact_is_admin(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/contact_admin.cfg'])
+    def test_user_is_admin(self):
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/user_admin.cfg'])
         (stdoutdata, stderrdata) = q.communicate() # now wait
 
-        result = self.backend.get_all('contact')
-        contacts = result['_items']
-        self.assertEqual(len(contacts), 2)
+        result = self.backend.get_all('user')
+        users = result['_items']
+        self.assertEqual(len(users), 2)
 
-        print "Found contacts: "
-        for contact in contacts:
-            print "-", contact['name']
-            if contact['name'] == 'admin':
-                self.assertEqual(contact['is_admin'], False)
-                self.assertEqual(contact['back_role_super_admin'], True)
+        print "Found users: "
+        for user in users:
+            print "-", user['name']
+            if user['name'] == 'admin':
+                self.assertEqual(user['is_admin'], False)
+                self.assertEqual(user['back_role_super_admin'], True)
             else:
-                self.assertEqual(contact['is_admin'], True)
-                self.assertEqual(contact['back_role_super_admin'], False)
+                self.assertEqual(user['is_admin'], True)
+                self.assertEqual(user['back_role_super_admin'], False)
 
 
 class TestHosts(unittest2.TestCase):
