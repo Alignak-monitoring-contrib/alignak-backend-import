@@ -545,6 +545,15 @@ class CfgToBackend(object):
                 item[prop] = getattr(item_obj, prop)
             # As of it, ignore attributes (use, name, definition_order and register) !
 
+            # Remove unused attributes...
+            #  - retain_nonstatus_information / retain_status_information
+            if 'retain_status_information' in item:
+                print ("-> remove retain_status_information.")
+                item.pop('retain_status_information')
+            if 'retain_nonstatus_information' in item:
+                print ("-> remove retain_nonstatus_information.")
+                item.pop('retain_nonstatus_information')
+
             # Ignore specific items ...
             #  - admin user
             if r_name == 'user':
