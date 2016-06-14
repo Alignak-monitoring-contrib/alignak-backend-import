@@ -575,13 +575,13 @@ class CfgToBackend(object):
                 # if item[tp_name] in timeperiods:
                 # print("TP is %s" % (timeperiods[item[tp_name]]))
                 if item[tp_name] == '24x7':
-                    print("Changed TP: %s to default TP." % (tp_name))
+                    # print("Changed TP: %s to default TP." % (tp_name))
                     item[tp_name] = self.default_tp
                     continue
 
                 if timeperiods[item[tp_name]] and \
                    timeperiods[item[tp_name]].timeperiod_name == '24x7':
-                    print("Changed TP: %s to default TP." % (tp_name))
+                    # print("Changed TP: %s to default TP." % (tp_name))
                     item[tp_name] = self.default_tp
 
             # convert objects
