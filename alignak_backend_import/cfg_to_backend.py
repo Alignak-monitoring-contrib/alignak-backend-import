@@ -372,7 +372,7 @@ class CfgToBackend(object):
         :return: properties modified
         :rtype: dict
         """
-        names = ['service_description', 'host_name', 'dependent_host_name',
+        names = ['service_description', 'host', 'dependent_host',
                  'dependent_hostgroup_name', 'command_name', 'timeperiod_name']
         addprop = {}
         for prop in source:
@@ -412,12 +412,24 @@ class CfgToBackend(object):
                 source['name'] = source[prop]
                 # Do not remove this attribute, else dict size changes! Mange this later...
                 # source.pop('contact_name')
+            if prop == 'contactgroup_name':
+                source['name'] = source[prop]
+                # Do not remove this attribute, else dict size changes! Mange this later...
+                # source.pop('contactgroup_name')
             if prop == 'contact_groups':
                 source['usergroups'] = source[prop]
                 source.pop('contact_groups')
             if prop == 'contactgroups':
                 source['usergroups'] = source[prop]
                 source.pop('contactgroups')
+
+            # Relations are host and not host_name...
+            if prop == 'dependent_host_name':
+                source['dependent_host'] = source[prop]
+                source.pop('dependent_host_name')
+            if prop == 'merge_host_contacts':
+                source['merge_host_users'] = source[prop]
+                source.pop('merge_host_contacts')
 
         source.update(addprop)
         self.log("Converted: %s" % source)
@@ -607,6 +619,21 @@ class CfgToBackend(object):
             elif 'allow_unknown' in schema and schema['allow_unknown']:
                 for prop in item_obj.customs.keys():
                     item[prop] = item_obj.customs[prop]
+
+            # Special case of hostdependency / service
+            if r_name == 'hostdependency' or r_name == 'service':
+                if 'host_name' in item:
+                    item['host'] = item['host_name']
+                    item.pop('host_name')
+
+            # Special case of usergroups
+            if r_name == 'usergroup':
+                if 'members' in item:
+                    item['users'] = item['members']
+                    item.pop('members')
+                if 'contactgroup_name' in item:
+                    # Remove contactgroup_name, replaced with name...
+                    item.pop('contactgroup_name')
 
             # Special case of users
             if r_name == 'user':
@@ -826,7 +853,7 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'members', 'type': 'list',
+                    'field': 'users', 'type': 'list',
                     'resource': 'user', 'now': True
                 },
                 {
@@ -835,7 +862,7 @@ class CfgToBackend(object):
                 }
             ]
             schema = usergroup.get_schema()
-            self.manage_resource('usergroup', data_later, 'usergroup_name', schema)
+            self.manage_resource('usergroup', data_later, 'name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('usergroup', 'usergroup_members')
 
@@ -925,17 +952,17 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostextinfo ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = []
             schema = hostextinfo.get_schema()
-            self.manage_resource('hostextinfo', data_later, 'host_name', schema)
+            self.manage_resource('hostextinfo', data_later, 'host', schema)
 
         if self.type == 'hostdependency' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'host_name', 'type': 'list',
+                    'field': 'host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
-                    'field': 'dependent_host_name', 'type': 'list',
+                    'field': 'dependent_host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -954,7 +981,7 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'dependent_host_name', 'type': 'list',
+                    'field': 'dependent_host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -966,7 +993,7 @@ class CfgToBackend(object):
                     'resource': 'service', 'now': True
                 },
                 {
-                    'field': 'host_name', 'type': 'list',
+                    'field': 'host', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -990,7 +1017,7 @@ class CfgToBackend(object):
                 }
             ]
             schema = hostescalation.get_schema()
-            self.manage_resource('hostescalation', data_later, 'host_name', schema)
+            self.manage_resource('hostescalation', data_later, 'host', schema)
 
         if self.type == 'servicegroup' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1013,7 +1040,7 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'host_name', 'type': 'simple',
+                    'field': 'host', 'type': 'simple',
                     'resource': 'host', 'now': True
                 },
                 {
@@ -1082,7 +1109,7 @@ class CfgToBackend(object):
                 }
             ]
             schema = serviceescalation.get_schema()
-            self.manage_resource('serviceescalation', data_later, 'host_name', schema)
+            self.manage_resource('serviceescalation', data_later, 'host', schema)
 
     def log(self, message):
         """
