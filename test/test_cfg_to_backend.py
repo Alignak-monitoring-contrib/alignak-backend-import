@@ -49,20 +49,23 @@ class TestCfgToBackend(unittest2.TestCase):
         tps = result['_items']
         self.assertEqual(len(tps), 1)
         for comm in tps:
-             ref = {u"name": u"workhours",
-                    u"definition_order": 100,
-                    u"alias": u"Normal Work Hours",
-                    u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
                                    {u'friday': u'09:00-12:00,14:00-16:00'}, {u'wednesday': u'09:00-17:00'},
                                    {u'thursday': u'09:00-17:00'}],
-                    u"exclude": [], u"is_active": False, u"imported_from": u""}
-             del comm['_links']
-             del comm['_id']
-             del comm['_etag']
-             del comm['_created']
-             del comm['_updated']
-             del comm['_realm']
-             self.assertEqual(comm, ref)
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+
 
     def test_timeperiod_complex(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods_complex.cfg'])
@@ -74,10 +77,12 @@ class TestCfgToBackend(unittest2.TestCase):
         ref = {u"name": u"workhours",
                u"definition_order": 100,
                u"alias": u"Normal Work Hours",
+               u"notes": u"",
                u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
                                {u'friday': u'09:00-12:00,14:00-16:00'}, {u'wednesday': u'09:00-17:00'},
                                {u'thursday': u'09:00-17:00'}],
-               u"exclude": [u'us-holidays'], u"is_active": False, u"imported_from": u""}
+               u"exclude": [u'us-holidays'], u"is_active": False,
+               u"imported_from": u"alignak_backend_import"}
         comm = r[0]
         del comm['_links']
         del comm['_id']
@@ -90,11 +95,13 @@ class TestCfgToBackend(unittest2.TestCase):
         ref = {u"name": u"us-holidays",
                u"definition_order": 100,
                u"alias": u"U.S. Holidays",
+               u"notes": u"",
                u"dateranges": [{u'thursday -1 november': u'00:00-00:00'},
                                {u'monday 1 september': u'00:00-00:00'},
                                {u'january 1': u'00:00-00:00'},
                                {u'december 25': u'00:00-00:00'}, {u'july 4': u'00:00-00:00'}],
-               u"exclude": [], u"is_active": False, u"imported_from": u""}
+               u"exclude": [], u"is_active": False,
+               u"imported_from": u"alignak_backend_import"}
         comm = r[1]
         del comm['_links']
         del comm['_id']
@@ -127,8 +134,7 @@ class TestCfgToBackend(unittest2.TestCase):
         for hostgroup in hostgroups:
             print "Hostgroup:", hostgroup
             print "Hostgroup groups:", hostgroup['hostgroups']
-
-        self.assertEqual(hosts[0]['hostgroups'], [hostgroups[0]['_id'], hostgroups[1]['_id']])
+            self.assertEqual(hostgroup['hosts'], [hosts[0]['_id']])
 
     def test_host_multiple_link_later(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
@@ -170,10 +176,12 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(len(hostgroups), 2)
         for hostgroup in hostgroups:
             print "Hostgroup:", hostgroup
-            print "Hostgroup groups members:", hostgroup['hostgroup_members']
-            print "Hostgroup members:", hostgroup['members']
+            print "Hostgroup groups members:", hostgroup['hostgroups']
+            print "Hostgroup members:", hostgroup['hosts']
             if hostgroup['name'] == 'freebsd':
-                self.assertEqual(len(hostgroup['hostgroup_members']), 1)
+                self.assertEqual(len(hostgroup['hostgroups']), 1)
+            if hostgroup['name'] == 'alignak':
+                self.assertEqual(len(hostgroup['hostgroups']), 0)
 
     def test_command_with_args(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts.cfg'])

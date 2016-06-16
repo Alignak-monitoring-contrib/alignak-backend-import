@@ -399,7 +399,7 @@ class CfgToBackend(object):
         :return: properties modified
         :rtype: dict
         """
-        names = ['service_description', 'host', 'dependent_host',
+        names = ['services', 'service', 'hosts', 'host', 'dependent_host',
                  'dependent_hostgroup_name', 'command_name', 'timeperiod_name']
         addprop = {}
         for prop in source:
@@ -688,7 +688,7 @@ class CfgToBackend(object):
                     # Remove this field
                     item.pop('definition_order')
 
-                if item['name'] == 'All':
+                if item['name'] == 'All' or item['name'] == 'Default':
                     # Default Alignak realm is same as our All realm
                     self.default_realm = item['uuid']
 
@@ -755,17 +755,16 @@ class CfgToBackend(object):
             # Special case of hostgroups
             if r_name == 'hostgroup':
                 if 'members' in item:
-                    # item['hosts'] = item['members']
+                    item['hosts'] = item['members']
                     item.pop('members')
                 if 'hostgroup_members' in item:
                     item['hostgroups'] = item['hostgroup_members']
                     item.pop('hostgroup_members')
+                print("Host group members: %s" % item['hosts'])
 
             # Special case of hosts
             if r_name == 'host':
-                print("Host: %s" % item)
-                print("Host groups: %s" % item['hostgroups'])
-                print (" -> %s: " % (item_obj.get_hostgroups()))
+                item.pop('hostgroups')
                 item.pop('trigger_name')
 
                 # Define location
@@ -774,14 +773,17 @@ class CfgToBackend(object):
             # Special case of servicegroups
             if r_name == 'servicegroup':
                 if 'members' in item:
-                    # item['services'] = item['members']
+                    item['services'] = item['members']
                     item.pop('members')
+                    print("!!!!! #9: Do not import service group members: %s" % item['services'])
+                    item.pop('services')
                 if 'servicegroup_members' in item:
                     item['servicegroups'] = item['servicegroup_members']
                     item.pop('servicegroup_members')
 
             # Special case of services
             if r_name == 'service':
+                item.pop('servicegroups')
                 item.pop('trigger_name')
                 item.pop('merge_host_contacts')
 
@@ -1053,6 +1055,10 @@ class CfgToBackend(object):
                 {
                     'field': 'hostgroups', 'type': 'list',
                     'resource': 'hostgroup', 'now': False
+                },
+                {
+                    'field': 'hosts', 'type': 'list',
+                    'resource': 'host', 'now': False
                 }
             ]
             schema = hostgroup.get_schema()
@@ -1112,6 +1118,7 @@ class CfgToBackend(object):
             self.manage_resource('host', data_later, 'host_name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('host', 'parents')
+            self.update_later('hostgroup', 'hosts')
 
         if self.type == 'hostdependency' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
