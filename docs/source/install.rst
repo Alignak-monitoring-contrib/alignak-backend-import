@@ -19,7 +19,7 @@ From source
 
 You can install it from source::
 
-    git clone https://github.com/Alignak-monitoring/alignak-backend-import
+    git clone https://github.com/Alignak-monitoring-contrib/alignak-backend-import
     cd alignak-backend-import
     pip install .
 
@@ -42,15 +42,15 @@ If you are on Debian::
 
 Get the project sources::
 
-    git clone https://github.com/Alignak-monitoring/alignak-backend-import
+    git clone https://github.com/Alignak-monitoring-contrib/alignak-backend-import
 
 
 Install python prerequisites::
 
-    pip install -r alignak-backend/requirements.txt
+    pip install -r alignak-backend-import/requirements.txt
 
 
 And install::
 
-    cd alignak-backend
+    cd alignak-backend-import
     python setup.py install

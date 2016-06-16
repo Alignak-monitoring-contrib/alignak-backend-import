@@ -3,6 +3,5 @@
 Introduction
 ============
 
-This project contains tools that may be used to impoirt Nagios like flat monitoring configuration
-into an Alignak Backend.
+This project contains tools that may be used to import Nagios-like (or Shinken-like) flat files monitoring configuration into an Alignak Backend.
 
