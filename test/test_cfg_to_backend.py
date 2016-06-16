@@ -117,14 +117,18 @@ class TestCfgToBackend(unittest2.TestCase):
         result = self.backend.get('host')
         hosts = result['_items']
         self.assertEqual(len(hosts), 1)
-        host_id = hosts[0]['_id']
+        for host in hosts:
+            # host_id = hosts[0]['_id']
+            print "Host:", host
+
         result = self.backend.get('hostgroup')
         hostgroups = result['_items']
         self.assertEqual(len(hostgroups), 2)
         for hostgroup in hostgroups:
             print "Hostgroup:", hostgroup
-            print "Hostgroup members:", hostgroup['members']
-            self.assertEqual(hostgroup['members'], [host_id])
+            print "Hostgroup groups:", hostgroup['hostgroups']
+
+        self.assertEqual(hosts[0]['hostgroups'], [hostgroups[0]['_id'], hostgroups[1]['_id']])
 
     def test_host_multiple_link_later(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
