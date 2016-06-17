@@ -484,10 +484,7 @@ class CfgToBackend(object):
                         data[field] = self.inserted[item['resource']].keys()[idx]
                     elif val in self.inserted_uuid[item['resource']].values():
                         idx = self.inserted_uuid[item['resource']].values().index(val)
-                        data[field] = self.inserted[item['resource']].keys()[idx]
-                # data = {
-                    # field: self.inserted[item['resource']][item['value']]
-                # }
+                        data[field] = self.inserted_uuid[item['resource']].keys()[idx]
                 print("Late update for: %s/%s -> %s" % (resource, index, data))
             elif item['type'] == 'list':
                 data = {field: []}
@@ -509,17 +506,19 @@ class CfgToBackend(object):
                                 data[field].append(self.inserted[item['resource']].keys()[idx])
                             elif val in self.inserted_uuid[item['resource']].values():
                                 idx = self.inserted_uuid[item['resource']].values().index(val)
-                                data[field].append(self.inserted[item['resource']].keys()[idx])
+                                data[field].append(
+                                    self.inserted_uuid[item['resource']].keys()[idx]
+                                )
                 print("Late update for: %s/%s -> %s" % (resource, index, data))
 
             try:
                 endpoint = ''.join([resource, '/', index])
+                self.log("before_patch: %s : %s:" % (endpoint, data))
                 to_patch = self.backend.get(endpoint)
                 headers['If-Match'] = to_patch['_etag']
-                self.log("before_patch: %s : %s:" % (endpoint, data))
                 resp = self.backend.patch(endpoint, data, headers, True)
             except BackendException as e:
-                print("# Patch error for: %s : %s" % (resource, data))
+                print("# Patch error for: %s : %s" % (endpoint, data))
                 print("***** Exception: %s" % str(e))
                 print("***** Traceback: %s", traceback.format_exc())
                 print("***** response: %s" % e.response)
@@ -585,6 +584,7 @@ class CfgToBackend(object):
 
             self.log("...................................")
             self.log("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
+            print("...................................")
             print ("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
 
             # Only deal with properties,
@@ -598,10 +598,10 @@ class CfgToBackend(object):
             # ------------------------------------------------------------
             #  - retain_nonstatus_information / retain_status_information
             if 'retain_status_information' in item:
-                print ("-> remove retain_status_information.")
+                # print ("-> remove retain_status_information.")
                 item.pop('retain_status_information')
             if 'retain_nonstatus_information' in item:
-                print ("-> remove retain_nonstatus_information.")
+                # print ("-> remove retain_nonstatus_information.")
                 item.pop('retain_nonstatus_information')
 
             # Ignore specific items ...
@@ -945,6 +945,7 @@ class CfgToBackend(object):
             try:
                 # With headers=None, the post method manages correctly the posted data ...
                 response = self.backend.post(r_name, item, headers=None)
+                print("-> Created a new: %s : %s" % (r_name, response['_id']))
             except BackendException as e:
                 print("# Post error for: %s : %s" % (r_name, item))
                 print("***** Exception: %s" % str(e))
