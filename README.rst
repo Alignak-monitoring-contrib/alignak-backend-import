@@ -33,12 +33,12 @@ You can find online documentation on `Read The Docs <http://alignak-backend-impo
 Short description
 -------------------
 
-This package contains an utility tool `alignak_backend_import`that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
+This package contains an utility tool `alignak_backend_import` that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
 
 Bugs, issues and contributing
 ----------------------------------------
 
-Please report any issue using the project GitHub repository: <https://github.com/Alignak-monitoring-contrib/alignak-backend-import/issues>`_.
+Please report any issue using the project `GitHub repository<https://github.com/Alignak-monitoring-contrib/alignak-backend-import/issues>`_.
 
 License
 ----------------------------------------
