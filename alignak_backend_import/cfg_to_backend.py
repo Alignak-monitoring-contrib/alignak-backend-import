@@ -285,15 +285,21 @@ class CfgToBackend(object):
             if self.type == 'timeperiod' or self.type == 'all':
                 print("Deleting timeperiods")
                 timeperiods = self.backend.get_all('timeperiod')
-                headers_tp = {'Content-Type': 'application/json'}
+                headers = {'Content-Type': 'application/json'}
                 for tp in timeperiods['_items']:
                     if tp['name'] != '24x7':
                         print("Deleting timeperiod: %s" % tp['name'])
-                        headers_tp['If-Match'] = tp['_etag']
-                        self.backend.delete('timeperiod/' + tp['_id'], headers_tp)
+                        headers['If-Match'] = tp['_etag']
+                        self.backend.delete('timeperiod/' + tp['_id'], headers)
             if self.type == 'hostgroup' or self.type == 'all':
                 print("Deleting hostgroups")
-                self.backend.delete('hostgroup', headers)
+                hostgroups = self.backend.get_all('hostgroup')
+                headers = {'Content-Type': 'application/json'}
+                for hg in hostgroups['_items']:
+                    if hg['name'] != 'All':
+                        print("Deleting hostgroup: %s" % hg['name'])
+                        headers['If-Match'] = hg['_etag']
+                        self.backend.delete('hostgroup/' + hg['_id'], headers)
             if self.type == 'hostdependency' or self.type == 'all':
                 print("Deleting hostdependencys")
                 self.backend.delete('hostdependency', headers)
@@ -306,23 +312,23 @@ class CfgToBackend(object):
             if self.type == 'user' or self.type == 'all':
                 print("Deleting users")
                 users = self.backend.get_all('user')
-                headers_user = {'Content-Type': 'application/json'}
+                headers = {'Content-Type': 'application/json'}
                 for u in users['_items']:
                     if u['name'] != 'admin':
                         print("Deleting user: %s" % u['name'])
-                        headers_user['If-Match'] = u['_etag']
-                        self.backend.delete('user/' + u['_id'], headers_user)
+                        headers['If-Match'] = u['_etag']
+                        self.backend.delete('user/' + u['_id'], headers)
             if self.type == 'realm' or self.type == 'all':
                 print("Deleting realms")
                 # Get realms in _level reverse order to be able to delete them ...
                 realms = self.backend.get('realm', params={'sort': '-_level'})
-                headers_realm = {'Content-Type': 'application/json'}
+                headers = {'Content-Type': 'application/json'}
                 for r in realms['_items']:
                     if r['name'] != 'All':
                         print("Deleting realm: %s" % r['name'])
                         to_del = self.backend.get('realm/' + r['_id'])
-                        headers_realm['If-Match'] = to_del['_etag']
-                        self.backend.delete('realm/' + to_del['_id'], headers_realm)
+                        headers['If-Match'] = to_del['_etag']
+                        self.backend.delete('realm/' + to_del['_id'], headers)
             if self.type == 'usergroup' or self.type == 'all':
                 print("Deleting usergroups")
                 self.backend.delete('usergroup', headers)
@@ -340,7 +346,13 @@ class CfgToBackend(object):
                 self.backend.delete('hostescalation', headers)
             if self.type == 'servicegroup' or self.type == 'all':
                 print("Deleting servicegroups")
-                self.backend.delete('servicegroup', headers)
+                servicegroups = self.backend.get_all('servicegroup')
+                headers = {'Content-Type': 'application/json'}
+                for sg in servicegroups['_items']:
+                    if sg['name'] != 'All':
+                        print("Deleting servicegroup: %s" % sg['name'])
+                        headers['If-Match'] = sg['_etag']
+                        self.backend.delete('servicegroup/' + sg['_id'], headers)
             if self.type == 'service' or self.type == 'all':
                 print("Deleting services")
                 self.backend.delete('service', headers)
@@ -576,6 +588,64 @@ class CfgToBackend(object):
         # Alignak defined timeperiods
         timeperiods = getattr(self.arbiter.conf, 'timeperiods')
 
+        elements = None
+        # Alignak defined hostgroups
+        if r_name == 'hostgroup':
+            hgs = getattr(self.arbiter.conf, 'hostgroups')
+            for hg in hgs:
+                hg._parent = None
+
+            for hg in hgs:
+                for child in sorted(hg.get_hostgroup_members()):
+                    if not child:
+                        continue
+                    # Search child group...
+                    print("Found child: %s for %s" % (
+                        child, hg.hostgroup_name
+                    ))
+                    for group in hgs:
+                        if group.get_name() == child:
+                            print("Found parent: %s (%s) for %s" % (
+                                hg.uuid, hg.hostgroup_name, group
+                            ))
+                            group._parent = hg.uuid
+                            break
+            for hg in hgs:
+                print("HG: %s (%s) - %s" % (
+                    hg.uuid, hg.hostgroup_name, hg._parent
+                ))
+                hg.properties['_parent'] = hg._parent
+            elements = hgs
+        # Alignak defined servicegroups
+        elif r_name == 'servicegroup':
+            sgs = getattr(self.arbiter.conf, 'servicegroups')
+            for sg in sgs:
+                sg._parent = None
+
+            for sg in sgs:
+                for child in sorted(sg.get_servicegroup_members()):
+                    if not child:
+                        continue
+                    # Search child group...
+                    print("Found child: %s for %s" % (
+                        child, sg.servicegroup_name
+                    ))
+                    for group in sgs:
+                        if group.get_name() == child:
+                            print("Found parent: %s (%s) for %s" % (
+                                sg.uuid, sg.servicegroup_name, group
+                            ))
+                            group._parent = sg.uuid
+                            break
+            for sg in sgs:
+                print("SG: %s (%s) - %s" % (
+                    sg.uuid, sg.servicegroup_name, sg._parent
+                ))
+                sg.properties['_parent'] = sg._parent
+            elements = sgs
+        else:
+            elements = getattr(self.arbiter.conf, alignak_resource)
+
         # Alignak defined realms
         if self.default_realm == '':
             realms = getattr(self.arbiter.conf, 'realms')
@@ -586,7 +656,7 @@ class CfgToBackend(object):
                 self.default_realm, default_realm.get_name()
             ))
 
-        for item_obj in getattr(self.arbiter.conf, alignak_resource):
+        for item_obj in elements:
             item = {}
 
             self.log("...................................")
@@ -730,6 +800,8 @@ class CfgToBackend(object):
 
                 if r_name in ['host', 'hostgroup']:
                     item['realm'] = self.realm_all
+
+                    # Remove hostgroups relations ... still useful?
                     item['hostgroups'] = []
                 else:
                     item['_realm'] = self.realm_all
@@ -762,12 +834,11 @@ class CfgToBackend(object):
             # Special case of hostgroups
             if r_name == 'hostgroup':
                 if 'members' in item:
-                    item['hosts'] = item['members']
+                    # item['hosts'] = item['members']
                     item.pop('members')
                 if 'hostgroup_members' in item:
                     item['hostgroups'] = item['hostgroup_members']
                     item.pop('hostgroup_members')
-                print("Host group members: %s" % item['hosts'])
 
             # Special case of hosts
             if r_name == 'host':
@@ -780,10 +851,8 @@ class CfgToBackend(object):
             # Special case of servicegroups
             if r_name == 'servicegroup':
                 if 'members' in item:
-                    item['services'] = item['members']
+                    # item['services'] = item['members']
                     item.pop('members')
-                    print("!!!!! #9: Do not import service group members: %s" % item['services'])
-                    item.pop('services')
                 if 'servicegroup_members' in item:
                     item['servicegroups'] = item['servicegroup_members']
                     item.pop('servicegroup_members')
@@ -1061,6 +1130,10 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
+                    'field': '_parent', 'type': 'simple',
+                    'resource': 'hostgroup', 'now': True
+                },
+                {
                     'field': 'hostgroups', 'type': 'list',
                     'resource': 'hostgroup', 'now': False
                 },
@@ -1072,6 +1145,7 @@ class CfgToBackend(object):
             schema = hostgroup.get_schema()
             self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('hostgroup', '_parent')
             self.update_later('hostgroup', 'hostgroups')
 
         if self.type == 'host' or self.type == 'all':
@@ -1197,6 +1271,10 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
+                    'field': '_parent', 'type': 'simple',
+                    'resource': 'servicegroup', 'now': True
+                },
+                {
                     'field': 'servicegroups', 'type': 'list',
                     'resource': 'servicegroup', 'now': False
                 }
@@ -1204,6 +1282,7 @@ class CfgToBackend(object):
             schema = servicegroup.get_schema()
             self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('servicegroup', '_parent')
             self.update_later('servicegroup', 'servicegroups')
 
         if self.type == 'service' or self.type == 'all':
