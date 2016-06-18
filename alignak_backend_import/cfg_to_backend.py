@@ -119,7 +119,6 @@ class CfgToBackend(object):
         self.later = {}
         self.inserted = {}
         self.inserted_uuid = {}
-        self.default_tp = None
 
         # Get command line parameters
         try:
@@ -140,6 +139,13 @@ class CfgToBackend(object):
             self.log("Configuration to load: %s" % cfg)
         else:
             self.log("No configuration specified")
+
+        if not cfg:
+            print("No configuration specified")
+            exit(2)
+
+        if not isinstance(cfg, list):
+            cfg = [cfg]
 
         # Define here the url of the backend
         self.backend_url = args['--backend']
@@ -163,20 +169,31 @@ class CfgToBackend(object):
         # Delete data in backend if asked in arguments
         self.delete_data()
 
-        # get realm id
+        # Default realm
         self.realm_all = ''
         self.default_realm = ''
         realms = self.backend.get_all('realm')
         for r in realms['_items']:
             if r['name'] == 'All' and r['_level'] == 0:
+                self.inserted['realm'] = {}
+                self.inserted['realm'][r['_id']] = 'All'
                 self.realm_all = r['_id']
 
-        if not cfg:
-            print("No configuration specified")
-            exit(2)
+        # Default timeperiod
+        self.default_tp = None
+        timeperiods = self.backend.get_all('timeperiod')
+        for tp in timeperiods['_items']:
+            if tp['name'] == '24x7':
+                self.inserted['timeperiod'] = {}
+                self.inserted['timeperiod'][tp['_id']] = '24x7'
+                self.default_tp = tp['_id']
 
-        if not isinstance(cfg, list):
-            cfg = [cfg]
+        # Default user
+        users = self.backend.get_all('user')
+        for u in users['_items']:
+            if u['name'] == 'admin':
+                self.inserted['user'] = {}
+                self.inserted['user'][u['_id']] = 'admin'
 
         # Get flat files configuration
         try:
@@ -270,11 +287,7 @@ class CfgToBackend(object):
                 timeperiods = self.backend.get_all('timeperiod')
                 headers_tp = {'Content-Type': 'application/json'}
                 for tp in timeperiods['_items']:
-                    if tp['name'] == '24x7':
-                        self.inserted['timeperiod'] = {}
-                        self.inserted['timeperiod'][tp['_id']] = '24x7'
-                        self.default_tp = tp['_id']
-                    else:
+                    if tp['name'] != '24x7':
                         print("Deleting timeperiod: %s" % tp['name'])
                         headers_tp['If-Match'] = tp['_etag']
                         self.backend.delete('timeperiod/' + tp['_id'], headers_tp)
@@ -295,10 +308,7 @@ class CfgToBackend(object):
                 users = self.backend.get_all('user')
                 headers_user = {'Content-Type': 'application/json'}
                 for u in users['_items']:
-                    if u['name'] == 'admin':
-                        self.inserted['user'] = {}
-                        self.inserted['user'][u['_id']] = 'admin'
-                    else:
+                    if u['name'] != 'admin':
                         print("Deleting user: %s" % u['name'])
                         headers_user['If-Match'] = u['_etag']
                         self.backend.delete('user/' + u['_id'], headers_user)
@@ -308,10 +318,7 @@ class CfgToBackend(object):
                 realms = self.backend.get('realm', params={'sort': '-_level'})
                 headers_realm = {'Content-Type': 'application/json'}
                 for r in realms['_items']:
-                    if r['name'] == 'All':
-                        self.inserted['realm'] = {}
-                        self.inserted['realm'][r['_id']] = 'All'
-                    else:
+                    if r['name'] != 'All':
                         print("Deleting realm: %s" % r['name'])
                         to_del = self.backend.get('realm/' + r['_id'])
                         headers_realm['If-Match'] = to_del['_etag']
