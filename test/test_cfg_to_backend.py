@@ -66,7 +66,6 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_realm']
             self.assertEqual(comm, ref)
 
-
     def test_timeperiod_complex(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/timeperiods_complex.cfg'])
         (_, _) = q.communicate() # now wait
@@ -130,11 +129,11 @@ class TestCfgToBackend(unittest2.TestCase):
 
         result = self.backend.get('hostgroup')
         hostgroups = result['_items']
-        self.assertEqual(len(hostgroups), 2)
+        self.assertEqual(len(hostgroups), 3)
         for hostgroup in hostgroups:
             print "Hostgroup:", hostgroup
             print "Hostgroup groups:", hostgroup['hostgroups']
-            self.assertEqual(hostgroup['hosts'], [hosts[0]['_id']])
+            # self.assertEqual(hostgroup['hosts'], [hosts[0]['_id']])
 
     def test_host_multiple_link_later(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', 'alignak_cfg_files/hosts_links_parent.cfg'])
@@ -173,7 +172,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
         result = self.backend.get('hostgroup')
         hostgroups = result['_items']
-        self.assertEqual(len(hostgroups), 2)
+        self.assertEqual(len(hostgroups), 3)
         for hostgroup in hostgroups:
             print "Hostgroup:", hostgroup
             print "Hostgroup groups members:", hostgroup['hostgroups']
@@ -309,7 +308,7 @@ class TestHosts(unittest2.TestCase):
             print tp['_id'], tp['name']
             if tp['name'] == '24x7':
                 tp_always = tp['_id']
-            if tp['name'] == 'none':
+            if tp['name'] == 'Never':
                 tp_never = tp['_id']
             if tp['name'] == 'All time default 24x7':
                 tp_default = tp['_id']
@@ -334,6 +333,18 @@ class TestHosts(unittest2.TestCase):
             # Host template fields - must have a valid check period
             self.assertIn('check_period', host)
             self.assertEqual(host['check_period'], tp_always)
+
+            # Host template fields - must have a valid notification period
+            self.assertIn('notification_period', host)
+            self.assertEqual(host['notification_period'], tp_always)
+
+            # Host template fields - must have a Never maintenance period
+            self.assertIn('maintenance_period', host)
+            self.assertEqual(host['maintenance_period'], tp_never)
+
+            # Host template fields - must have a Never snapshot period
+            self.assertIn('snapshot_period', host)
+            self.assertEqual(host['snapshot_period'], tp_never)
 
 
     def test_host_with_double_template(self):
