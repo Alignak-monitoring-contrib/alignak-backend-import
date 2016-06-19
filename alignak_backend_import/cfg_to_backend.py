@@ -180,13 +180,19 @@ class CfgToBackend(object):
                 self.realm_all = r['_id']
 
         # Default timeperiod
-        self.default_tp = None
+        self.inserted['timeperiod'] = {}
+        self.tp_always = None
         timeperiods = self.backend.get_all('timeperiod')
         for tp in timeperiods['_items']:
             if tp['name'] == '24x7':
-                self.inserted['timeperiod'] = {}
                 self.inserted['timeperiod'][tp['_id']] = '24x7'
-                self.default_tp = tp['_id']
+                self.tp_always = tp['_id']
+        self.tp_never = None
+        timeperiods = self.backend.get_all('timeperiod')
+        for tp in timeperiods['_items']:
+            if tp['name'] == 'Never':
+                self.inserted['timeperiod'][tp['_id']] = 'Never'
+                self.tp_never = tp['_id']
 
         # Default user
         users = self.backend.get_all('user')
@@ -287,7 +293,7 @@ class CfgToBackend(object):
                 timeperiods = self.backend.get_all('timeperiod')
                 headers = {'Content-Type': 'application/json'}
                 for tp in timeperiods['_items']:
-                    if tp['name'] != '24x7':
+                    if tp['name'] != '24x7' and tp['name'] != 'Never':
                         print("Deleting timeperiod: %s" % tp['name'])
                         headers['If-Match'] = tp['_etag']
                         self.backend.delete('timeperiod/' + tp['_id'], headers)
@@ -552,6 +558,7 @@ class CfgToBackend(object):
                                 self.later[resource][ind][index]['_etag'] = resp['_etag']
 
     def manage_resource(self, r_name, data_later, id_name, schema):
+        # pylint: disable=protected-access
         """
         data_later = [{'field': 'use', 'type': 'simple|list', 'resource': 'command'}]
 
@@ -693,7 +700,9 @@ class CfgToBackend(object):
                     continue
 
             #  - default timeperiod
-            if r_name == 'timeperiod' and item[id_name] == "24x7":
+            if r_name == 'timeperiod' and (item[id_name] == "24x7" or
+                                           item[id_name] == "none" or
+                                           item[id_name] == "Never"):
                 print ("-> do not change anything for default timeperiod.")
                 continue
 
@@ -709,24 +718,22 @@ class CfgToBackend(object):
 
             # Update specific values ...
             # ------------------------------------------------------------
-            # Special case of timeperiods
+            # Special case of timeperiods (except maintenance_period and snapshot_period)
             for tp_name in ['host_notification_period', 'service_notification_period',
-                            'check_period', 'notification_period', 'maintenance_period',
-                            'snapshot_period', 'escalation_period', 'dependency_period']:
+                            'check_period', 'notification_period',
+                            'escalation_period', 'dependency_period']:
                 if tp_name not in item:
                     continue
-                # print("TP for %s: %s = %s" % (r_name, tp_name, item[tp_name]))
-                # if item[tp_name] in timeperiods:
-                # print("TP is %s" % (timeperiods[item[tp_name]]))
+
                 if item[tp_name] == '24x7':
                     # print("Changed TP: %s to default TP." % (tp_name))
-                    item[tp_name] = self.default_tp
+                    item[tp_name] = self.tp_always
                     continue
 
                 if timeperiods[item[tp_name]] and \
                    timeperiods[item[tp_name]].timeperiod_name == '24x7':
                     # print("Changed TP: %s to default TP." % (tp_name))
-                    item[tp_name] = self.default_tp
+                    item[tp_name] = self.tp_always
 
             # Convert objects
             # ------------------------------------------------------------
@@ -890,30 +897,32 @@ class CfgToBackend(object):
 
                 if 'host_notification_period' not in item or \
                    not item['host_notification_period']:
-                    item['host_notification_period'] = self.default_tp
+                    item['host_notification_period'] = self.tp_always
 
                 if 'service_notification_period' not in item or \
                    not item['service_notification_period']:
-                    item['service_notification_period'] = self.default_tp
+                    item['service_notification_period'] = self.tp_always
 
             # Special case of timeperiods for hosts and services
             # Always define timeperiods if they do not exist
             if r_name == 'host' or r_name == 'service':
+                # Always check and notify...
                 if 'check_period' not in item or \
                    not item['check_period']:
-                    item['check_period'] = self.default_tp
+                    item['check_period'] = self.tp_always
 
                 if 'notification_period' not in item or \
                    not item['notification_period']:
-                    item['notification_period'] = self.default_tp
+                    item['notification_period'] = self.tp_always
 
+                # Never maintenance and snapshot...
                 if 'maintenance_period' not in item or \
                    not item['maintenance_period']:
-                    item['maintenance_period'] = self.default_tp
+                    item['maintenance_period'] = self.tp_never
 
                 if 'snapshot_period' not in item or \
                    not item['snapshot_period']:
-                    item['snapshot_period'] = self.default_tp
+                    item['snapshot_period'] = self.tp_never
 
             # Hack for check_command_args
             if 'check_command_args' in item and isinstance(item['check_command_args'], list):
