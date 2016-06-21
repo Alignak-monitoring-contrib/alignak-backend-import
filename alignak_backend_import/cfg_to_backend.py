@@ -806,7 +806,7 @@ class CfgToBackend(object):
                     item.pop('realm', None)
 
                 if r_name in ['host']:
-                    item['realm'] = self.realm_all
+                    item['_realm'] = self.realm_all
 
                     # Remove hostgroups relations ... still useful?
                     item['hostgroups'] = []
