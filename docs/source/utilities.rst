@@ -14,7 +14,7 @@ Usage
  The default behavior is to update an existing Alignak backend running on http://127.0.0.1:5000.
  This is why it does not delete the existing backend content.
 
- To start a new backend from scratch, please specify `--delete`.
+ To start a new backend from scratch, please specify ``--delete``.
 
 
 Command line interface
