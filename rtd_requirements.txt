@@ -1,0 +1,5 @@
+docopt
+future
+# Include Alignak in the requirements
+alignak
+alignak-backend-client
