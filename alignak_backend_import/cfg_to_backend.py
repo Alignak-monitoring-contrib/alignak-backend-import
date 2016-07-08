@@ -711,6 +711,16 @@ class CfgToBackend(object):
                 print ("-> do not change anything for default realm.")
                 continue
 
+            #  - default hostgroup
+            if r_name == 'hostgroup' and item[id_name] == "All":
+                print ("-> do not change anything for default hostgroup.")
+                continue
+
+            #  - default servicegroup
+            if r_name == 'servicegroup' and item[id_name] == "All":
+                print ("-> do not change anything for default servicegroup.")
+                continue
+
             #  - specific commands
             if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
                 print ("-> do not import this command.")
