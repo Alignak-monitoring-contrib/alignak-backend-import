@@ -568,7 +568,7 @@ class CfgToBackend(object):
                                 self.later[resource][ind][index]['_etag'] = resp['_etag']
 
     def manage_resource(self, r_name, data_later, id_name, schema, template=False):
-        # pylint: disable=protected-access
+        # pylint: disable=protected-access, too-many-arguments
         """
         data_later = [{'field': 'use', 'type': 'simple|list', 'resource': 'command'}]
 
@@ -915,8 +915,8 @@ class CfgToBackend(object):
                     # Remove servicegroups relations ... still useful?
                     if item['servicegroups']:
                         print(" --> %s, servicegroups: %s" % (
-                            item[id_name], item['servicegroups'])
-                        )
+                            item[id_name], item['servicegroups']
+                        ))
                     item.pop('servicegroups')
                 if 'trigger_name' in item:
                     item.pop('trigger_name')
@@ -1459,16 +1459,16 @@ class CfgToBackend(object):
                 print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 data_later = [
                     # {
-                        # 'field': 'host', 'type': 'simple',
-                        # 'resource': 'host', 'now': True
+                    # 'field': 'host', 'type': 'simple',
+                    # 'resource': 'host', 'now': True
                     # },
                     {
                         'field': 'servicegroups', 'type': 'list',
                         'resource': 'servicegroup', 'now': True
                     },
                     # {
-                        # 'field': 'check_command', 'type': 'simple',
-                        # 'resource': 'command', 'now': True
+                    # 'field': 'check_command', 'type': 'simple',
+                    # 'resource': 'command', 'now': True
                     # },
                     {
                         'field': 'check_period', 'type': 'simple',
