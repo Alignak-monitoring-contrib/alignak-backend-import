@@ -936,6 +936,9 @@ class CfgToBackend(object):
                 if 'members' in item:
                     item['users'] = item['members']
                     item.pop('members')
+                if 'contactgroup_members' in item:
+                    # item['contactgroups'] = item['contactgroup_members']
+                    item.pop('contactgroup_members')
                 if 'contactgroup_name' in item:
                     # Remove contactgroup_name, replaced with name...
                     item.pop('contactgroup_name')
