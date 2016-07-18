@@ -64,7 +64,7 @@ from __future__ import print_function
 import re
 import traceback
 
-from logging import getLogger, DEBUG, INFO, WARNING
+from logging import getLogger, INFO
 
 from docopt import docopt
 from docopt import DocoptExit
@@ -86,19 +86,19 @@ from alignak_backend_import import __version__
 
 from alignak_backend.models import realm
 from alignak_backend.models import command
+from alignak_backend.models import trigger
 from alignak_backend.models import timeperiod
+from alignak_backend.models import host
 from alignak_backend.models import hostgroup
 from alignak_backend.models import hostdependency
+from alignak_backend.models import hostescalation
+from alignak_backend.models import service
+from alignak_backend.models import servicegroup
 from alignak_backend.models import servicedependency
-from alignak_backend.models import trigger
+from alignak_backend.models import serviceescalation
 from alignak_backend.models import user
 from alignak_backend.models import usergroup
 from alignak_backend.models import userrestrictrole
-from alignak_backend.models import host
-from alignak_backend.models import hostescalation
-from alignak_backend.models import servicegroup
-from alignak_backend.models import service
-from alignak_backend.models import serviceescalation
 
 loggerClient = getLogger('alignak_backend_client.client')
 loggerClient.setLevel(INFO)
@@ -121,6 +121,7 @@ class CfgToBackend(object):
         self.inserted_uuid = {}
 
         # Get command line parameters
+        args = None
         try:
             args = docopt(__doc__, version=__version__)
         except DocoptExit:
@@ -148,6 +149,7 @@ class CfgToBackend(object):
             cfg = [cfg]
 
         # Define here the url of the backend
+        self.backend = None
         self.backend_url = args['--backend']
         self.log("Backend URL: %s" % self.backend_url)
 
@@ -162,7 +164,7 @@ class CfgToBackend(object):
         self.type = 'all'
         if '--type' in args:
             self.type = args['--type']
-        self.log("Managing objects of type: %s" % (self.type))
+        self.log("Managing objects of type: %s" % self.type)
 
         # Authenticate on Backend
         self.authenticate()
@@ -536,8 +538,8 @@ class CfgToBackend(object):
                                 )
                 print("Late update for: %s/%s -> %s" % (resource, index, data))
 
+            endpoint = ''.join([resource, '/', index])
             try:
-                endpoint = ''.join([resource, '/', index])
                 self.log("before_patch: %s : %s:" % (endpoint, data))
                 to_patch = self.backend.get(endpoint)
                 headers['If-Match'] = to_patch['_etag']
@@ -807,7 +809,7 @@ class CfgToBackend(object):
 
                 if 'broker_complete_links' in item:
                     item.pop('broker_complete_links')
-                print(" --> realm(modified): %s" % (item))
+                print(" --> realm(modified): %s" % item)
             else:
                 # Realms related to other elements...
                 if 'realm' in item:
@@ -1048,7 +1050,7 @@ class CfgToBackend(object):
                 print("***** response: %s" % e.response)
                 exit(5)
             else:
-                self.log("Element insertion response : %s:" % (response))
+                self.log("Element insertion response : %s:" % response)
                 self.inserted[r_name][response['_id']] = item['name']
                 self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
 
@@ -1403,7 +1405,7 @@ def main():
         if len(fill.inserted[object_type]):
             print(" - %s %s(s)" % (len(fill.inserted[object_type]), object_type))
         else:
-            print(" - no %s(s)" % (object_type))
+            print(" - no %s(s)" % object_type)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 if __name__ == "__main__":  # pragma: no cover
