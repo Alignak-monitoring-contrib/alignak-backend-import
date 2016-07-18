@@ -217,33 +217,6 @@ class CfgToBackend(object):
             print("Configuration loading exception: %s" % str(e))
             exit(3)
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Order of objects + fields to update post add
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        #
-        # COMMAND
-        # TIMEPERIOD
-        # HOSTGROUP
-        #    hostgroup.hostgroups
-        # HOSTDEPENDENCY
-        # SERVICEDEPENDENCY
-        # SERVICEEXTINFO
-        # TRIGGER
-        # USER
-        # CONTACTGROUP
-        #    user.usergroups / usergroup.usergroup_members
-        # USERRESTRICTROLE
-        # ESCALATION
-        # HOST
-        #    hostgroup.members / host.use / host.parents
-        # HOSTEXTINFO
-        # HOSTESCALATION
-        # SERVICEGROUP
-        #    servicegroup.servicegroups
-        # SERVICE
-        # SERVICEESCALATION
-        #
-
         self.recompose_dateranges()
         self.import_objects()
         if self.errors_found:
@@ -709,7 +682,8 @@ class CfgToBackend(object):
                     continue
                 if 'contact_name' in item and item['contact_name'] == 'admin':
                     print ("-> do not import another admin user.")
-                    continue
+                    # continue
+                    item['contact_name'] == 'imported_admin'
 
             #  - default timeperiod
             if r_name == 'timeperiod' and (item[id_name] == "24x7" or
@@ -908,12 +882,21 @@ class CfgToBackend(object):
                 if 'contactgroup_name' in item:
                     # Remove contactgroup_name, replaced with name...
                     item.pop('contactgroup_name')
+                if 'contactgroup_members' in item:
+                    item['usergroups'] = item['contactgroup_members']
+                    item.pop('contactgroup_members')
 
             # Special case of users
             if r_name == 'user':
                 item['back_role_super_admin'] = False
+                item.pop('usergroups')
 
                 if 'contact_name' in item:
+                    item['name'] = item[id_name]
+                    if item['contact_name'] == 'admin':
+                        print ("-> import user 'admin' renamed as 'imported_admin'.")
+                        item['name'] = 'imported_admin'
+
                     # Remove contact_name, replaced with name...
                     item.pop('contact_name')
 
@@ -924,6 +907,7 @@ class CfgToBackend(object):
                 if 'service_notification_period' not in item or \
                    not item['service_notification_period']:
                     item['service_notification_period'] = self.tp_always
+                print("Contact: %s" % item)
 
             # Special case of timeperiods for hosts and services
             # Always define timeperiods if they do not exist
@@ -976,20 +960,21 @@ class CfgToBackend(object):
                         del item[values['field']]
 
                 elif values['field'] in item and values['type'] == 'list' and values['now']:
-                    print("*** Update list")
                     add = True
                     objectsid = []
+
+                    print("*** Update list, search: %s = %s" % (
+                    values['resource'], item[values['field']]))
 
                     if isinstance(item[values['field']], basestring):
                         item[values['field']] = item[values['field']].split()
 
-                    add = True
                     for dummy, vallist in enumerate(item[values['field']]):
                         if not vallist:
                             continue
                         if hasattr(vallist, 'strip'):
                             vallist = vallist.strip()
-                        print("*** Update list, search: %s = %s" % (values['resource'], item[values['field']]))
+                        print("*** Update list, search: %s = %s" % (values['resource'], vallist))
 
                         if values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']]:
@@ -1132,10 +1117,6 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'usergroups', 'type': 'list',
-                    'resource': 'usergroup', 'now': False
-                },
-                {
                     'field': 'host_notification_period', 'type': 'simple',
                     'resource': 'timeperiod', 'now': True
                 },
@@ -1159,18 +1140,23 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'users', 'type': 'list',
-                    'resource': 'user', 'now': True
+                    'field': '_parent', 'type': 'simple',
+                    'resource': 'usergroup', 'now': True
                 },
                 {
-                    'field': 'usergroup_members', 'type': 'list',
+                    'field': 'usergroups', 'type': 'list',
                     'resource': 'usergroup', 'now': False
+                },
+                {
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 }
             ]
             schema = usergroup.get_schema()
             self.manage_resource('usergroup', data_later, 'name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('usergroup', 'usergroup_members')
+            self.update_later('usergroup', '_parent')
+            self.update_later('usergroup', 'usergroups')
 
         # ------------------------------
         # Host part

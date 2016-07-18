@@ -6,6 +6,7 @@ from __future__ import print_function
 import unittest2
 import os
 import time
+import shlex
 import json
 import subprocess
 from alignak_backend_client.client import Backend
@@ -21,6 +22,13 @@ class TestCfgToBackend(unittest2.TestCase):
         os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split('mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+        time.sleep(1)
+
         cls.p = subprocess.Popen(['alignak_backend'])
         print("Backend PID: %s" % cls.p)
         time.sleep(3)
@@ -30,13 +38,22 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
-        cls.backend.delete("timeperiod", {})
         cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
     @classmethod
     def tearDownClass(cls):
         cls.backend.delete("user", {})
+        # cls.backend.delete("usergroup", {})
+        # cls.backend.delete("command", {})
+        # cls.backend.delete("timeperiod", {})
+        # cls.backend.delete("host", {})
+        # cls.backend.delete("hostgroup", {})
+        # cls.backend.delete("service", {})
+        # cls.backend.delete("servicegroup", {})
+        # cls.backend.delete("command", {})
+        # cls.backend.delete("livestate", {})
+        # cls.backend.delete("livesynthesis", {})
         cls.p.kill()
 
     @classmethod
@@ -44,7 +61,6 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
-        cls.backend.delete("timeperiod", {})
         cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
@@ -55,8 +71,13 @@ class TestCfgToBackend(unittest2.TestCase):
 
         result = self.backend.get('timeperiod')
         tps = result['_items']
-        self.assertEqual(len(tps), 1)
+        self.assertEqual(len(tps), 1+2)   # Imported TP + 2 default backend created TPs
+        found = False
         for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
             ref = {u"name": u"workhours",
                    u"definition_order": 100,
                    u"notes": u"",
@@ -74,6 +95,7 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_updated']
             del comm['_realm']
             self.assertEqual(comm, ref)
+        self.assertTrue(found)
 
     def test_timeperiod_complex(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -82,7 +104,8 @@ class TestCfgToBackend(unittest2.TestCase):
 
         r = self.backend.get_all('timeperiod')
         r = r['_items']
-        self.assertEqual(len(r), 2)
+        self.assertEqual(len(r), 2+2)  # Imported TP + 2 default backend created TPs
+
         ref = {u"name": u"workhours",
                u"definition_order": 100,
                u"alias": u"Normal Work Hours",
@@ -93,7 +116,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                {u'thursday': u'09:00-17:00'}],
                u"exclude": [u'us-holidays'], u"is_active": False,
                u"imported_from": u"alignak_backend_import"}
-        comm = r[0]
+        comm = r[2]
         del comm['_links']
         del comm['_id']
         del comm['_etag']
@@ -112,7 +135,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                {u'december 25': u'00:00-00:00'}, {u'july 4': u'00:00-00:00'}],
                u"exclude": [], u"is_active": False,
                u"imported_from": u"alignak_backend_import"}
-        comm = r[1]
+        comm = r[3]
         del comm['_links']
         del comm['_id']
         del comm['_etag']
@@ -174,7 +197,6 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_hostgroups_links(self):
         """
         """
-        # host.hostgroups
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hostgroups_links_hostgroup.cfg'])
         q.communicate()  # now wait
@@ -191,10 +213,94 @@ class TestCfgToBackend(unittest2.TestCase):
             print("Hostgroup:", hostgroup)
             print("Hostgroup groups members:", hostgroup['hostgroups'])
             print("Hostgroup members:", hostgroup['hosts'])
+
+            # Test hostgroups relations with hostgroups
             if hostgroup['name'] == 'freebsd':
                 self.assertEqual(len(hostgroup['hostgroups']), 1)
             if hostgroup['name'] == 'alignak':
                 self.assertEqual(len(hostgroup['hostgroups']), 0)
+
+            # Test hostgroups relations with hosts
+            # Host webui is member of the 2 groups
+            if hostgroup['name'] == 'freebsd':
+                self.assertEqual(len(hostgroup['hosts']), 1)
+            if hostgroup['name'] == 'alignak':
+                self.assertEqual(len(hostgroup['hosts']), 1)
+
+    def test_servicegroups_links(self):
+        """
+        """
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/services_link_servicegroups.cfg'])
+        q.communicate()  # now wait
+
+        result = self.backend.get('host')
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 1)
+        host_id = hosts[0]['_id']
+
+        result = self.backend.get('service')
+        services= result['_items']
+        self.assertEqual(len(services), 2)
+        service_id = services[0]['_id']
+
+        result = self.backend.get('servicegroup')
+        servicegroups = result['_items']
+        self.assertEqual(len(servicegroups), 3)
+        for servicegroup in servicegroups:
+            print("servicegroup:", servicegroup)
+            print("servicegroup groups members:", servicegroup['servicegroups'])
+            print("servicegroup members:", servicegroup['services'])
+
+            # Test servicegroups relations with servicegroups
+            if servicegroup['name'] == 'web':
+                self.assertEqual(len(servicegroup['servicegroups']), 1)
+            if servicegroup['name'] == 'web_child':
+                self.assertEqual(len(servicegroup['servicegroups']), 0)
+
+            # Test servicegroups relations with services
+            # service webui is member of the 2 groups
+            if servicegroup['name'] == 'web':
+                self.assertEqual(len(servicegroup['services']), 2)
+            if servicegroup['name'] == 'web_child':
+                self.assertEqual(len(servicegroup['services']), 1)
+
+    def test_usergroups_links(self):
+        """
+        """
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/users_link_usergroups.cfg'])
+        q.communicate()  # now wait
+
+        result = self.backend.get('user')
+        users= result['_items']
+        self.assertEqual(len(users), 5)
+        user_id = users[0]['_id']
+
+        result = self.backend.get('usergroup')
+        usergroups = result['_items']
+        self.assertEqual(len(usergroups), 3)
+        for usergroup in usergroups:
+            print("usergroup:", usergroup)
+            print("usergroup groups members:", usergroup['usergroups'])
+            print("usergroup members:", usergroup['users'])
+
+            # Test usergroups relations with usergroups
+            if usergroup['name'] == 'admins':
+                self.assertEqual(len(usergroup['usergroups']), 0)
+            if usergroup['name'] == 'users':
+                self.assertEqual(len(usergroup['usergroups']), 0)
+            if usergroup['name'] == 'power_users':
+                self.assertEqual(len(usergroup['usergroups']), 1)
+
+            # Test usergroups relations with users
+            # user webui is member of the 2 groups
+            if usergroup['name'] == 'admins':
+                self.assertEqual(len(usergroup['users']), 1)
+            if usergroup['name'] == 'users':
+                self.assertEqual(len(usergroup['users']), 3)
+            if usergroup['name'] == 'power_users':
+                self.assertEqual(len(usergroup['users']), 2)
 
     def test_command_with_args(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -267,7 +373,7 @@ class TestContacts(unittest2.TestCase):
 
         result = self.backend.get_all('user')
         users = result['_items']
-        self.assertEqual(len(users), 4)
+        self.assertEqual(len(users), 5)
 
         print("Found users: ")
         for user in users:
