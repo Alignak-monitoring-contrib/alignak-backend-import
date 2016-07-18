@@ -248,7 +248,7 @@ class CfgToBackend(object):
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     def delete_data(self):
-        # pylint: disable=fixme
+        # pylint: disable=fixme, too-many-locals
         """
         Delete data in backend
 
