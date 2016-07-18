@@ -675,15 +675,7 @@ class CfgToBackend(object):
 
             # Ignore specific items ...
             # ------------------------------------------------------------
-            #  - admin user
-            if r_name == 'user':
-                if item[id_name] == "admin":
-                    print ("-> do not change anything for admin user.")
-                    continue
-                if 'contact_name' in item and item['contact_name'] == 'admin':
-                    print ("-> do not import another admin user.")
-                    # continue
-                    item['contact_name'] == 'imported_admin'
+            #  - admin user (managed later...)
 
             #  - default timeperiod
             if r_name == 'timeperiod' and (item[id_name] == "24x7" or
@@ -963,9 +955,6 @@ class CfgToBackend(object):
                     add = True
                     objectsid = []
 
-                    print("*** Update list, search: %s = %s" % (
-                    values['resource'], item[values['field']]))
-
                     if isinstance(item[values['field']], basestring):
                         item[values['field']] = item[values['field']].split()
 
@@ -974,7 +963,6 @@ class CfgToBackend(object):
                             continue
                         if hasattr(vallist, 'strip'):
                             vallist = vallist.strip()
-                        print("*** Update list, search: %s = %s" % (values['resource'], vallist))
 
                         if values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']]:
@@ -989,11 +977,8 @@ class CfgToBackend(object):
                             idx = self.inserted_uuid[values['resource']].values().index(
                                 vallist
                             )
-                            print("*** Update list, found in uuid list: %s" % idx)
                             objectsid.append(self.inserted_uuid[values['resource']].keys()[
                                 idx])
-                        # elif values['resource'] in self.inserted:
-                        #     add = True
                         else:
                             add = False
                     if add:
