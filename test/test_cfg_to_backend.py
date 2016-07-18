@@ -247,7 +247,7 @@ class TestContacts(unittest2.TestCase):
 
         result = self.backend.get_all('user')
         users = result['_items']
-        self.assertEqual(len(users), 4)
+        self.assertEqual(len(users), 5)
 
         print "Found users: "
         for user in users:
