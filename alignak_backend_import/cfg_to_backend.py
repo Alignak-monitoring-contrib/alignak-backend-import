@@ -64,7 +64,7 @@ from __future__ import print_function
 import re
 import traceback
 
-from logging import getLogger, DEBUG, INFO, WARNING
+from logging import getLogger, INFO
 
 from docopt import docopt
 from docopt import DocoptExit
@@ -86,19 +86,19 @@ from alignak_backend_import import __version__
 
 from alignak_backend.models import realm
 from alignak_backend.models import command
+from alignak_backend.models import trigger
 from alignak_backend.models import timeperiod
+from alignak_backend.models import host
 from alignak_backend.models import hostgroup
 from alignak_backend.models import hostdependency
+from alignak_backend.models import hostescalation
+from alignak_backend.models import service
+from alignak_backend.models import servicegroup
 from alignak_backend.models import servicedependency
-from alignak_backend.models import trigger
+from alignak_backend.models import serviceescalation
 from alignak_backend.models import user
 from alignak_backend.models import usergroup
 from alignak_backend.models import userrestrictrole
-from alignak_backend.models import host
-from alignak_backend.models import hostescalation
-from alignak_backend.models import servicegroup
-from alignak_backend.models import service
-from alignak_backend.models import serviceescalation
 
 loggerClient = getLogger('alignak_backend_client.client')
 loggerClient.setLevel(INFO)
@@ -121,6 +121,7 @@ class CfgToBackend(object):
         self.inserted_uuid = {}
 
         # Get command line parameters
+        args = None
         try:
             args = docopt(__doc__, version=__version__)
         except DocoptExit:
@@ -148,6 +149,7 @@ class CfgToBackend(object):
             cfg = [cfg]
 
         # Define here the url of the backend
+        self.backend = None
         self.backend_url = args['--backend']
         self.log("Backend URL: %s" % self.backend_url)
 
@@ -162,7 +164,7 @@ class CfgToBackend(object):
         self.type = 'all'
         if '--type' in args:
             self.type = args['--type']
-        self.log("Managing objects of type: %s" % (self.type))
+        self.log("Managing objects of type: %s" % self.type)
 
         # Authenticate on Backend
         self.authenticate()
@@ -214,33 +216,6 @@ class CfgToBackend(object):
         except Exception as e:
             print("Configuration loading exception: %s" % str(e))
             exit(3)
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Order of objects + fields to update post add
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        #
-        # COMMAND
-        # TIMEPERIOD
-        # HOSTGROUP
-        #    hostgroup.hostgroups
-        # HOSTDEPENDENCY
-        # SERVICEDEPENDENCY
-        # SERVICEEXTINFO
-        # TRIGGER
-        # USER
-        # CONTACTGROUP
-        #    user.usergroups / usergroup.usergroup_members
-        # USERRESTRICTROLE
-        # ESCALATION
-        # HOST
-        #    hostgroup.members / host.use / host.parents
-        # HOSTEXTINFO
-        # HOSTESCALATION
-        # SERVICEGROUP
-        #    servicegroup.servicegroups
-        # SERVICE
-        # SERVICEESCALATION
-        #
 
         self.recompose_dateranges()
         self.import_objects()
@@ -536,8 +511,8 @@ class CfgToBackend(object):
                                 )
                 print("Late update for: %s/%s -> %s" % (resource, index, data))
 
+            endpoint = ''.join([resource, '/', index])
             try:
-                endpoint = ''.join([resource, '/', index])
                 self.log("before_patch: %s : %s:" % (endpoint, data))
                 to_patch = self.backend.get(endpoint)
                 headers['If-Match'] = to_patch['_etag']
@@ -560,7 +535,17 @@ class CfgToBackend(object):
     def manage_resource(self, r_name, data_later, id_name, schema):
         # pylint: disable=protected-access
         """
-        data_later = [{'field': 'use', 'type': 'simple|list', 'resource': 'command'}]
+        Array of data to include in internal cache or to update with internal objects cache:
+        data_later = [
+            {
+                'field': 'use', 'type': 'simple|list', 'resource': 'command', 'now': True
+            }
+        ]
+        field: field name in the current managed element
+        type: object type (list, ...)
+        resource: object backend element type
+        now: tries to update immediatly or store for a future update (update_later)
+
 
         :param r_name: resource name
         :type r_name: str
@@ -690,14 +675,7 @@ class CfgToBackend(object):
 
             # Ignore specific items ...
             # ------------------------------------------------------------
-            #  - admin user
-            if r_name == 'user':
-                if item[id_name] == "admin":
-                    print ("-> do not change anything for admin user.")
-                    continue
-                if 'contact_name' in item and item['contact_name'] == 'admin':
-                    print ("-> do not import another admin user.")
-                    continue
+            #  - admin user (managed later...)
 
             #  - default timeperiod
             if r_name == 'timeperiod' and (item[id_name] == "24x7" or
@@ -807,7 +785,7 @@ class CfgToBackend(object):
 
                 if 'broker_complete_links' in item:
                     item.pop('broker_complete_links')
-                print(" --> realm(modified): %s" % (item))
+                print(" --> realm(modified): %s" % item)
             else:
                 # Realms related to other elements...
                 if 'realm' in item:
@@ -823,7 +801,7 @@ class CfgToBackend(object):
                 else:
                     item['_realm'] = self.realm_all
 
-            # Special case of custom variables
+            # Special process for custom variables
             # Only import element custom variables if schema allows unknown fields ...
             # ... not the best solution. They should be imported in 'customs' defined array field!
             if 'customs' in schema['schema']:
@@ -851,7 +829,7 @@ class CfgToBackend(object):
             # Special case of hostgroups
             if r_name == 'hostgroup':
                 if 'members' in item:
-                    # item['hosts'] = item['members']
+                    item['hosts'] = item['members']
                     item.pop('members')
                 if 'hostgroup_members' in item:
                     item['hostgroups'] = item['hostgroup_members']
@@ -868,7 +846,7 @@ class CfgToBackend(object):
             # Special case of servicegroups
             if r_name == 'servicegroup':
                 if 'members' in item:
-                    # item['services'] = item['members']
+                    item['services'] = item['members']
                     item.pop('members')
                 if 'servicegroup_members' in item:
                     item['servicegroups'] = item['servicegroup_members']
@@ -896,12 +874,21 @@ class CfgToBackend(object):
                 if 'contactgroup_name' in item:
                     # Remove contactgroup_name, replaced with name...
                     item.pop('contactgroup_name')
+                if 'contactgroup_members' in item:
+                    item['usergroups'] = item['contactgroup_members']
+                    item.pop('contactgroup_members')
 
             # Special case of users
             if r_name == 'user':
                 item['back_role_super_admin'] = False
+                item.pop('usergroups')
 
                 if 'contact_name' in item:
+                    item['name'] = item[id_name]
+                    if item['contact_name'] == 'admin':
+                        print ("-> import user 'admin' renamed as 'imported_admin'.")
+                        item['name'] = 'imported_admin'
+
                     # Remove contact_name, replaced with name...
                     item.pop('contact_name')
 
@@ -912,6 +899,7 @@ class CfgToBackend(object):
                 if 'service_notification_period' not in item or \
                    not item['service_notification_period']:
                     item['service_notification_period'] = self.tp_always
+                print("Contact: %s" % item)
 
             # Special case of timeperiods for hosts and services
             # Always define timeperiods if they do not exist
@@ -975,6 +963,7 @@ class CfgToBackend(object):
                             continue
                         if hasattr(vallist, 'strip'):
                             vallist = vallist.strip()
+
                         if values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']]:
                             # objectsid.append(self.inserted[values['resource']][vallist])
@@ -983,20 +972,25 @@ class CfgToBackend(object):
                                 vallist in self.inserted[values['resource']].values():
                             index = self.inserted[values['resource']].values().index(vallist)
                             objectsid.append(self.inserted[values['resource']].keys()[index])
-                        elif values['resource'] in self.inserted:
-                            add = True
+                        elif values['resource'] in self.inserted_uuid and \
+                                vallist in self.inserted_uuid[values['resource']].values():
+                            idx = self.inserted_uuid[values['resource']].values().index(
+                                vallist
+                            )
+                            objectsid.append(self.inserted_uuid[values['resource']].keys()[
+                                idx])
                         else:
                             add = False
                     if add:
                         item[values['field']] = objectsid
                     else:
-                        print("***Not found: %s = %s in inserted %ss identifiers not values" % (
+                        print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
                             values['field'], item[values['field']], values['resource']
                         ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
                 elif values['field'] in item and values['type'] == 'list' and not values['now']:
-                    print("***Not found: %s = %s in inserted %ss identifiers not values" % (
+                    print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
                         values['field'], item[values['field']], values['resource']
                     ))
                     later_tmp[values['field']] = item[values['field']]
@@ -1048,7 +1042,7 @@ class CfgToBackend(object):
                 print("***** response: %s" % e.response)
                 exit(5)
             else:
-                self.log("Element insertion response : %s:" % (response))
+                self.log("Element insertion response : %s:" % response)
                 self.inserted[r_name][response['_id']] = item['name']
                 self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
 
@@ -1101,13 +1095,12 @@ class CfgToBackend(object):
             schema = trigger.get_schema()
             self.manage_resource('trigger', data_later, 'trigger_name', schema)
 
+        # ------------------------------
+        # User part
+        # ------------------------------
         if self.type == 'user' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
-                {
-                    'field': 'usergroups', 'type': 'list',
-                    'resource': 'usergroup', 'now': False
-                },
                 {
                     'field': 'host_notification_period', 'type': 'simple',
                     'resource': 'timeperiod', 'now': True
@@ -1132,41 +1125,27 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'users', 'type': 'list',
-                    'resource': 'user', 'now': True
+                    'field': '_parent', 'type': 'simple',
+                    'resource': 'usergroup', 'now': True
                 },
                 {
-                    'field': 'usergroup_members', 'type': 'list',
+                    'field': 'usergroups', 'type': 'list',
                     'resource': 'usergroup', 'now': False
+                },
+                {
+                    'field': 'users', 'type': 'list',
+                    'resource': 'user', 'now': True
                 }
             ]
             schema = usergroup.get_schema()
             self.manage_resource('usergroup', data_later, 'name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('usergroup', 'usergroup_members')
+            self.update_later('usergroup', '_parent')
+            self.update_later('usergroup', 'usergroups')
 
-        if self.type == 'hostgroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': False
-                },
-                {
-                    'field': 'hosts', 'type': 'list',
-                    'resource': 'host', 'now': False
-                }
-            ]
-            schema = hostgroup.get_schema()
-            self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('hostgroup', '_parent')
-            self.update_later('hostgroup', 'hostgroups')
-
+        # ------------------------------
+        # Host part
+        # ------------------------------
         if self.type == 'host' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
@@ -1174,10 +1153,10 @@ class CfgToBackend(object):
                     'field': 'parents', 'type': 'list',
                     'resource': 'host', 'now': False
                 },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
-                },
+                # {
+                #     'field': 'hostgroups', 'type': 'list',
+                #     'resource': 'hostgroup', 'now': True
+                # },
                 {
                     'field': 'check_command', 'type': 'simple',
                     'resource': 'command', 'now': True
@@ -1219,7 +1198,7 @@ class CfgToBackend(object):
             self.manage_resource('host', data_later, 'host_name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('host', 'parents')
-            self.update_later('hostgroup', 'hosts')
+            # self.update_later('hostgroup', 'hosts')
 
         if self.type == 'hostdependency' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1244,32 +1223,27 @@ class CfgToBackend(object):
             schema = hostdependency.get_schema()
             self.manage_resource('hostdependency', data_later, 'name', schema)
 
-        if self.type == 'servicedependency' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        if self.type == 'hostgroup' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'dependent_host', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'dependent_hostgroup_name', 'type': 'list',
+                    'field': '_parent', 'type': 'simple',
                     'resource': 'hostgroup', 'now': True
                 },
                 {
-                    'field': 'dependent_service_description', 'type': 'list',
-                    'resource': 'service', 'now': True
+                    'field': 'hostgroups', 'type': 'list',
+                    'resource': 'hostgroup', 'now': False
                 },
                 {
-                    'field': 'host', 'type': 'list',
+                    'field': 'hosts', 'type': 'list',
                     'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'hostgroup_name', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
                 }
             ]
-            schema = servicedependency.get_schema()
-            self.manage_resource('servicedependency', data_later, 'name', schema)
+            schema = hostgroup.get_schema()
+            self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
+            print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('hostgroup', '_parent')
+            self.update_later('hostgroup', 'hostgroups')
 
         if self.type == 'hostescalation' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1286,24 +1260,9 @@ class CfgToBackend(object):
             schema = hostescalation.get_schema()
             self.manage_resource('hostescalation', data_later, 'host', schema)
 
-        if self.type == 'servicegroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'servicegroup', 'now': True
-                },
-                {
-                    'field': 'servicegroups', 'type': 'list',
-                    'resource': 'servicegroup', 'now': False
-                }
-            ]
-            schema = servicegroup.get_schema()
-            self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('servicegroup', '_parent')
-            self.update_later('servicegroup', 'servicegroups')
-
+        # ------------------------------
+        # Service part
+        # ------------------------------
         if self.type == 'service' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
@@ -1357,6 +1316,55 @@ class CfgToBackend(object):
             self.manage_resource('service', data_later, 'service_description', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
+        if self.type == 'servicedependency' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            data_later = [
+                {
+                    'field': 'dependent_host', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'dependent_hostgroup_name', 'type': 'list',
+                    'resource': 'hostgroup', 'now': True
+                },
+                {
+                    'field': 'dependent_service_description', 'type': 'list',
+                    'resource': 'service', 'now': True
+                },
+                {
+                    'field': 'host', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'hostgroup_name', 'type': 'list',
+                    'resource': 'hostgroup', 'now': True
+                }
+            ]
+            schema = servicedependency.get_schema()
+            self.manage_resource('servicedependency', data_later, 'name', schema)
+
+        if self.type == 'servicegroup' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            data_later = [
+                {
+                    'field': '_parent', 'type': 'simple',
+                    'resource': 'servicegroup', 'now': True
+                },
+                {
+                    'field': 'servicegroups', 'type': 'list',
+                    'resource': 'servicegroup', 'now': False
+                },
+                {
+                    'field': 'services', 'type': 'list',
+                    'resource': 'service', 'now': True
+                }
+            ]
+            schema = servicegroup.get_schema()
+            self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
+            print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('servicegroup', '_parent')
+            self.update_later('servicegroup', 'servicegroups')
+
         if self.type == 'serviceescalation' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
@@ -1403,7 +1411,7 @@ def main():
         if len(fill.inserted[object_type]):
             print(" - %s %s(s)" % (len(fill.inserted[object_type]), object_type))
         else:
-            print(" - no %s(s)" % (object_type))
+            print(" - no %s(s)" % object_type)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 if __name__ == "__main__":  # pragma: no cover
