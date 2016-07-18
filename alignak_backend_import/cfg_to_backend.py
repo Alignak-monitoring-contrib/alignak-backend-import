@@ -562,7 +562,17 @@ class CfgToBackend(object):
     def manage_resource(self, r_name, data_later, id_name, schema):
         # pylint: disable=protected-access
         """
-        data_later = [{'field': 'use', 'type': 'simple|list', 'resource': 'command'}]
+        Array of data to include in internal cache or to update with internal objects cache:
+        data_later = [
+            {
+                'field': 'use', 'type': 'simple|list', 'resource': 'command', 'now': True
+            }
+        ]
+        field: field name in the current managed element
+        type: object type (list, ...)
+        resource: object backend element type
+        now: tries to update immediatly or store for a future update (update_later)
+
 
         :param r_name: resource name
         :type r_name: str
@@ -825,7 +835,7 @@ class CfgToBackend(object):
                 else:
                     item['_realm'] = self.realm_all
 
-            # Special case of custom variables
+            # Special process for custom variables
             # Only import element custom variables if schema allows unknown fields ...
             # ... not the best solution. They should be imported in 'customs' defined array field!
             if 'customs' in schema['schema']:
@@ -853,7 +863,7 @@ class CfgToBackend(object):
             # Special case of hostgroups
             if r_name == 'hostgroup':
                 if 'members' in item:
-                    # item['hosts'] = item['members']
+                    item['hosts'] = item['members']
                     item.pop('members')
                 if 'hostgroup_members' in item:
                     item['hostgroups'] = item['hostgroup_members']
@@ -870,7 +880,7 @@ class CfgToBackend(object):
             # Special case of servicegroups
             if r_name == 'servicegroup':
                 if 'members' in item:
-                    # item['services'] = item['members']
+                    item['services'] = item['members']
                     item.pop('members')
                 if 'servicegroup_members' in item:
                     item['servicegroups'] = item['servicegroup_members']
@@ -966,17 +976,21 @@ class CfgToBackend(object):
                         del item[values['field']]
 
                 elif values['field'] in item and values['type'] == 'list' and values['now']:
+                    print("*** Update list")
                     add = True
                     objectsid = []
 
                     if isinstance(item[values['field']], basestring):
                         item[values['field']] = item[values['field']].split()
 
+                    add = True
                     for dummy, vallist in enumerate(item[values['field']]):
                         if not vallist:
                             continue
                         if hasattr(vallist, 'strip'):
                             vallist = vallist.strip()
+                        print("*** Update list, search: %s = %s" % (values['resource'], item[values['field']]))
+
                         if values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']]:
                             # objectsid.append(self.inserted[values['resource']][vallist])
@@ -985,20 +999,28 @@ class CfgToBackend(object):
                                 vallist in self.inserted[values['resource']].values():
                             index = self.inserted[values['resource']].values().index(vallist)
                             objectsid.append(self.inserted[values['resource']].keys()[index])
-                        elif values['resource'] in self.inserted:
-                            add = True
+                        elif values['resource'] in self.inserted_uuid and \
+                                vallist in self.inserted_uuid[values['resource']].values():
+                            idx = self.inserted_uuid[values['resource']].values().index(
+                                vallist
+                            )
+                            print("*** Update list, found in uuid list: %s" % idx)
+                            objectsid.append(self.inserted_uuid[values['resource']].keys()[
+                                idx])
+                        # elif values['resource'] in self.inserted:
+                        #     add = True
                         else:
                             add = False
                     if add:
                         item[values['field']] = objectsid
                     else:
-                        print("***Not found: %s = %s in inserted %ss identifiers not values" % (
+                        print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
                             values['field'], item[values['field']], values['resource']
                         ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
                 elif values['field'] in item and values['type'] == 'list' and not values['now']:
-                    print("***Not found: %s = %s in inserted %ss identifiers not values" % (
+                    print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
                         values['field'], item[values['field']], values['resource']
                     ))
                     later_tmp[values['field']] = item[values['field']]
@@ -1103,6 +1125,9 @@ class CfgToBackend(object):
             schema = trigger.get_schema()
             self.manage_resource('trigger', data_later, 'trigger_name', schema)
 
+        # ------------------------------
+        # User part
+        # ------------------------------
         if self.type == 'user' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
@@ -1147,28 +1172,9 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('usergroup', 'usergroup_members')
 
-        if self.type == 'hostgroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': False
-                },
-                {
-                    'field': 'hosts', 'type': 'list',
-                    'resource': 'host', 'now': False
-                }
-            ]
-            schema = hostgroup.get_schema()
-            self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('hostgroup', '_parent')
-            self.update_later('hostgroup', 'hostgroups')
-
+        # ------------------------------
+        # Host part
+        # ------------------------------
         if self.type == 'host' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
@@ -1176,10 +1182,10 @@ class CfgToBackend(object):
                     'field': 'parents', 'type': 'list',
                     'resource': 'host', 'now': False
                 },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
-                },
+                # {
+                #     'field': 'hostgroups', 'type': 'list',
+                #     'resource': 'hostgroup', 'now': True
+                # },
                 {
                     'field': 'check_command', 'type': 'simple',
                     'resource': 'command', 'now': True
@@ -1221,7 +1227,7 @@ class CfgToBackend(object):
             self.manage_resource('host', data_later, 'host_name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('host', 'parents')
-            self.update_later('hostgroup', 'hosts')
+            # self.update_later('hostgroup', 'hosts')
 
         if self.type == 'hostdependency' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1246,32 +1252,27 @@ class CfgToBackend(object):
             schema = hostdependency.get_schema()
             self.manage_resource('hostdependency', data_later, 'name', schema)
 
-        if self.type == 'servicedependency' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        if self.type == 'hostgroup' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'dependent_host', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'dependent_hostgroup_name', 'type': 'list',
+                    'field': '_parent', 'type': 'simple',
                     'resource': 'hostgroup', 'now': True
                 },
                 {
-                    'field': 'dependent_service_description', 'type': 'list',
-                    'resource': 'service', 'now': True
+                    'field': 'hostgroups', 'type': 'list',
+                    'resource': 'hostgroup', 'now': False
                 },
                 {
-                    'field': 'host', 'type': 'list',
+                    'field': 'hosts', 'type': 'list',
                     'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'hostgroup_name', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
                 }
             ]
-            schema = servicedependency.get_schema()
-            self.manage_resource('servicedependency', data_later, 'name', schema)
+            schema = hostgroup.get_schema()
+            self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
+            print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('hostgroup', '_parent')
+            self.update_later('hostgroup', 'hostgroups')
 
         if self.type == 'hostescalation' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1288,24 +1289,9 @@ class CfgToBackend(object):
             schema = hostescalation.get_schema()
             self.manage_resource('hostescalation', data_later, 'host', schema)
 
-        if self.type == 'servicegroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'servicegroup', 'now': True
-                },
-                {
-                    'field': 'servicegroups', 'type': 'list',
-                    'resource': 'servicegroup', 'now': False
-                }
-            ]
-            schema = servicegroup.get_schema()
-            self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('servicegroup', '_parent')
-            self.update_later('servicegroup', 'servicegroups')
-
+        # ------------------------------
+        # Service part
+        # ------------------------------
         if self.type == 'service' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
@@ -1358,6 +1344,55 @@ class CfgToBackend(object):
             schema = service.get_schema()
             self.manage_resource('service', data_later, 'service_description', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        if self.type == 'servicedependency' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            data_later = [
+                {
+                    'field': 'dependent_host', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'dependent_hostgroup_name', 'type': 'list',
+                    'resource': 'hostgroup', 'now': True
+                },
+                {
+                    'field': 'dependent_service_description', 'type': 'list',
+                    'resource': 'service', 'now': True
+                },
+                {
+                    'field': 'host', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'hostgroup_name', 'type': 'list',
+                    'resource': 'hostgroup', 'now': True
+                }
+            ]
+            schema = servicedependency.get_schema()
+            self.manage_resource('servicedependency', data_later, 'name', schema)
+
+        if self.type == 'servicegroup' or self.type == 'all':
+            print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            data_later = [
+                {
+                    'field': '_parent', 'type': 'simple',
+                    'resource': 'servicegroup', 'now': True
+                },
+                {
+                    'field': 'servicegroups', 'type': 'list',
+                    'resource': 'servicegroup', 'now': False
+                },
+                {
+                    'field': 'services', 'type': 'list',
+                    'resource': 'service', 'now': True
+                }
+            ]
+            schema = servicegroup.get_schema()
+            self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
+            print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.update_later('servicegroup', '_parent')
+            self.update_later('servicegroup', 'servicegroups')
 
         if self.type == 'serviceescalation' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
