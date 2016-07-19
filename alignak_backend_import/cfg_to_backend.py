@@ -1280,7 +1280,6 @@ class CfgToBackend(object):
             self.manage_resource('host', data_later, 'host_name', schema)
             print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('host', 'parents')
-            # self.update_later('hostgroup', 'hosts')
 
             if self.models:
                 print("~~~~~~~~~~~~~~~~~~~~~~ add host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1335,7 +1334,6 @@ class CfgToBackend(object):
                 self.manage_resource('host', data_later, 'name', schema, template=True)
                 print("~~~~~~~~~~~~~~~~~~~~~~ post host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 self.update_later('host', 'parents')
-                self.update_later('hostgroup', 'hosts')
 
         if self.type == 'hostdependency' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
