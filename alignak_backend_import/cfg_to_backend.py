@@ -861,11 +861,6 @@ class CfgToBackend(object):
 
                 item['_realm'] = self.realm_all
 
-                    # Remove hostgroups relations ... still useful?
-                    item['hostgroups'] = []
-                else:
-                    item['_realm'] = self.realm_all
-
             # Special process for custom variables
             # Only import element custom variables if schema allows unknown fields ...
             # ... not the best solution. They should be imported in 'customs' defined array field!
@@ -963,7 +958,6 @@ class CfgToBackend(object):
                 if 'contactgroup_members' in item:
                     item['usergroups'] = item['contactgroup_members']
                     item.pop('contactgroup_members')
-                print("Usergroup: %s" % item)
 
             # Special case of users
             if r_name == 'user':
@@ -971,6 +965,11 @@ class CfgToBackend(object):
                 item.pop('usergroups')
 
                 if 'contact_name' in item:
+                    item['name'] = item[id_name]
+                    if item['contact_name'] == 'admin':
+                        print ("-> import user 'admin' renamed as 'imported_admin'.")
+                        item['name'] = 'imported_admin'
+
                     # Remove contact_name, replaced with name...
                     item.pop('contact_name')
 
