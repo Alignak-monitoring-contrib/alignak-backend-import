@@ -24,7 +24,9 @@ class TestCfgToBackend(unittest2.TestCase):
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
-            shlex.split('mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME']
+            )
         )
         assert exit_code == 0
         time.sleep(1)
@@ -224,8 +226,10 @@ class TestCfgToBackend(unittest2.TestCase):
             # Host webui is member of the 2 groups
             if hostgroup['name'] == 'freebsd':
                 self.assertEqual(len(hostgroup['hosts']), 1)
+                self.assertEqual(hostgroup['hosts'][0], host_id)
             if hostgroup['name'] == 'alignak':
                 self.assertEqual(len(hostgroup['hosts']), 1)
+                self.assertEqual(hostgroup['hosts'][0], host_id)
 
     def test_servicegroups_links(self):
         """
@@ -240,7 +244,7 @@ class TestCfgToBackend(unittest2.TestCase):
         host_id = hosts[0]['_id']
 
         result = self.backend.get('service')
-        services= result['_items']
+        services = result['_items']
         self.assertEqual(len(services), 2)
         service_id = services[0]['_id']
 
@@ -273,13 +277,13 @@ class TestCfgToBackend(unittest2.TestCase):
         q.communicate()  # now wait
 
         result = self.backend.get('user')
-        users= result['_items']
+        users = result['_items']
         self.assertEqual(len(users), 5)
         user_id = users[0]['_id']
 
         result = self.backend.get('usergroup')
         usergroups = result['_items']
-        self.assertEqual(len(usergroups), 3)
+        self.assertEqual(len(usergroups), 4)
         for usergroup in usergroups:
             print("usergroup:", usergroup)
             print("usergroup groups members:", usergroup['usergroups'])
