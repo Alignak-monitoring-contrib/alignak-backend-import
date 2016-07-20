@@ -40,6 +40,7 @@ alignak_backend_import command line interface::
     Use cases:
         Display help message:
             {command} -h
+
         Display current version:
             {command} -v
 
@@ -51,6 +52,9 @@ alignak_backend_import command line interface::
 
         Replace current backend data:
             {command} -d [-b=backend] [-u=username] [-p=password] <cfg_file>
+
+        Replace current backend data and include templates:
+            {command} -m -d [-b=backend] [-u=username] [-p=password] <cfg_file>
 
         Exit code:
             0 if required operation succeeded
