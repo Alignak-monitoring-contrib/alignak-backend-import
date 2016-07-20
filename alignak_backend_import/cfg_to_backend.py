@@ -35,6 +35,7 @@ alignak_backend_import command line interface::
         -v, --verbose               Run in verbose mode (more info to display)
         -t, --type type             Only manages this object type [default: all]
         -m, --model                 Import templates when they exist
+        -g, --gps lat,lng           Specify default GPS location [default: 46.60611,1.87528]
 
     Use cases:
         Display help message:
@@ -175,6 +176,13 @@ class CfgToBackend(object):
             self.models = args['--model']
         self.log("Importing objects templates: %s" % self.models)
         print("Importing objects templates: %s" % self.models)
+
+        self.gps = {"type": "Point", "coordinates": [46.60611, 1.87528]}
+        if '--gps' in args:
+            point = args['--gps'].split(',')
+            self.gps.coordinates = point
+        self.log("Default host location: %s" % self.gps)
+        print("Default host location: %s" % self.gps)
 
         # Authenticate on Backend
         self.authenticate()
@@ -706,6 +714,8 @@ class CfgToBackend(object):
             elements = templates
 
         for item_obj in elements:
+            if not item_obj:
+                continue
             item = {}
 
             self.log("...................................")
@@ -909,7 +919,12 @@ class CfgToBackend(object):
                     item.pop('trigger_name')
 
                 # Define location as default: France circle center ;))
-                item['location'] = {"type": "Point", "coordinates": [46.60611, 1.87528]}
+                item['location'] = self.gps
+                if item['customs'] and '_LOC_LAT' in item['customs']:
+                    item['location']['coordinates'][0] = float(item['customs']['_LOC_LAT'])
+                if 'customs' in item and '_LOC_LNG' in item['customs']:
+                    item['location']['coordinates'][1] = float(item['customs']['_LOC_LNG'])
+                print("Host location: %s" % item['location'])
 
             # Special case of servicegroups
             if r_name == 'servicegroup':
