@@ -1100,20 +1100,23 @@ class CfgToBackend(object):
             # ------------------------------------------------------------
             # - Shinken template link...
             if 'use' in item:
-                self.log("removed 'use' field from: %s : %s:" % (r_name, item))
-                item.pop('use', None)
                 # As of #95 in the alignak-backend, interesting to get used as tags ...
+                if item['use']:
+                    item['tags'] = item['use']
+                    print("Set item 'tags' as: %s" % item['tags'])
+                self.log("removed 'use' field from: %s : %s:" % (r_name, item))
+                item.pop('use')
 
             # - Alignak uuid...
             if 'uuid' in item:
                 # Commented because too verbose !
                 # self.log("removed 'uuid' field from: %s : %s:" % (r_name, item))
-                item.pop('uuid', None)
+                item.pop('uuid')
 
             # - 'unknown_members'
             if 'unknown_members' in item:
                 self.log("removed 'unknown_members' field from: %s : %s:" % (r_name, item))
-                item.pop('unknown_members', None)
+                item.pop('unknown_members')
 
             # Elements common fields
             # ------------------------------------------------------------
