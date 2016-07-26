@@ -230,13 +230,53 @@ class CfgToBackend(object):
             self.arbiter = Arbiter(cfg, False, False, False, False, '')
             self.arbiter.load_config_file()
 
-            # Load only conf file for timeperiod.dateranges
             alconf = Config()
             buf = alconf.read_config(cfg)
             self.raw_objects = alconf.read_config_buf(buf)
 
+            # for host in self.raw_objects['host']:
+                # if 'register' in host and host['register'] == [u'0']:
+                    # print("Raw host: %s: %s" % (host['name'], host))
+
+            # for service in self.raw_objects['service']:
+                # if 'register' in service and service['register'] == [u'0']:
+                    # if 'host_name' in service:
+                        # print("Service for host: %s" % (service['host_name']))
+                    # if 'name' not in service:
+                        # print(" - service: %s <- %s" % (service['service_description'], service['use'] if 'use' in service else '*'))
+                    # else:
+                        # print(" - service: %s <- %s" % (service['name'], service['use'] if 'use' in service else '*'))
+
+            # Create objects from raw objects
+            alconf.create_objects(self.raw_objects)
+
+            self.hosts_templates = []
+            hosts = getattr(alconf, 'hosts')
+            for tpl_uuid in hosts.templates:
+                print("Host template: %s" % (hosts.templates[tpl_uuid]))
+                self.hosts_templates.append(hosts.templates[tpl_uuid])
+
+            self.services_templates = []
+            services = getattr(alconf, 'services')
+            for tpl_uuid in services.templates:
+                # Only the one with declared host_name...
+                host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
+                if not host_name:
+                    continue
+                # Several host templates can be specified as a comma separated list...
+                if ',' in host_name:
+                    host_names = host_name.split(',')
+                else:
+                    host_names = [host_name]
+                # Define a service template for each host
+                for host_name in host_names:
+                    setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
+                    print("Service template: %s" % (services.templates[tpl_uuid]))
+                    self.services_templates.append(services.templates[tpl_uuid])
+
         except Exception as e:
             print("Configuration loading exception: %s" % str(e))
+            print("***** Traceback: %s", traceback.format_exc())
             exit(3)
 
         self.recompose_dateranges()
@@ -701,21 +741,12 @@ class CfgToBackend(object):
 
         # Build templates list to replace Alignak elements
         if template:
-            templates = []
             self.inserted['%s_template' % r_name] = {}
-            for item_obj in elements:
-                if not item_obj.get_templates():
-                    continue
+            if r_name == 'host':
+                elements = self.hosts_templates
 
-                print("Resource templates list: %s" % (item_obj.get_templates()))
-                for tpl_name in item_obj.get_templates():
-                    tpl = elements.find_tpl_by_name(tpl_name)
-                    if tpl not in templates:
-                        print("-> found new '%s' template: %s" % (r_name, tpl))
-                        templates.append(tpl)
-                        self.inserted['%s_template' % r_name][tpl_name] = tpl
-
-            elements = templates
+            if r_name == 'service':
+                elements = self.services_templates
 
         for item_obj in elements:
             if not item_obj:
@@ -913,6 +944,7 @@ class CfgToBackend(object):
             if r_name == 'host':
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
+                    item['check_command'] = ''
 
                 if 'hostgroups' in item:
                     # Remove hostgroups relations ... still useful?
@@ -1066,7 +1098,6 @@ class CfgToBackend(object):
 
                         if values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']]:
-                            # objectsid.append(self.inserted[values['resource']][vallist])
                             objectsid.append(vallist)
                         elif values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']].values():
@@ -1130,6 +1161,9 @@ class CfgToBackend(object):
                 item['name'] = item[id_name]
                 item.pop(id_name)
                 print(" --> replaced name for %s: %s" % (r_name, item['name']))
+                if '$' in item['name']:
+                    item['name'] = item['name'].replace('$', '_')
+                    print(" --> replaced name for %s: %s" % (r_name, item['name']))
 
             # item['alias']     not always included, what to do?
             # item['comment']   never included, what to do?
@@ -1138,7 +1172,14 @@ class CfgToBackend(object):
             try:
                 # With headers=None, the post method manages correctly the posted data ...
                 response = self.backend.post(r_name, item, headers=None)
-                print("-> Created a new: %s : %s" % (r_name, response['_id']))
+                if '_is_template' in item and item ['_is_template']:
+                    print("-> Created a new: %s template: %s (%s)" % (
+                        r_name, item['name'], response['_id']
+                    ))
+                else:
+                    print("-> Created a new: %s : %s (%s)" % (
+                        r_name, item['name'], response['_id']
+                    ))
             except BackendException as e:
                 print("# Post error for: %s : %s" % (r_name, item))
                 print("***** Exception: %s" % str(e))
@@ -1147,6 +1188,8 @@ class CfgToBackend(object):
                 exit(5)
             else:
                 self.log("Element insertion response : %s:" % response)
+                if template:
+                    self.inserted['%s_template' % r_name][response['_id']] = item['name']
                 self.inserted[r_name][response['_id']] = item['name']
                 self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
 
@@ -1314,10 +1357,10 @@ class CfgToBackend(object):
                         'field': 'hostgroups', 'type': 'list',
                         'resource': 'hostgroup', 'now': True
                     },
-                    {
-                        'field': 'check_command', 'type': 'simple',
-                        'resource': 'command', 'now': True
-                    },
+                    # {
+                        # 'field': 'check_command', 'type': 'simple',
+                        # 'resource': 'command', 'now': True
+                    # },
                     {
                         'field': 'trigger', 'type': 'simple',
                         'resource': 'trigger', 'now': True
@@ -1476,10 +1519,10 @@ class CfgToBackend(object):
             if self.models:
                 print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 data_later = [
-                    # {
-                    # 'field': 'host', 'type': 'simple',
-                    # 'resource': 'host', 'now': True
-                    # },
+                    {
+                        'field': 'host', 'type': 'simple',
+                        'resource': 'host', 'now': True
+                    },
                     {
                         'field': 'servicegroups', 'type': 'list',
                         'resource': 'servicegroup', 'now': True
@@ -1523,7 +1566,7 @@ class CfgToBackend(object):
                     }
                 ]
                 schema = service.get_schema()
-                self.manage_resource('service', data_later, 'name', schema, template=True)
+                self.manage_resource('service', data_later, 'service_description', schema, template=True)
                 print("~~~~~~~~~~~~~~~~~~~~~~ post service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         if self.type == 'servicedependency' or self.type == 'all':
