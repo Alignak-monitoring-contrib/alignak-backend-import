@@ -1078,6 +1078,9 @@ class CfgToBackend(object):
                     item['dependent_hostgroups'] = item['dependent_hostgroup_name']
                     item.pop('dependent_hostgroup_name')
 
+                if 'dependency_period' not in item or not item['dependency_period']:
+                    item['dependency_period'] = self.tp_always
+
             # Special case of hostgroups
             if r_name == 'hostgroup':
                 if 'members' in item:
