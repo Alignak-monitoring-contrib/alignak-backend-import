@@ -1033,13 +1033,27 @@ class CfgToBackend(object):
                     item.pop('broker_complete_links')
                 print(" --> realm(modified): %s" % item)
             else:
+                # Default is to set element in the default realm
+                item['_realm'] = self.realm_all
+
                 # Realms related to other elements...
                 if 'realm' in item:
-                    print(" --> %s, realm: %s" % (r_name, item['realm']))
-                    # No realm for any element...
-                    item.pop('realm', None)
+                    if r_name in ['hostgroup', 'host']:
+                        print(" --> %s, realm: %s" % (r_name, item['realm']))
 
-                item['_realm'] = self.realm_all
+                        if item['realm'] == self.default_realm or not item['realm']:
+                            item['_realm'] = self.realm_all
+                        else:
+                            item['_realm'] = item['realm']
+
+                    if r_name in ['servicegroup', 'service']:
+                        print(" --> %s, realm: %s" % (r_name, item['realm']))
+
+                        if item['realm'] == self.default_realm or not item['realm']:
+                            item['_realm'] = self.realm_all
+                        else:
+                            item['_realm'] = item['realm']
+                    item.pop('realm', None)
 
             # Special process for custom variables
             # Only import element custom variables if schema allows unknown fields ...
@@ -1441,10 +1455,10 @@ class CfgToBackend(object):
                     'field': 'parents', 'type': 'list',
                     'resource': 'host', 'now': False
                 },
-                # {
-                #     'field': 'hostgroups', 'type': 'list',
-                #     'resource': 'hostgroup', 'now': True
-                # },
+                {
+                    'field': '_realm', 'type': 'simple',
+                    'resource': 'realm', 'now': True
+                },
                 {
                     'field': 'check_command', 'type': 'simple',
                     'resource': 'command', 'now': True
@@ -1572,6 +1586,10 @@ class CfgToBackend(object):
                     'resource': 'hostgroup', 'now': True
                 },
                 {
+                    'field': '_realm', 'type': 'simple',
+                    'resource': 'realm', 'now': True
+                },
+                {
                     'field': 'hostgroups', 'type': 'list',
                     'resource': 'hostgroup', 'now': False
                 },
@@ -1610,6 +1628,10 @@ class CfgToBackend(object):
                 {
                     'field': 'host', 'type': 'simple',
                     'resource': 'host', 'now': True
+                },
+                {
+                    'field': '_realm', 'type': 'simple',
+                    'resource': 'realm', 'now': True
                 },
                 {
                     'field': 'servicegroups', 'type': 'list',
