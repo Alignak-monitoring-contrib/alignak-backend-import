@@ -529,10 +529,8 @@ class CfgToBackend(object):
         for prop in source:
             # Notification ways
             if prop == 'notificationways':
-                print("notificationways: %s - %s" % (prop, source[prop]))
                 nws = getattr(self.arbiter.conf, 'notificationways')
                 for nw in nws:
-                    print("NW: %s" % nw.__dict__)
                     # Update user information with the notification way properties
                     addprop['host_notifications_enabled'] = nw.host_notifications_enabled
                     addprop['service_notifications_enabled'] = nw.service_notifications_enabled
@@ -1423,6 +1421,7 @@ class CfgToBackend(object):
             schema = user.get_schema()
             self.manage_resource('user', data_later, 'name', schema)
 
+        exit(3)
         if self.type == 'usergroup' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
