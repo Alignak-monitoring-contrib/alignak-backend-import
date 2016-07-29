@@ -69,7 +69,9 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_timeperiod(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/timeperiods.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('timeperiod')
         tps = result['_items']
@@ -102,7 +104,9 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_timeperiod_complex(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/timeperiods_complex.cfg'])
-        (_, _) = q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         r = self.backend.get_all('timeperiod')
         r = r['_items']
@@ -155,7 +159,9 @@ class TestCfgToBackend(unittest2.TestCase):
         # host.hostgroups
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts_links_hostgroup.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('host')
         hosts = result['_items']
@@ -175,7 +181,9 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_host_multiple_link_later(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts_links_parent.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('host')
         hosts = result['_items']
@@ -201,7 +209,9 @@ class TestCfgToBackend(unittest2.TestCase):
         """
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hostgroups_links_hostgroup.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('host')
         hosts = result['_items']
@@ -236,7 +246,9 @@ class TestCfgToBackend(unittest2.TestCase):
         """
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/services_link_servicegroups.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('host')
         hosts = result['_items']
@@ -274,7 +286,9 @@ class TestCfgToBackend(unittest2.TestCase):
         """
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/users_link_usergroups.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('user')
         users = result['_items']
@@ -309,7 +323,9 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_command_with_args(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         c = self.backend.get('command')
         self.assertEqual(len(c['_items']), 1)
@@ -336,7 +352,9 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_host_customvariables(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts_custom_variables.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get_all('host')
         hosts = result['_items']
@@ -373,7 +391,9 @@ class TestContacts(unittest2.TestCase):
     def test_users(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/users.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -392,7 +412,9 @@ class TestContacts(unittest2.TestCase):
     def test_user_is_admin(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/user_admin.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -435,7 +457,9 @@ class TestHosts(unittest2.TestCase):
 
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         result = self.backend.get('timeperiod')
         tps = result['_items']
@@ -485,7 +509,9 @@ class TestHosts(unittest2.TestCase):
 
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts_2_templates.cfg'])
-        q.communicate()  # now wait
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
 
         r = self.backend.get('host')
         self.assertEqual(len(r['_items']), 1)
