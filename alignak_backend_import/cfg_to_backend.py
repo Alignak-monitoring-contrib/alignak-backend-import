@@ -508,7 +508,7 @@ class CfgToBackend(object):
                         print("-> Replaced command name with command id for: %s" % (
                             cmd.command_name
                         ))
-                        commands_list.append((cmd_in_list.uuid, c_command, c_params))
+                        commands_list.append((cmd.uuid, c_command, c_params))
                         break
 
         return commands_list
@@ -565,12 +565,9 @@ class CfgToBackend(object):
         for prop in source:
             # Unique commands
             if prop in ['check_command', 'event_handler', 'snapshot_command']:
-                print("---")
-                print("Commands: %s - %s" % (prop, source[prop]))
                 is_commands_list = isinstance(source[prop], list)
 
                 new_commands = self.recompose_commands(source[prop])
-                print("New commands for %s: %s" % (prop, new_commands))
                 if is_commands_list:
                     source[prop] = []
                 for c_id, c_name, c_args in new_commands:
@@ -585,16 +582,12 @@ class CfgToBackend(object):
                     if not is_commands_list:
                         break
                 addprop[prop] = source[prop]
-                print("Commands updated: %s - %s" % (prop, source[prop]))
 
             # Commands list
             if prop in ['service_notification_commands', 'host_notification_commands']:
-                print("---")
-                print("Commands: %s - %s" % (prop, source[prop]))
                 is_commands_list = isinstance(source[prop], list)
 
                 new_commands = self.recompose_commands(source[prop])
-                print("New commands for %s: %s" % (prop, new_commands))
                 if is_commands_list:
                     source[prop] = []
                 for c_id, c_name, c_args in new_commands:
@@ -609,7 +602,6 @@ class CfgToBackend(object):
                     if not is_commands_list:
                         break
                 addprop[prop] = source[prop]
-                print("Commands updated: %s - %s" % (prop, source[prop]))
 
             if prop == 'dateranges':
                 for ti in self.raw_objects['timeperiod']:
@@ -837,6 +829,7 @@ class CfgToBackend(object):
                 ))
                 sg.properties['_parent'] = sg._parent
             elements = sgs
+        # Alignak defined usergroups
         elif r_name == 'usergroup':
             ugs = getattr(self.arbiter.conf, 'contactgroups')
             for ug in ugs:
