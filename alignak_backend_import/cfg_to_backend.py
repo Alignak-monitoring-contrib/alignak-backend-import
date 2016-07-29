@@ -228,91 +228,26 @@ class CfgToBackend(object):
 
         # Get flat files configuration
         try:
+            # Alignak arbiter configuration
             self.arbiter = Arbiter(cfg, False, False, False, False, '')
             self.arbiter.load_config_file()
 
-            alconf = Config()
-            buf = alconf.read_config(cfg)
-            self.raw_objects = alconf.read_config_buf(buf)
-
-            # Create objects from raw objects
-            alconf.create_objects(self.raw_objects)
-            if not alconf.conf_is_correct:
-                sys.exit("***> One or more problems was encountered while processing "
-                         "the config files...")
-            # Create Template links
-            alconf.linkify_templates()
-            # All inheritances
-            alconf.apply_inheritance()
-            # Explode between types
-            alconf.explode()
-            # Implicit inheritance for services
-            alconf.apply_implicit_inheritance()
-            # Fill default values
-            alconf.fill_default()
-            # Overrides specific service instances properties
-            alconf.override_properties()
-
-            commands = getattr(alconf, 'commands')
-            for command in commands:
-                print("Command: %s -> %s" % (command.command_name, command.command_line))
-
-            # From raw objects...
-            self.hosts_templates = []
-            hosts = getattr(alconf, 'hosts')
-            for tpl_uuid in hosts.templates:
-                print("Host template: %s" % (hosts.templates[tpl_uuid]))
-                self.hosts_templates.append(hosts.templates[tpl_uuid])
-
-            self.services_templates = []
-            services = getattr(alconf, 'services')
-            for tpl_uuid in services.templates:
-                # Only the one with declared host_name...
-                host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
-                if not host_name:
-                    continue
-                # Several host templates can be specified as a comma separated list...
-                if ',' in host_name:
-                    host_names = host_name.split(',')
-                else:
-                    host_names = [host_name]
-                # Define a service template for each host
-                for host_name in host_names:
-                    setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
-                    print("Service template: %s" % (services.templates[tpl_uuid]))
-                    self.services_templates.append(services.templates[tpl_uuid])
-
-            # From arbiter configuration...
-            self.hosts_templates = []
-            hosts = getattr(self.arbiter.conf, 'hosts')
-            for tpl_uuid in hosts.templates:
-                print("Host template: %s" % (hosts.templates[tpl_uuid]))
-                self.hosts_templates.append(hosts.templates[tpl_uuid])
-
-            self.services_templates = []
-            services = getattr(self.arbiter.conf, 'services')
-            for tpl_uuid in services.templates:
-                # Only the one with declared host_name...
-                host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
-                if not host_name:
-                    continue
-                # Several host templates can be specified as a comma separated list...
-                if ',' in host_name:
-                    host_names = host_name.split(',')
-                else:
-                    host_names = [host_name]
-                # Define a service template for each host
-                for host_name in host_names:
-                    setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
-                    print("Service template: %s" % (services.templates[tpl_uuid]))
-                    self.services_templates.append(services.templates[tpl_uuid])
-
+            # Raw configuration
+            self.raw_conf = Config()
+            buf = self.raw_conf.read_config(cfg)
+            self.raw_objects = self.raw_conf.read_config_buf(buf)
         except Exception as e:
             print("Configuration loading exception: %s" % str(e))
             print("***** Traceback: %s", traceback.format_exc())
             exit(3)
 
+        # Build templates lists from raw objects
+        self.build_templates()
+
+        # Rebuild the date ranges in the raw objects (raw objects are modified!)
         self.recompose_dateranges()
+
+        # Import the objects in the backend
         self.import_objects()
         if self.errors_found:
             print('############################# errors report ##################################')
@@ -343,7 +278,6 @@ class CfgToBackend(object):
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     def delete_data(self):
-        # pylint: disable=fixme, too-many-locals
         """
         Delete data in backend
 
@@ -455,6 +389,50 @@ class CfgToBackend(object):
             print("***** response: %s" % e.response)
             exit(5)
 
+    def build_templates(self):
+        """
+        Get the templates from the raw objects and build templates lists
+
+        :return: None
+        """
+        # Create objects from raw objects
+        self.raw_conf.create_objects(self.raw_objects)
+        # Create Template links
+        self.raw_conf.linkify_templates()
+        # All inheritances
+        self.raw_conf.apply_inheritance()
+        # Explode between types
+        self.raw_conf.explode()
+        # Implicit inheritance for services
+        self.raw_conf.apply_implicit_inheritance()
+        # Fill default values
+        self.raw_conf.fill_default()
+
+        # From arbiter configuration...
+        self.hosts_templates = []
+        hosts = getattr(self.raw_conf, 'hosts')
+        for tpl_uuid in hosts.templates:
+            print("Host template: %s" % (hosts.templates[tpl_uuid]))
+            self.hosts_templates.append(hosts.templates[tpl_uuid])
+
+        self.services_templates = []
+        services = getattr(self.raw_conf, 'services')
+        for tpl_uuid in services.templates:
+            # Only the one with declared host_name...
+            host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
+            if not host_name:
+                continue
+            # Several host templates can be specified as a comma separated list...
+            if ',' in host_name:
+                host_names = host_name.split(',')
+            else:
+                host_names = [host_name]
+            # Define a service template for each host
+            for host_name in host_names:
+                setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
+                print("Service template: %s" % (services.templates[tpl_uuid]))
+                self.services_templates.append(services.templates[tpl_uuid])
+
     def recompose_dateranges(self):
         """
         For each timeperiod, recompose daterange in backend format
@@ -501,8 +479,8 @@ class CfgToBackend(object):
                  'dependent_hostgroup_name', 'command_name', 'timeperiod_name']
         addprop = {}
         for prop in source:
-            if prop in ['check_command', 'event_handler', 'snapshot_command',
-                        'service_notification_commands', 'host_notification_commands']:
+            # Unique commands
+            if prop in ['check_command', 'event_handler', 'snapshot_command']:
                 if 'alignak.commandcall.CommandCall' in str(type(source[prop])):
                     if prop == 'check_command':
                         addprop['check_command_args'] = getattr(source[prop], 'args')
@@ -517,11 +495,11 @@ class CfgToBackend(object):
                         c_params = [s.replace('___PROTECT_EXCLAMATION___', '!') for s in tab[1:]]
 
                         commands = getattr(self.arbiter.conf, 'commands')
-                        for command in commands:
-                            if command.command_name == c_command:
-                                source[prop] = command.uuid
-                                print("-> Replaced command name with command id for: %s" % (
-                                    command.command_name
+                        for cmd in commands:
+                            if cmd.command_name == c_command:
+                                source[prop] = cmd.uuid
+                                print("-> Replaced cmd name with cmd id for: %s" % (
+                                    cmd.command_name
                                 ))
                                 break
 
@@ -530,6 +508,44 @@ class CfgToBackend(object):
                             print("-> Added check_command_args: %s" % (
                                 addprop['check_command_args']
                             ))
+
+            # Commands list
+            if prop in ['service_notification_commands', 'host_notification_commands']:
+                is_commands_list = isinstance(source[prop], list)
+                commands_list = []
+                if not is_commands_list:
+                    source[prop] = [source[prop]]
+
+                for cmd_in_list in source[prop]:
+                    print("Command: %s" % source[prop])
+                    if 'alignak.commandcall.CommandCall' in str(type(cmd_in_list)):
+                        commands_list.append(cmd_in_list.uuid)
+                    else:
+                        # Explode command name as command / args
+                        c_call = cmd_in_list.replace(r'\!', '___PROTECT_EXCLAMATION___')
+                        tab = c_call.split('!')
+                        c_command = tab[0].strip()
+                        c_params = [s.replace('___PROTECT_EXCLAMATION___', '!') for s in tab[1:]]
+
+                        commands = getattr(self.arbiter.conf, 'commands')
+                        for cmd in commands:
+                            if cmd.command_name == c_command:
+                                commands_list.append(cmd.uuid)
+                                print("-> Replaced command name with command id for: %s" % (
+                                    cmd.command_name
+                                ))
+                                if c_params:
+                                    addprop['%s_args' % cmd.command_name] = c_params
+                                    print("-> Added %s_args: %s" % (
+                                        cmd.command_name,
+                                        addprop['%s_args' % cmd.command_name]
+                                    ))
+                                break
+
+                if is_commands_list:
+                    source[prop] = commands_list
+                elif commands_list:
+                    source[prop] = commands_list[0]
 
             if prop == 'dateranges':
                 for ti in self.raw_objects['timeperiod']:
@@ -587,7 +603,6 @@ class CfgToBackend(object):
         :type field: str
         :return: None
         """
-        # pylint: disable=too-many-nested-blocks
         headers = {'Content-Type': 'application/json'}
         for (index, item) in iteritems(self.later[resource][field]):
             print("Late update for: %s/%s -> %s" % (resource, index, item))
@@ -657,6 +672,7 @@ class CfgToBackend(object):
 
     def manage_resource(self, r_name, data_later, id_name, schema, template=False):
         # pylint: disable=protected-access, too-many-arguments
+        # pylint: disable=too-many-locals
         """
         Array of data to include in internal cache or to update with internal objects cache:
         data_later = [
@@ -677,7 +693,6 @@ class CfgToBackend(object):
         :param schema:
         :return:
         """
-        # pylint: disable=too-many-locals
         if r_name not in self.inserted:
             self.inserted[r_name] = {}
         if r_name not in self.inserted_uuid:
@@ -1232,7 +1247,7 @@ class CfgToBackend(object):
                         item['check_command'] = ''
                 # With headers=None, the post method manages correctly the posted data ...
                 response = self.backend.post(r_name, item, headers=None)
-                if '_is_template' in item and item ['_is_template']:
+                if '_is_template' in item and item['_is_template']:
                     print("-> Created a new: %s template: %s (%s): %s" % (
                         r_name, item['name'], response['_id'], item
                     ))
@@ -1626,7 +1641,9 @@ class CfgToBackend(object):
                     }
                 ]
                 schema = service.get_schema()
-                self.manage_resource('service', data_later, 'service_description', schema, template=True)
+                self.manage_resource(
+                    'service', data_later, 'service_description', schema, template=True
+                )
                 print("~~~~~~~~~~~~~~~~~~~~~~ post service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         if self.type == 'servicedependency' or self.type == 'all':
