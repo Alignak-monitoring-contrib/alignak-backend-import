@@ -79,6 +79,7 @@ from future.utils import iteritems
 
 try:
     from alignak.daemons.arbiterdaemon import Arbiter
+    from alignak.commandcall import CommandCall
     from alignak.objects.item import Item
     from alignak.objects.config import Config
     import alignak.daterange as daterange
@@ -234,22 +235,29 @@ class CfgToBackend(object):
             buf = alconf.read_config(cfg)
             self.raw_objects = alconf.read_config_buf(buf)
 
-            # for host in self.raw_objects['host']:
-                # if 'register' in host and host['register'] == [u'0']:
-                    # print("Raw host: %s: %s" % (host['name'], host))
-
-            # for service in self.raw_objects['service']:
-                # if 'register' in service and service['register'] == [u'0']:
-                    # if 'host_name' in service:
-                        # print("Service for host: %s" % (service['host_name']))
-                    # if 'name' not in service:
-                        # print(" - service: %s <- %s" % (service['service_description'], service['use'] if 'use' in service else '*'))
-                    # else:
-                        # print(" - service: %s <- %s" % (service['name'], service['use'] if 'use' in service else '*'))
-
             # Create objects from raw objects
             alconf.create_objects(self.raw_objects)
+            if not alconf.conf_is_correct:
+                sys.exit("***> One or more problems was encountered while processing "
+                         "the config files...")
+            # Create Template links
+            alconf.linkify_templates()
+            # All inheritances
+            alconf.apply_inheritance()
+            # Explode between types
+            alconf.explode()
+            # Implicit inheritance for services
+            alconf.apply_implicit_inheritance()
+            # Fill default values
+            alconf.fill_default()
+            # Overrides specific service instances properties
+            alconf.override_properties()
 
+            commands = getattr(alconf, 'commands')
+            for command in commands:
+                print("Command: %s -> %s" % (command.command_name, command.command_line))
+
+            # From raw objects...
             self.hosts_templates = []
             hosts = getattr(alconf, 'hosts')
             for tpl_uuid in hosts.templates:
@@ -258,6 +266,31 @@ class CfgToBackend(object):
 
             self.services_templates = []
             services = getattr(alconf, 'services')
+            for tpl_uuid in services.templates:
+                # Only the one with declared host_name...
+                host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
+                if not host_name:
+                    continue
+                # Several host templates can be specified as a comma separated list...
+                if ',' in host_name:
+                    host_names = host_name.split(',')
+                else:
+                    host_names = [host_name]
+                # Define a service template for each host
+                for host_name in host_names:
+                    setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
+                    print("Service template: %s" % (services.templates[tpl_uuid]))
+                    self.services_templates.append(services.templates[tpl_uuid])
+
+            # From arbiter configuration...
+            self.hosts_templates = []
+            hosts = getattr(self.arbiter.conf, 'hosts')
+            for tpl_uuid in hosts.templates:
+                print("Host template: %s" % (hosts.templates[tpl_uuid]))
+                self.hosts_templates.append(hosts.templates[tpl_uuid])
+
+            self.services_templates = []
+            services = getattr(self.arbiter.conf, 'services')
             for tpl_uuid in services.templates:
                 # Only the one with declared host_name...
                 host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
@@ -468,10 +501,35 @@ class CfgToBackend(object):
                  'dependent_hostgroup_name', 'command_name', 'timeperiod_name']
         addprop = {}
         for prop in source:
-            if 'alignak.commandcall.CommandCall' in str(type(source[prop])):
-                if prop == 'check_command':
-                    addprop['check_command_args'] = getattr(source[prop], 'args')
-                source[prop] = getattr(source[prop], 'command')
+            if prop in ['check_command', 'event_handler', 'snapshot_command',
+                        'service_notification_commands', 'host_notification_commands']:
+                if 'alignak.commandcall.CommandCall' in str(type(source[prop])):
+                    if prop == 'check_command':
+                        addprop['check_command_args'] = getattr(source[prop], 'args')
+                        print("-> Added check_command_args: %s" % (addprop['check_command_args']))
+                    source[prop] = getattr(source[prop], 'command')
+                else:
+                    if source[prop]:
+                        # Explode command name as command / args
+                        c_call = source[prop].replace(r'\!', '___PROTECT_EXCLAMATION___')
+                        tab = c_call.split('!')
+                        c_command = tab[0].strip()
+                        c_params = [s.replace('___PROTECT_EXCLAMATION___', '!') for s in tab[1:]]
+
+                        commands = getattr(self.arbiter.conf, 'commands')
+                        for command in commands:
+                            if command.command_name == c_command:
+                                source[prop] = command.uuid
+                                print("-> Replaced command name with command id for: %s" % (
+                                    command.command_name
+                                ))
+                                break
+
+                        if c_params:
+                            addprop['check_command_args'] = c_params
+                            print("-> Added check_command_args: %s" % (
+                                addprop['check_command_args']
+                            ))
 
             if prop == 'dateranges':
                 for ti in self.raw_objects['timeperiod']:
@@ -806,10 +864,6 @@ class CfgToBackend(object):
                 print ("-> do not change anything for default usergroup.")
                 continue
 
-            # if r_name == 'usergroup':
-            #     print("Usergroup: %s" % id_name)
-            #     print("Usergroup: %s" % item)
-
             #  - specific commands
             if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
                 print ("-> do not import this command.")
@@ -944,7 +998,8 @@ class CfgToBackend(object):
             if r_name == 'host':
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
-                    item['check_command'] = ''
+                    if 'check_command' not in item:
+                        item['check_command'] = ''
 
                 if 'hostgroups' in item:
                     # Remove hostgroups relations ... still useful?
@@ -976,7 +1031,8 @@ class CfgToBackend(object):
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     item['host'] = ''
-                    item['check_command'] = ''
+                    if 'check_command' not in item:
+                        item['check_command'] = ''
 
                 if 'servicegroups' in item:
                     # Remove servicegroups relations ... still useful?
@@ -1170,11 +1226,15 @@ class CfgToBackend(object):
 
             self.log("before_post: %s : %s:" % (r_name, item))
             try:
+                # Special case for templates ... some have check_command some do not have!
+                if template:
+                    if 'check_command' not in item:
+                        item['check_command'] = ''
                 # With headers=None, the post method manages correctly the posted data ...
                 response = self.backend.post(r_name, item, headers=None)
                 if '_is_template' in item and item ['_is_template']:
-                    print("-> Created a new: %s template: %s (%s)" % (
-                        r_name, item['name'], response['_id']
+                    print("-> Created a new: %s template: %s (%s): %s" % (
+                        r_name, item['name'], response['_id'], item
                     ))
                 else:
                     print("-> Created a new: %s : %s (%s)" % (
@@ -1357,10 +1417,10 @@ class CfgToBackend(object):
                         'field': 'hostgroups', 'type': 'list',
                         'resource': 'hostgroup', 'now': True
                     },
-                    # {
-                        # 'field': 'check_command', 'type': 'simple',
-                        # 'resource': 'command', 'now': True
-                    # },
+                    {
+                        'field': 'check_command', 'type': 'simple',
+                        'resource': 'command', 'now': True
+                    },
                     {
                         'field': 'trigger', 'type': 'simple',
                         'resource': 'trigger', 'now': True
@@ -1527,10 +1587,10 @@ class CfgToBackend(object):
                         'field': 'servicegroups', 'type': 'list',
                         'resource': 'servicegroup', 'now': True
                     },
-                    # {
-                    # 'field': 'check_command', 'type': 'simple',
-                    # 'resource': 'command', 'now': True
-                    # },
+                    {
+                        'field': 'check_command', 'type': 'simple',
+                        'resource': 'command', 'now': True
+                    },
                     {
                         'field': 'check_period', 'type': 'simple',
                         'resource': 'timeperiod', 'now': True
