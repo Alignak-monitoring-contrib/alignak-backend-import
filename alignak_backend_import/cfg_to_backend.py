@@ -412,7 +412,7 @@ class CfgToBackend(object):
         # Fill default values
         self.raw_conf.fill_default()
 
-        # From arbiter configuration...
+        # From raw configuration...
         self.hosts_templates = []
         hosts = getattr(self.raw_conf, 'hosts')
         for tpl_uuid in hosts.templates:
@@ -925,7 +925,7 @@ class CfgToBackend(object):
 
             #  - default realm
             if r_name == 'realm' and item[id_name] == "All":
-                print ("-> do not change anything for default realm.")
+                print ("-> do not change anything for default realm: %s." % self.realm_all)
                 continue
 
             #  - default hostgroup
@@ -1180,7 +1180,19 @@ class CfgToBackend(object):
                 if 'service_notification_period' not in item or \
                    not item['service_notification_period']:
                     item['service_notification_period'] = self.tp_always
-                print("Contact: %s" % item)
+
+                if 'address6' in item:
+                    if item['address6'] in self.inserted['realm']:
+                        item['_realm'] = self.inserted['realm'][item['address6']]
+                        print("-> import user '%s' in realm '%s'." % (
+                            item['name'], item['address6']
+                        ))
+                    if item['address6'] in self.inserted['realm'].values():
+                        index = self.inserted['realm'].values().index(item['address6'])
+                        item['_realm'] = self.inserted['realm'].keys()[index]
+                        print("-> import user '%s' in realm '%s'." % (
+                            item['name'], item['address6']
+                        ))
 
             # Special case of timeperiods for hosts and services
             # Always define timeperiods if they do not exist
@@ -1358,6 +1370,28 @@ class CfgToBackend(object):
                             '_etag': response['_etag']
                         }
 
+                # Special case of users - create user restriction roles in the backend
+                if r_name == 'user':
+                    try:
+                        # Default is to allow read on all elements of the user's realm
+                        user_role = {
+                            'user': response['_id'],
+                            'realm': item['_realm'],
+                            'sub_realm': True,
+                            'resource': '*',
+                            'crud': ['read']
+                        }
+                        response = self.backend.post('userrestrictrole', user_role, headers=None)
+                        print("-> Created a new user_role: %s : %s (%s)" % (
+                            r_name, user_role, response['_id']
+                        ))
+                    except BackendException as e:
+                        print("# Post error for user_role: %s : %s" % (r_name, item))
+                        print("***** Exception: %s" % str(e))
+                        print("***** %s", traceback.format_exc())
+                        print("***** response: %s" % e.response)
+                        exit(5)
+
     def import_objects(self):
         """
         Import objects in backend
@@ -1421,7 +1455,6 @@ class CfgToBackend(object):
             schema = user.get_schema()
             self.manage_resource('user', data_later, 'name', schema)
 
-        exit(3)
         if self.type == 'usergroup' or self.type == 'all':
             print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
