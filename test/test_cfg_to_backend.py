@@ -366,6 +366,64 @@ class TestCfgToBackend(unittest2.TestCase):
             self.assertEqual(host['customs'], {u'_LOC_LAT': u'45.054700', u'_LOC_LNG': u'5.080856'})
 
 
+class TestContactsNW(unittest2.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Set test mode for alignak backend
+        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
+
+        cls.p = subprocess.Popen(['alignak_backend'])
+        print("Backend PID: %s" % cls.p)
+        time.sleep(3)
+
+        cls.backend = Backend('http://127.0.0.1:5000')
+        cls.backend.login("admin", "admin", "force")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.p.kill()
+
+    @classmethod
+    def tearDown(cls):
+        print("")
+
+    def test_user_notification_ways(self):
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/users.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        result = self.backend.get('command')
+        cmds = result['_items']
+        for cmd in cmds:
+            print(cmd['_id'], cmd['name'])
+            if cmd['name'] == 'notify-host-by-email':
+                cmd_nh1 = cmd['_id']
+            if cmd['name'] == 'notify-host-by-email-2':
+                cmd_nh2 = cmd['_id']
+            if cmd['name'] == 'notify-service-by-email':
+                cmd_ns = cmd['_id']
+        self.assertEqual(len(cmds), 3)
+
+        result = self.backend.get_all('user')
+        users = result['_items']
+        self.assertEqual(len(users), 5)
+
+        print("Found users: ")
+        for user in users:
+            print("-", user['name'])
+            if user['name'] == 'admin':
+                self.assertEqual(user['is_admin'], False)
+                self.assertEqual(user['back_role_super_admin'], True)
+            else:
+                self.assertEqual(user['back_role_super_admin'], False)
+                self.assertTrue(user['host_notifications_enabled'])
+                self.assertTrue(user['service_notifications_enabled'])
+                self.assertEqual(user['host_notification_commands'], [cmd_nh1, cmd_nh2])
+                self.assertEqual(user['service_notification_commands'], [cmd_ns])
+
 class TestContacts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -388,33 +446,21 @@ class TestContacts(unittest2.TestCase):
     def tearDown(cls):
         print("")
 
-    def test_users(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
-                              'alignak_cfg_files/users.cfg'])
-        (_, _) = q.communicate()
-        exit_code = q.wait()
-        self.assertEqual(exit_code, 0)
-
-        result = self.backend.get_all('user')
-        users = result['_items']
-        self.assertEqual(len(users), 5)
-
-        print("Found users: ")
-        for user in users:
-            print("-", user['name'])
-            if user['name'] == 'admin':
-                self.assertEqual(user['is_admin'], False)
-                self.assertEqual(user['back_role_super_admin'], True)
-            else:
-                # self.assertEqual(user['is_admin'], True)
-                self.assertEqual(user['back_role_super_admin'], False)
-
-    def test_user_is_admin(self):
+    def test_user_direct_notification(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/user_admin.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
+
+        result = self.backend.get('command')
+        cmds = result['_items']
+        for cmd in cmds:
+            if cmd['name'] == 'notify-host-by-email':
+                cmd_nh1 = cmd['_id']
+            if cmd['name'] == 'notify-service-by-email':
+                cmd_ns = cmd['_id']
+        self.assertEqual(len(cmds), 2)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -422,13 +468,15 @@ class TestContacts(unittest2.TestCase):
 
         print("Found users: ")
         for user in users:
-            print("-", user['name'])
+            print("-", user['name'], user)
             if user['name'] == 'admin':
                 self.assertEqual(user['is_admin'], False)
                 self.assertEqual(user['back_role_super_admin'], True)
             else:
                 self.assertEqual(user['is_admin'], True)
                 self.assertEqual(user['back_role_super_admin'], False)
+                self.assertEqual(user['host_notification_commands'], [cmd_nh1])
+                self.assertEqual(user['service_notification_commands'], [cmd_ns])
 
 
 class TestHosts(unittest2.TestCase):

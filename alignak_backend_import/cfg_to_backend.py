@@ -206,12 +206,16 @@ class CfgToBackend(object):
 
         # Default timeperiod
         self.inserted['timeperiod'] = {}
+        self.al_always = None
         self.tp_always = None
         timeperiods = self.backend.get_all('timeperiod')
         for tp in timeperiods['_items']:
             if tp['name'] == '24x7':
                 self.inserted['timeperiod'][tp['_id']] = '24x7'
                 self.tp_always = tp['_id']
+
+        self.al_none = None
+        self.al_never = None
         self.tp_never = None
         timeperiods = self.backend.get_all('timeperiod')
         for tp in timeperiods['_items']:
@@ -466,6 +470,49 @@ class CfgToBackend(object):
                                 dateranges.append({propti: times})
             ti['dr'] = dateranges
 
+    def recompose_commands(self, commands):
+        """
+        Rebuild command (or commands) property
+
+        Returns a list of tuples containing:
+        - command uuid
+        - command name
+        - command arguments
+
+        :param commands: command or commands list
+        :return: tuples list
+        :rtype:
+        """
+        commands_list = []
+
+        if not isinstance(commands, list):
+            commands = [commands]
+
+        for cmd_in_list in commands:
+            if not cmd_in_list:
+                continue
+            if 'alignak.commandcall.CommandCall' in str(type(cmd_in_list)):
+                c_command = getattr(cmd_in_list, 'command').command_name
+                c_params = getattr(cmd_in_list, 'args')
+                commands_list.append((cmd_in_list.uuid, c_command, c_params))
+            else:
+                # Explode command name as command / args
+                c_call = cmd_in_list.replace(r'\!', '___PROTECT_EXCLAMATION___')
+                tab = c_call.split('!')
+                c_command = tab[0].strip()
+                c_params = [s.replace('___PROTECT_EXCLAMATION___', '!') for s in tab[1:]]
+
+                commands = getattr(self.arbiter.conf, 'commands')
+                for cmd in commands:
+                    if cmd.command_name == c_command:
+                        print("-> Replaced command name with command id for: %s" % (
+                            cmd.command_name
+                        ))
+                        commands_list.append((cmd_in_list.uuid, c_command, c_params))
+                        break
+
+        return commands_list
+
     def convert_objects(self, source):
         """
         Convert objects in name of this object
@@ -478,74 +525,91 @@ class CfgToBackend(object):
         names = ['services', 'service', 'hosts', 'host', 'dependent_host',
                  'dependent_hostgroup_name', 'command_name', 'timeperiod_name']
         addprop = {}
+        # First iteration to update notification ways (#19)
+        for prop in source:
+            # Notification ways
+            if prop == 'notificationways':
+                print("notificationways: %s - %s" % (prop, source[prop]))
+                nws = getattr(self.arbiter.conf, 'notificationways')
+                for nw in nws:
+                    print("NW: %s" % nw.__dict__)
+                    # Update user information with the notification way properties
+                    addprop['host_notifications_enabled'] = nw.host_notifications_enabled
+                    addprop['service_notifications_enabled'] = nw.service_notifications_enabled
+                    if nw.host_notification_period == self.al_always:
+                        addprop['host_notification_period'] = self.tp_always
+                    elif nw.host_notification_period == self.al_none:
+                        addprop['host_notification_period'] = self.tp_none
+                    elif nw.host_notification_period == self.al_never:
+                        addprop['host_notification_period'] = self.tp_never
+                    else:
+                        addprop['host_notification_period'] = nw.host_notification_period
+                    if nw.service_notification_period == self.al_always:
+                        addprop['service_notification_period'] = self.tp_always
+                    elif nw.service_notification_period == self.al_none:
+                        addprop['service_notification_period'] = self.tp_none
+                    elif nw.service_notification_period == self.al_never:
+                        addprop['service_notification_period'] = self.tp_never
+                    else:
+                        addprop['service_notification_period'] = nw.service_notification_period
+                    addprop['host_notification_options'] = nw.host_notification_options
+                    addprop['service_notification_options'] = nw.service_notification_options
+                    addprop['host_notification_commands'] = nw.host_notification_commands
+                    addprop['service_notification_commands'] = nw.service_notification_commands
+                    addprop['min_business_impact'] = nw.min_business_impact
+                    # Ignore other defined NW
+                    break
+        source.update(addprop)
+
+        # Second iteration after update of notification ways (#19)
         for prop in source:
             # Unique commands
             if prop in ['check_command', 'event_handler', 'snapshot_command']:
-                if 'alignak.commandcall.CommandCall' in str(type(source[prop])):
-                    if prop == 'check_command':
-                        addprop['check_command_args'] = getattr(source[prop], 'args')
-                        print("-> Added check_command_args: %s" % (addprop['check_command_args']))
-                    source[prop] = getattr(source[prop], 'command')
-                else:
-                    if source[prop]:
-                        # Explode command name as command / args
-                        c_call = source[prop].replace(r'\!', '___PROTECT_EXCLAMATION___')
-                        tab = c_call.split('!')
-                        c_command = tab[0].strip()
-                        c_params = [s.replace('___PROTECT_EXCLAMATION___', '!') for s in tab[1:]]
+                print("---")
+                print("Commands: %s - %s" % (prop, source[prop]))
+                is_commands_list = isinstance(source[prop], list)
 
-                        commands = getattr(self.arbiter.conf, 'commands')
-                        for cmd in commands:
-                            if cmd.command_name == c_command:
-                                source[prop] = cmd.uuid
-                                print("-> Replaced cmd name with cmd id for: %s" % (
-                                    cmd.command_name
-                                ))
-                                break
-
-                        if c_params:
-                            addprop['check_command_args'] = c_params
-                            print("-> Added check_command_args: %s" % (
-                                addprop['check_command_args']
-                            ))
+                new_commands = self.recompose_commands(source[prop])
+                print("New commands for %s: %s" % (prop, new_commands))
+                if is_commands_list:
+                    source[prop] = []
+                for c_id, c_name, c_args in new_commands:
+                    print("- new command: %s - %s - %s" % (c_id, c_name, c_args))
+                    if is_commands_list:
+                        source[prop].append(c_name)
+                    else:
+                        source[prop] = c_name
+                    if c_args:
+                        addprop['%s_args' % prop] = c_args
+                        print("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
+                    if not is_commands_list:
+                        break
+                addprop[prop] = source[prop]
+                print("Commands updated: %s - %s" % (prop, source[prop]))
 
             # Commands list
             if prop in ['service_notification_commands', 'host_notification_commands']:
+                print("---")
+                print("Commands: %s - %s" % (prop, source[prop]))
                 is_commands_list = isinstance(source[prop], list)
-                commands_list = []
-                if not is_commands_list:
-                    source[prop] = [source[prop]]
 
-                for cmd_in_list in source[prop]:
-                    print("Command: %s" % source[prop])
-                    if 'alignak.commandcall.CommandCall' in str(type(cmd_in_list)):
-                        commands_list.append(cmd_in_list.uuid)
-                    else:
-                        # Explode command name as command / args
-                        c_call = cmd_in_list.replace(r'\!', '___PROTECT_EXCLAMATION___')
-                        tab = c_call.split('!')
-                        c_command = tab[0].strip()
-                        c_params = [s.replace('___PROTECT_EXCLAMATION___', '!') for s in tab[1:]]
-
-                        commands = getattr(self.arbiter.conf, 'commands')
-                        for cmd in commands:
-                            if cmd.command_name == c_command:
-                                commands_list.append(cmd.uuid)
-                                print("-> Replaced command name with command id for: %s" % (
-                                    cmd.command_name
-                                ))
-                                if c_params:
-                                    addprop['%s_args' % cmd.command_name] = c_params
-                                    print("-> Added %s_args: %s" % (
-                                        cmd.command_name,
-                                        addprop['%s_args' % cmd.command_name]
-                                    ))
-                                break
-
+                new_commands = self.recompose_commands(source[prop])
+                print("New commands for %s: %s" % (prop, new_commands))
                 if is_commands_list:
-                    source[prop] = commands_list
-                elif commands_list:
-                    source[prop] = commands_list[0]
+                    source[prop] = []
+                for c_id, c_name, c_args in new_commands:
+                    print("- new command: %s - %s - %s" % (c_id, c_name, c_args))
+                    if is_commands_list:
+                        source[prop].append(c_name)
+                    else:
+                        source[prop] = c_name
+                    if c_args:
+                        addprop['%s_args' % prop] = c_args
+                        print("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
+                    if not is_commands_list:
+                        break
+                addprop[prop] = source[prop]
+                print("Commands updated: %s - %s" % (prop, source[prop]))
 
             if prop == 'dateranges':
                 for ti in self.raw_objects['timeperiod']:
@@ -853,9 +917,18 @@ class CfgToBackend(object):
             #  - admin user (managed later...)
 
             #  - default timeperiod
-            if r_name == 'timeperiod' and (item[id_name] == "24x7" or
-                                           item[id_name] == "none" or
-                                           item[id_name] == "Never"):
+            if r_name == 'timeperiod' and item[id_name] == "24x7":
+                print ("-> do not change anything for default timeperiod.")
+                self.al_always = item_obj.uuid
+                continue
+
+            if r_name == 'timeperiod' and item[id_name] == "none":
+                self.al_none = item_obj.uuid
+                print ("-> do not change anything for default timeperiod.")
+                continue
+
+            if r_name == 'timeperiod' and item[id_name] == "Never":
+                self.al_never = item_obj.uuid
                 print ("-> do not change anything for default timeperiod.")
                 continue
 
