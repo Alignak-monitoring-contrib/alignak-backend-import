@@ -1053,6 +1053,9 @@ class CfgToBackend(object):
                             item['_realm'] = item['realm']
                     item.pop('realm', None)
 
+                if item['_realm'] == self.realm_all:
+                    item['_sub_realm'] = True
+
             # Special process for custom variables
             # Only import element custom variables if schema allows unknown fields ...
             # ... not the best solution. They should be imported in 'customs' defined array field!
@@ -1499,6 +1502,10 @@ class CfgToBackend(object):
                     'resource': 'command', 'now': True
                 },
                 {
+                    'field': 'event_handler', 'type': 'simple',
+                    'resource': 'command', 'now': True
+                },
+                {
                     'field': 'trigger', 'type': 'simple',
                     'resource': 'trigger', 'now': True
                 },
@@ -1549,6 +1556,10 @@ class CfgToBackend(object):
                     },
                     {
                         'field': 'check_command', 'type': 'simple',
+                        'resource': 'command', 'now': True
+                    },
+                    {
+                        'field': 'event_handler', 'type': 'simple',
                         'resource': 'command', 'now': True
                     },
                     {
@@ -1677,6 +1688,10 @@ class CfgToBackend(object):
                     'resource': 'command', 'now': True
                 },
                 {
+                    'field': 'event_handler', 'type': 'simple',
+                    'resource': 'command', 'now': True
+                },
+                {
                     'field': 'check_period', 'type': 'simple',
                     'resource': 'timeperiod', 'now': True
                 },
@@ -1727,6 +1742,10 @@ class CfgToBackend(object):
                     },
                     {
                         'field': 'check_command', 'type': 'simple',
+                        'resource': 'command', 'now': True
+                    },
+                    {
+                        'field': 'event_handler', 'type': 'simple',
                         'resource': 'command', 'now': True
                     },
                     {
