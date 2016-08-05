@@ -85,6 +85,7 @@ class TestCfgToBackend(unittest2.TestCase):
             ref = {u"name": u"workhours",
                    u"definition_order": 100,
                    u"notes": u"",
+                   u'_sub_realm': True,
                    u"alias": u"Normal Work Hours",
                    u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
                                    {u'friday': u'09:00-12:00,14:00-16:00'},
@@ -116,6 +117,7 @@ class TestCfgToBackend(unittest2.TestCase):
                u"definition_order": 100,
                u"alias": u"Normal Work Hours",
                u"notes": u"",
+               u'_sub_realm': True,
                u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
                                {u'friday': u'09:00-12:00,14:00-16:00'},
                                {u'wednesday': u'09:00-17:00'},
@@ -135,6 +137,7 @@ class TestCfgToBackend(unittest2.TestCase):
                u"definition_order": 100,
                u"alias": u"U.S. Holidays",
                u"notes": u"",
+               u'_sub_realm': True,
                u"dateranges": [{u'thursday -1 november': u'00:00-00:00'},
                                {u'monday 1 september': u'00:00-00:00'},
                                {u'january 1': u'00:00-00:00'},
@@ -328,10 +331,16 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(exit_code, 0)
 
         c = self.backend.get('command')
-        self.assertEqual(len(c['_items']), 1)
+        self.assertEqual(len(c['_items']), 2)
         command_id = ''
+        ev_handler_id = ''
         for co in c['_items']:
-            command_id = co['_id']
+            if co['name'] == 'check_tcp':
+                command_id = co['_id']
+            if co['name'] == 'my_host_event_handler':
+                ev_handler_id = co['_id']
+        self.assertNotEqual(command_id, '')
+        self.assertNotEqual(ev_handler_id, '')
 
         result = self.backend.get('host')
         self.assertEqual(len(result['_items']), 3)
@@ -344,10 +353,37 @@ class TestCfgToBackend(unittest2.TestCase):
             if host['name'] == 'srv03':
                 self.assertEqual(host['check_command_args'], '')
 
-        co = self.backend.get_all('command')
-        co = co['_items']
-        self.assertEqual(len(co), 1)
-        self.assertEqual(co[0]['name'], "check_tcp")
+    def test_command_event_handler(self):
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/hosts.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        c = self.backend.get('command')
+        self.assertEqual(len(c['_items']), 2)
+        command_id = ''
+        ev_handler_id = ''
+        for co in c['_items']:
+            if co['name'] == 'check_tcp':
+                command_id = co['_id']
+            if co['name'] == 'my_host_event_handler':
+                ev_handler_id = co['_id']
+        self.assertNotEqual(command_id, '')
+        self.assertNotEqual(ev_handler_id, '')
+
+        result = self.backend.get('host')
+        self.assertEqual(len(result['_items']), 3)
+        for host in result['_items']:
+            print("Host: %s", host)
+            self.assertEqual(host['check_command'], command_id)
+            self.assertEqual(host['event_handler'], ev_handler_id)
+            if host['name'] == 'srv01':
+                self.assertEqual(host['check_command_args'], '3306!5!8')
+            if host['name'] == 'srv02':
+                self.assertEqual(host['check_command_args'], '80!5!8')
+            if host['name'] == 'srv03':
+                self.assertEqual(host['check_command_args'], '')
 
     def test_host_customvariables(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
