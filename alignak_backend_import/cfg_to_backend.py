@@ -244,12 +244,9 @@ class CfgToBackend(object):
             # - debug_file
             # - config_name (new from 2016-08-06)
             try:
-                self.arbiter = Arbiter(cfg, False, False, False, False, '', 'Default-Arbiter')
+                self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master')
             except TypeError:
-                try:
-                    self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master')
-                except TypeError:
-                    self.arbiter = Arbiter(cfg, False, False, False, False, '')
+                self.arbiter = Arbiter(cfg, False, False, False, False, '')
 
             self.arbiter.load_config_file()
 
@@ -1112,7 +1109,7 @@ class CfgToBackend(object):
 
             # Special case of hosts
             if r_name == 'host':
-                item['freshness_state'] = 'DOWN'
+                #item['freshness_state'] = 'DOWN'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     if 'check_command' not in item:
@@ -1145,7 +1142,7 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
-                item['freshness_state'] = 'WARNING'
+                #item['freshness_state'] = 'WARNING'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     item['host'] = ''
