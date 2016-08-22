@@ -244,9 +244,12 @@ class CfgToBackend(object):
             # - debug_file
             # - config_name (new from 2016-08-06)
             try:
-                self.arbiter = Arbiter(cfg, False, False, False, False, '')
-            except TypeError:
                 self.arbiter = Arbiter(cfg, False, False, False, False, '', 'Default-Arbiter')
+            except TypeError:
+                try:
+                    self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master')
+                except TypeError:
+                    self.arbiter = Arbiter(cfg, False, False, False, False, '')
 
             self.arbiter.load_config_file()
 
