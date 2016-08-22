@@ -1109,7 +1109,7 @@ class CfgToBackend(object):
 
             # Special case of hosts
             if r_name == 'host':
-                #item['freshness_state'] = 'DOWN'
+                # item['freshness_state'] = 'DOWN'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     if 'check_command' not in item:
@@ -1142,7 +1142,7 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
-                #item['freshness_state'] = 'WARNING'
+                # item['freshness_state'] = 'WARNING'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     item['host'] = ''
