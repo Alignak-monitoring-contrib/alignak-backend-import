@@ -132,7 +132,10 @@ class CfgToBackend(object):
         try:
             args = docopt(__doc__, version=__version__)
         except DocoptExit:
-            print("Command line parsing error")
+            print(
+                "Command line parsing error.\n"
+                "alignak_backend_import -h will display the command line parameters syntax."
+            )
             exit(64)
 
         # Verbose
@@ -233,7 +236,18 @@ class CfgToBackend(object):
         # Get flat files configuration
         try:
             # Alignak arbiter configuration
-            self.arbiter = Arbiter(cfg, False, False, False, False, '')
+            # - configuration
+            # - is_daemon
+            # - do_replace
+            # - verify_only
+            # - debug
+            # - debug_file
+            # - config_name (new from 2016-08-06)
+            try:
+                self.arbiter = Arbiter(cfg, False, False, False, False, '')
+            except TypeError:
+                self.arbiter = Arbiter(cfg, False, False, False, False, '', 'Default-Arbiter')
+
             self.arbiter.load_config_file()
 
             # Raw configuration
@@ -1095,6 +1109,7 @@ class CfgToBackend(object):
 
             # Special case of hosts
             if r_name == 'host':
+                item['freshness_state'] = 'DOWN'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     if 'check_command' not in item:
@@ -1127,6 +1142,7 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
+                item['freshness_state'] = 'WARNING'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     item['host'] = ''
@@ -1167,6 +1183,7 @@ class CfgToBackend(object):
 
             # Special case of users
             if r_name == 'user':
+                item['ui_preferences'] = {}
                 item['back_role_super_admin'] = False
                 item.pop('usergroups')
 
