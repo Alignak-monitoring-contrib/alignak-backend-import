@@ -233,21 +233,23 @@ class CfgToBackend(object):
                 self.inserted['user'] = {}
                 self.inserted['user'][u['_id']] = 'admin'
 
-        # Get flat files configuration
+        # Alignak arbiter configuration
+        # - configuration
+        # - is_daemon
+        # - do_replace
+        # - verify_only
+        # - debug
+        # - debug_file
+        # - config_name (new from 2016-08-06)
         try:
-            # Alignak arbiter configuration
-            # - configuration
-            # - is_daemon
-            # - do_replace
-            # - verify_only
-            # - debug
-            # - debug_file
-            # - config_name (new from 2016-08-06)
-            try:
-                self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master')
-            except TypeError:
-                self.arbiter = Arbiter(cfg, False, False, False, False, '')
+            print("Try new Arbiter signature...")
+            self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master')
+        except TypeError:
+            print("Try old Arbiter signature...")
+            self.arbiter = Arbiter(cfg, False, False, False, False, '')
 
+        try:
+            # Get flat files configuration
             self.arbiter.load_config_file()
 
             # Raw configuration
