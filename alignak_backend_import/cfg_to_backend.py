@@ -241,12 +241,13 @@ class CfgToBackend(object):
         # - debug
         # - debug_file
         # - config_name (new from 2016-08-06)
+        # - analyse=None
         try:
             print("Try new Arbiter signature...")
-            self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master')
-        except TypeError:
-            print("Try old Arbiter signature...")
-            self.arbiter = Arbiter(cfg, False, False, False, False, '')
+            self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master', None)
+        except Exception as e:
+            print("Try old Arbiter signature... %s" % str(e))
+            self.arbiter = Arbiter(cfg, False, False, False, False, '', None)
 
         try:
             # Get flat files configuration
