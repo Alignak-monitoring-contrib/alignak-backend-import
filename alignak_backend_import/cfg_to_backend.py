@@ -242,6 +242,7 @@ class CfgToBackend(object):
         # - debug_file
         # - config_name (new from 2016-08-06)
         # - analyse=None
+        # pylint: disable=too-many-function-args
         try:
             print("Try new Arbiter signature...")
             self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master', None)
