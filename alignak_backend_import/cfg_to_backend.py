@@ -966,7 +966,7 @@ class CfgToBackend(object):
                 print ("-> do not import this command.")
                 continue
 
-            # Update specific values ...
+            # Update specific values for timeperiods...
             # ------------------------------------------------------------
             # Special case of timeperiods (except maintenance_period and snapshot_period)
             for tp_name in ['host_notification_period', 'service_notification_period',
@@ -975,15 +975,32 @@ class CfgToBackend(object):
                 if tp_name not in item:
                     continue
 
-                if item[tp_name] == '24x7':
-                    # print("Changed TP: %s to default TP." % (tp_name))
+                print("Manage TP: %s " % (item[tp_name]))
+                if not item[tp_name]:
+                    # Default is always
                     item[tp_name] = self.tp_always
                     continue
 
-                if timeperiods[item[tp_name]] and \
-                   timeperiods[item[tp_name]].timeperiod_name == '24x7':
-                    # print("Changed TP: %s to default TP." % (tp_name))
+                if item[tp_name].lower() == '24x7':
                     item[tp_name] = self.tp_always
+                    continue
+
+                if item[tp_name].lower() == 'never' or item[tp_name].lower() == 'none':
+                    item[tp_name] = self.tp_never
+                    continue
+
+                # for tp in timeperiods:
+                    # print(tp.timeperiod_name)
+                   # if tp.timeperiod_name == item[tp_name]:
+
+                if item[tp_name] in timeperiods and \
+                   timeperiods[item[tp_name]] and \
+                   timeperiods[item[tp_name]].timeperiod_name.lower() == '24x7':
+                    item[tp_name] = self.tp_always
+
+                # if timeperiods[item[tp_name]] and \
+                   # timeperiods[item[tp_name]].timeperiod_name.lower() == 'never':
+                    # item[tp_name] = self.tp_never
 
             # Convert objects
             # ------------------------------------------------------------
@@ -1252,7 +1269,7 @@ class CfgToBackend(object):
                     if values['now'] and \
                        values['resource'] in self.inserted and \
                        item[values['field']] in self.inserted[values['resource']]:
-                        # Link is still existing and should be valid
+                        # Link is still existing and should be valid... do nothing, except logging.
                         self.log("***Found: %s = %s" % (values['field'], item[values['field']]))
                     elif item[values['field']] in self.inserted[values['resource']].values():
                         index = self.inserted[values['resource']].values().index(
@@ -1265,7 +1282,7 @@ class CfgToBackend(object):
                         )
                         item[values['field']] = self.inserted_uuid[values['resource']].keys()[idx]
                     else:
-                        print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
+                        print("***Not found (1): %s = %s in inserted %ss identifiers nor values" % (
                             values['field'], item[values['field']], values['resource']
                         ))
                         later_tmp[values['field']] = item[values['field']]
@@ -1303,13 +1320,13 @@ class CfgToBackend(object):
                     if add:
                         item[values['field']] = objectsid
                     else:
-                        print("***Not found: %s = %s in inserted %ss identifiers nor values" % (
+                        print("***Not found (2): %s = %s in inserted %ss identifiers nor values" % (
                             values['field'], item[values['field']], values['resource']
                         ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
                 elif values['field'] in item and values['type'] == 'list' and not values['now']:
-                    print("***Not found: %s = %s in inserted %ss identifiers not values" % (
+                    print("***Not found (3): %s = %s in inserted %ss identifiers not values" % (
                         values['field'], item[values['field']], values['resource']
                     ))
                     later_tmp[values['field']] = item[values['field']]
@@ -1369,8 +1386,8 @@ class CfgToBackend(object):
                         r_name, item['name'], response['_id'], item
                     ))
                 else:
-                    print("-> Created a new: %s : %s (%s)" % (
-                        r_name, item['name'], response['_id']
+                    print("-> Created a new: %s : %s (%s) (%s)" % (
+                        r_name, item['name'], response['_id'], item_obj.uuid
                     ))
             except BackendException as e:
                 print("# Post error for: %s : %s" % (r_name, item))
@@ -1640,6 +1657,10 @@ class CfgToBackend(object):
                 {
                     'field': 'dependent_hostgroups', 'type': 'list',
                     'resource': 'hostgroup', 'now': True
+                },
+                {
+                    'field': 'dependency_period', 'type': 'simple',
+                    'resource': 'timeperiod', 'now': True
                 }
             ]
             schema = hostdependency.get_schema()
@@ -1703,6 +1724,10 @@ class CfgToBackend(object):
                 {
                     'field': 'servicegroups', 'type': 'list',
                     'resource': 'servicegroup', 'now': True
+                },
+                {
+                    'field': 'hostgroups', 'type': 'list',
+                    'resource': 'hostgroup', 'now': True
                 },
                 {
                     'field': 'check_command', 'type': 'simple',
@@ -1831,6 +1856,10 @@ class CfgToBackend(object):
                 {
                     'field': 'hostgroup_name', 'type': 'list',
                     'resource': 'hostgroup', 'now': True
+                },
+                {
+                    'field': 'dependency_period', 'type': 'simple',
+                    'resource': 'timeperiod', 'now': True
                 }
             ]
             schema = servicedependency.get_schema()

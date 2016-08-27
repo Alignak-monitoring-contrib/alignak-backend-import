@@ -605,3 +605,18 @@ class TestHosts(unittest2.TestCase):
         self.assertEqual(reg_comm['name'], 'srv01')
         self.assertEqual(reg_comm['max_check_attempts'], 6)
         self.assertEqual(reg_comm['check_interval'], 2)
+
+    def test_hosts_dependency(self):
+
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/hosts_links_parent.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        result = self.backend.get('hostdependency')
+        hds = result['_items']
+        for hd in hds:
+            print(hd)
+        self.assertEqual(len(hds), 2)
+
