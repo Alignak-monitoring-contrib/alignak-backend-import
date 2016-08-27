@@ -975,7 +975,6 @@ class CfgToBackend(object):
                 if tp_name not in item:
                     continue
 
-                print("Manage TP: %s " % (item[tp_name]))
                 if not item[tp_name]:
                     # Default is always
                     item[tp_name] = self.tp_always
@@ -989,18 +988,10 @@ class CfgToBackend(object):
                     item[tp_name] = self.tp_never
                     continue
 
-                # for tp in timeperiods:
-                    # print(tp.timeperiod_name)
-                   # if tp.timeperiod_name == item[tp_name]:
-
                 if item[tp_name] in timeperiods and \
                    timeperiods[item[tp_name]] and \
                    timeperiods[item[tp_name]].timeperiod_name.lower() == '24x7':
                     item[tp_name] = self.tp_always
-
-                # if timeperiods[item[tp_name]] and \
-                   # timeperiods[item[tp_name]].timeperiod_name.lower() == 'never':
-                    # item[tp_name] = self.tp_never
 
             # Convert objects
             # ------------------------------------------------------------
