@@ -1141,7 +1141,7 @@ class CfgToBackend(object):
                     item['location']['coordinates'][0] = float(item['customs']['_LOC_LAT'])
                 if 'customs' in item and '_LOC_LNG' in item['customs']:
                     item['location']['coordinates'][1] = float(item['customs']['_LOC_LNG'])
-                print("Host location: %s" % item['location'])
+                # print("Host location: %s" % item['location'])
 
             # Special case of servicegroups
             if r_name == 'servicegroup':
@@ -1580,6 +1580,10 @@ class CfgToBackend(object):
                         'resource': 'host', 'now': False
                     },
                     {
+                        'field': '_realm', 'type': 'simple',
+                        'resource': 'realm', 'now': True
+                    },
+                    {
                         'field': 'hostgroups', 'type': 'list',
                         'resource': 'hostgroup', 'now': True
                     },
@@ -1772,6 +1776,10 @@ class CfgToBackend(object):
                     {
                         'field': 'host', 'type': 'simple',
                         'resource': 'host', 'now': True
+                    },
+                    {
+                        'field': '_realm', 'type': 'simple',
+                        'resource': 'realm', 'now': True
                     },
                     {
                         'field': 'servicegroups', 'type': 'list',
