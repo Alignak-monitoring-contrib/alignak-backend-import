@@ -406,9 +406,6 @@ class CfgToBackend(object):
             if self.type == 'livesynthesis' or self.type == 'all':
                 print("Deleting livesynthesis")
                 self.backend.delete('livesynthesis', headers)
-            if self.type == 'uipref' or self.type == 'all':
-                print("Deleting uipref")
-                self.backend.delete('uipref', headers)
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
         except BackendException as e:
             print("# Backend deletion error")
