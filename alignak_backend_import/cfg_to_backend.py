@@ -1120,7 +1120,6 @@ class CfgToBackend(object):
                 if 'dependency_period' not in item or not item['dependency_period']:
                     item['dependency_period'] = self.tp_always
 
-
             # Special case of servicedependency
             if r_name == 'servicedependency':
                 print("Service dependency: %s" % item)
