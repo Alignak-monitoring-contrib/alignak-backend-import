@@ -85,6 +85,8 @@ try:
     import alignak.daterange as daterange
 except ImportError:
     print("Alignak is not installed...")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Exiting with error code: 1")
     exit(1)
 
 from alignak_backend_client.client import Backend, BackendException
@@ -136,6 +138,8 @@ class CfgToBackend(object):
                 "Command line parsing error.\n"
                 "alignak_backend_import -h will display the command line parameters syntax."
             )
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Exiting with error code: 64")
             exit(64)
 
         # Verbose
@@ -153,6 +157,8 @@ class CfgToBackend(object):
 
         if not cfg:
             print("No configuration specified")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Exiting with error code: 2")
             exit(2)
 
         if not isinstance(cfg, list):
@@ -261,6 +267,8 @@ class CfgToBackend(object):
         except Exception as e:
             print("Configuration loading exception: %s" % str(e))
             print("***** Traceback: %s", traceback.format_exc())
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Exiting with error code: 3")
             exit(3)
 
         # Build templates lists from raw objects
@@ -296,6 +304,8 @@ class CfgToBackend(object):
 
         if self.backend.token is None:
             print("Access denied!")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Exiting with error code: 2")
             exit(2)
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -409,6 +419,8 @@ class CfgToBackend(object):
             print("***** Exception: %s" % str(e))
             print("***** Traceback: %s", traceback.format_exc())
             print("***** response: %s" % e.response)
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("Exiting with error code: 5")
             exit(5)
 
     def build_templates(self):
@@ -732,6 +744,8 @@ class CfgToBackend(object):
                 print("***** Exception: %s" % str(e))
                 print("***** Traceback: %s", traceback.format_exc())
                 print("***** response: %s" % e.response)
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("Exiting with error code: 5")
                 exit(5)
             else:
                 if '_status' in resp:
@@ -1091,7 +1105,7 @@ class CfgToBackend(object):
                 for prop in item_obj.customs.keys():
                     item[prop] = item_obj.customs[prop]
 
-            # Special case of hostdependency / service
+            # Special case of hostdependency
             if r_name == 'hostdependency':
                 print("Host dependency: %s" % item)
                 if 'host_name' in item:
@@ -1100,6 +1114,32 @@ class CfgToBackend(object):
                 if 'dependent_host_name' in item:
                     item['dependent_hosts'] = item['dependent_host_name']
                     item.pop('dependent_host_name')
+                if 'hostgroup_name' in item:
+                    item['hostgroups'] = item['hostgroup_name']
+                    item.pop('hostgroup_name')
+                if 'dependent_hostgroup_name' in item:
+                    item['dependent_hostgroups'] = item['dependent_hostgroup_name']
+                    item.pop('dependent_hostgroup_name')
+
+                if 'dependency_period' not in item or not item['dependency_period']:
+                    item['dependency_period'] = self.tp_always
+
+
+            # Special case of servicedependency
+            if r_name == 'servicedependency':
+                print("Service dependency: %s" % item)
+                if 'host_name' in item:
+                    item['hosts'] = item['host_name']
+                    item.pop('host_name')
+                if 'service_description' in item:
+                    item['services'] = item['service_description']
+                    item.pop('service_description')
+                if 'dependent_host_name' in item:
+                    item['dependent_hosts'] = item['dependent_host_name']
+                    item.pop('dependent_host_name')
+                if 'dependent_service_description' in item:
+                    item['dependent_services'] = item['dependent_service_description']
+                    item.pop('dependent_service_description')
                 if 'hostgroup_name' in item:
                     item['hostgroups'] = item['hostgroup_name']
                     item.pop('hostgroup_name')
@@ -1385,6 +1425,8 @@ class CfgToBackend(object):
                 print("***** Exception: %s" % str(e))
                 print("***** %s", traceback.format_exc())
                 print("***** response: %s" % e.response)
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("Exiting with error code: 5")
                 exit(5)
             else:
                 self.log("Element insertion response : %s:" % response)
@@ -1425,6 +1467,8 @@ class CfgToBackend(object):
                         print("***** Exception: %s" % str(e))
                         print("***** %s", traceback.format_exc())
                         print("***** response: %s" % e.response)
+                        print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                        print("Exiting with error code: 5")
                         exit(5)
 
     def import_objects(self):
@@ -1837,23 +1881,27 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
-                    'field': 'dependent_host', 'type': 'list',
+                    'field': 'hosts', 'type': 'list',
                     'resource': 'host', 'now': True
                 },
                 {
-                    'field': 'dependent_hostgroup_name', 'type': 'list',
+                    'field': 'services', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'dependent_hosts', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'dependent_services', 'type': 'list',
+                    'resource': 'host', 'now': True
+                },
+                {
+                    'field': 'hostgroups', 'type': 'list',
                     'resource': 'hostgroup', 'now': True
                 },
                 {
-                    'field': 'dependent_service_description', 'type': 'list',
-                    'resource': 'service', 'now': True
-                },
-                {
-                    'field': 'host', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'hostgroup_name', 'type': 'list',
+                    'field': 'dependent_hostgroups', 'type': 'list',
                     'resource': 'hostgroup', 'now': True
                 },
                 {
@@ -1925,6 +1973,7 @@ def main():
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("alignak_backend_import, some problems were encountered during importation")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("Exiting with error code: 4")
         exit(4)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("alignak_backend_import, inserted elements: ")
