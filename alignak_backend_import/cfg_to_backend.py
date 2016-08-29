@@ -95,7 +95,6 @@ from alignak_backend_import import __version__
 
 from alignak_backend.models import realm
 from alignak_backend.models import command
-from alignak_backend.models import trigger
 from alignak_backend.models import timeperiod
 from alignak_backend.models import host
 from alignak_backend.models import hostgroup
@@ -344,9 +343,6 @@ class CfgToBackend(object):
                         print("Deleting timeperiod: %s" % tp['name'])
                         headers['If-Match'] = tp['_etag']
                         self.backend.delete('timeperiod/' + tp['_id'], headers)
-            if self.type == 'trigger' or self.type == 'all':
-                print("Deleting triggers")
-                self.backend.delete('trigger', headers)
             if self.type == 'user' or self.type == 'all':
                 print("Deleting users")
                 users = self.backend.get_all('user')
@@ -1173,6 +1169,7 @@ class CfgToBackend(object):
                         print(" --> %s, hostgroups: %s" % (item[id_name], item['hostgroups']))
                     item.pop('hostgroups')
                 if 'trigger_name' in item:
+                    item['trigger'] = item['trigger_name']
                     item.pop('trigger_name')
 
                 # Define location as default: France circle center ;))
@@ -1209,6 +1206,7 @@ class CfgToBackend(object):
                         ))
                     item.pop('servicegroups')
                 if 'trigger_name' in item:
+                    item['trigger'] = item['trigger_name']
                     item.pop('trigger_name')
                 if 'merge_host_contacts' in item:
                     item.pop('merge_host_contacts')
@@ -1502,12 +1500,6 @@ class CfgToBackend(object):
             schema = timeperiod.get_schema()
             self.manage_resource('timeperiod', data_later, 'timeperiod_name', schema)
 
-        if self.type == 'trigger' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add trigger ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = []
-            schema = trigger.get_schema()
-            self.manage_resource('trigger', data_later, 'trigger_name', schema)
-
         # ------------------------------
         # User part
         # ------------------------------
@@ -1579,10 +1571,6 @@ class CfgToBackend(object):
                     'resource': 'command', 'now': True
                 },
                 {
-                    'field': 'trigger', 'type': 'simple',
-                    'resource': 'trigger', 'now': True
-                },
-                {
                     'field': 'check_period', 'type': 'simple',
                     'resource': 'timeperiod', 'now': True
                 },
@@ -1638,10 +1626,6 @@ class CfgToBackend(object):
                     {
                         'field': 'event_handler', 'type': 'simple',
                         'resource': 'command', 'now': True
-                    },
-                    {
-                        'field': 'trigger', 'type': 'simple',
-                        'resource': 'trigger', 'now': True
                     },
                     {
                         'field': 'check_period', 'type': 'simple',
