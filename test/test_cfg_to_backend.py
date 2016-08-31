@@ -40,7 +40,6 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
-        cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
     @classmethod
@@ -54,7 +53,6 @@ class TestCfgToBackend(unittest2.TestCase):
         # cls.backend.delete("service", {})
         # cls.backend.delete("servicegroup", {})
         # cls.backend.delete("command", {})
-        # cls.backend.delete("livestate", {})
         # cls.backend.delete("livesynthesis", {})
         cls.p.kill()
 
@@ -63,7 +61,6 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
-        cls.backend.delete("livestate", {})
         cls.backend.delete("livesynthesis", {})
 
     def test_timeperiod(self):
