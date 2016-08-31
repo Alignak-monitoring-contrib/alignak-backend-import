@@ -400,9 +400,6 @@ class CfgToBackend(object):
             if self.type == 'userrestrictrole' or self.type == 'all':
                 print("Deleting userrestrictroles")
                 self.backend.delete('userrestrictrole', headers)
-            if self.type == 'livestate' or self.type == 'all':
-                print("Deleting livestate")
-                self.backend.delete('livestate', headers)
             if self.type == 'livesynthesis' or self.type == 'all':
                 print("Deleting livesynthesis")
                 self.backend.delete('livesynthesis', headers)
@@ -1230,8 +1227,9 @@ class CfgToBackend(object):
             # Special case of users
             if r_name == 'user':
                 item['ui_preferences'] = {}
-                item['back_role_super_admin'] = False
+                # item['back_role_super_admin'] = False
                 item.pop('usergroups')
+                item.pop('expert')
 
                 if 'contact_name' in item:
                     item['name'] = item[id_name]

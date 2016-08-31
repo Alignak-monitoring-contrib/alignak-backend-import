@@ -460,6 +460,7 @@ class TestContactsNW(unittest2.TestCase):
                 self.assertEqual(user['host_notification_commands'], [cmd_nh1, cmd_nh2])
                 self.assertEqual(user['service_notification_commands'], [cmd_ns])
 
+
 class TestContacts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -508,9 +509,11 @@ class TestContacts(unittest2.TestCase):
             if user['name'] == 'admin':
                 self.assertEqual(user['is_admin'], False)
                 self.assertEqual(user['back_role_super_admin'], True)
+                self.assertEqual(user['can_update_livestate'], True)
             else:
                 self.assertEqual(user['is_admin'], True)
                 self.assertEqual(user['back_role_super_admin'], False)
+                self.assertEqual(user['can_update_livestate'], False)
                 self.assertEqual(user['host_notification_commands'], [cmd_nh1])
                 self.assertEqual(user['service_notification_commands'], [cmd_ns])
 
