@@ -1,5 +1,4 @@
 # this is the requirements dedicated to tests.
--r ../requirements.txt
 unittest2
 mock
 nose
