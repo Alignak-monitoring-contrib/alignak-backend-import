@@ -1864,7 +1864,7 @@ class CfgToBackend(object):
                 },
                 {
                     'field': 'services', 'type': 'list',
-                    'resource': 'host', 'now': True
+                    'resource': 'service', 'now': True
                 },
                 {
                     'field': 'dependent_hosts', 'type': 'list',
@@ -1872,7 +1872,7 @@ class CfgToBackend(object):
                 },
                 {
                     'field': 'dependent_services', 'type': 'list',
-                    'resource': 'host', 'now': True
+                    'resource': 'service', 'now': True
                 },
                 {
                     'field': 'hostgroups', 'type': 'list',
