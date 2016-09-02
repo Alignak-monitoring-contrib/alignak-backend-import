@@ -1097,7 +1097,9 @@ class CfgToBackend(object):
 
             # Special case of hostdependency
             if r_name == 'hostdependency':
-                print("Host dependency: %s" % item)
+                if 'name' not in item or not item['name']:
+                    item['name'] = "%s -> %s" % (item['host_name'], item['dependent_host_name'])
+
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1116,7 +1118,12 @@ class CfgToBackend(object):
 
             # Special case of servicedependency
             if r_name == 'servicedependency':
-                print("Service dependency: %s" % item)
+                if 'name' not in item or not item['name']:
+                    item['name'] = "%s/%s -> %s/%s" % (
+                        item['host_name'], item['service_description'],
+                        item['dependent_host_name'], item['dependent_service_description']
+                    )
+
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1184,7 +1191,6 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
-                # item['freshness_state'] = 'WARNING'
                 if self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     item['host'] = ''
@@ -1227,7 +1233,6 @@ class CfgToBackend(object):
             # Special case of users
             if r_name == 'user':
                 item['ui_preferences'] = {}
-                # item['back_role_super_admin'] = False
                 item.pop('usergroups')
                 item.pop('expert')
 
