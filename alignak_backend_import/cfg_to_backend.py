@@ -1099,9 +1099,6 @@ class CfgToBackend(object):
 
             # Special case of hostdependency
             if r_name == 'hostdependency':
-                if 'name' not in item or not item['name']:
-                    item['name'] = "%s -> %s" % (item['host_name'], item['dependent_host_name'])
-
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1120,12 +1117,6 @@ class CfgToBackend(object):
 
             # Special case of servicedependency
             if r_name == 'servicedependency':
-                if 'name' not in item or not item['name']:
-                    item['name'] = "%s/%s -> %s/%s" % (
-                        item['host_name'], item['service_description'],
-                        item['dependent_host_name'], item['dependent_service_description']
-                    )
-
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1361,6 +1352,49 @@ class CfgToBackend(object):
                     ))
                     later_tmp[values['field']] = item[values['field']]
                     del item[values['field']]
+
+            # hostdependency - set name once relations are resolved
+            if r_name == 'hostdependency':
+                if 'name' not in item or not item['name']:
+                    host_name = ''
+                    if item['hosts']:
+                        host_name = item['hosts'][0]
+                        if host_name in self.inserted['host']:
+                            host_name = self.inserted['host'][host_name]
+                    dependent_host_name = ''
+                    if item['hosts']:
+                        dependent_host_name = item['dependent_hosts'][0]
+                        if dependent_host_name in self.inserted['host']:
+                            dependent_host_name = self.inserted['host'][dependent_host_name]
+                    item['name'] = "%s -> %s" % (host_name, dependent_host_name)
+
+            if r_name == 'servicedependency':
+                if 'name' not in item or not item['name']:
+                    host_name = ''
+                    if item['hosts']:
+                        host_name = item['hosts'][0]
+                        if host_name in self.inserted['host']:
+                            host_name = self.inserted['host'][host_name]
+                    dependent_host_name = ''
+                    if item['dependent_hosts']:
+                        dependent_host_name = item['dependent_hosts'][0]
+                        if dependent_host_name in self.inserted['host']:
+                            dependent_host_name = self.inserted['host'][dependent_host_name]
+
+                    service = ''
+                    if item['services']:
+                        service = item['services'][0]
+                        if service in self.inserted['service']:
+                            service = self.inserted['service'][service]
+                    dependent_service = ''
+                    if item['dependent_services']:
+                        dependent_service = item['dependent_services'][0]
+                        if dependent_service in self.inserted['service']:
+                            dependent_service = self.inserted['service'][dependent_service]
+
+                    item['name'] = "%s/%s -> %s/%s" % (
+                        host_name, service, dependent_host_name, dependent_service
+                    )
 
             # Remove unused fields
             # ------------------------------------------------------------
