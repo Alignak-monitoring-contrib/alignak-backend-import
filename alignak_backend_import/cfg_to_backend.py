@@ -70,6 +70,8 @@ from __future__ import print_function
 import re
 import traceback
 
+from copy import deepcopy
+
 from logging import getLogger, INFO
 
 from docopt import docopt
@@ -1173,7 +1175,7 @@ class CfgToBackend(object):
                     item.pop('trigger_name')
 
                 # Define location as default: France circle center ;))
-                item['location'] = self.gps
+                item['location'] = deepcopy(self.gps)
                 if item['customs'] and '_LOC_LAT' in item['customs']:
                     item['location']['coordinates'][0] = float(item['customs']['_LOC_LAT'])
                 if 'customs' in item and '_LOC_LNG' in item['customs']:
