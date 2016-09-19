@@ -245,7 +245,8 @@ class CfgToBackend(object):
         commands = self.backend.get_all('command')
         for c in commands['_items']:
             if c['name'] == '_internal_host_up' or c['name'] == '_echo':
-                self.inserted['command'] = {}
+                if 'command' not in self.inserted:
+                    self.inserted['command'] = {}
                 self.inserted['command'][c['_id']] = c['name']
                 self.default_command = r['_id']
 
