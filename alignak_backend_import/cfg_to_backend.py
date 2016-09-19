@@ -240,6 +240,15 @@ class CfgToBackend(object):
                 self.inserted['user'] = {}
                 self.inserted['user'][u['_id']] = 'admin'
 
+        # Default command
+        self.default_command = ''
+        commands = self.backend.get_all('command')
+        for c in commands['_items']:
+            if c['name'] == '_internal_host_up' or c['name'] == '_echo':
+                self.inserted['command'] = {}
+                self.inserted['command'][c['_id']] = c['name']
+                self.default_command = r['_id']
+
         # Alignak arbiter configuration
         # - configuration
         # - is_daemon
@@ -334,8 +343,14 @@ class CfgToBackend(object):
                         headers['If-Match'] = to_del['_etag']
                         self.backend.delete('realm/' + to_del['_id'], headers)
             if self.type == 'command' or self.type == 'all':
-                print("Deleting command")
-                self.backend.delete('command', headers)
+                print("Deleting commands")
+                commands = self.backend.get_all('command')
+                headers = {'Content-Type': 'application/json'}
+                for c in commands['_items']:
+                    if c['name'] != '_internal_host_up' and c['name'] != '_echo':
+                        print("Deleting command: %s" % c['name'])
+                        headers['If-Match'] = c['_etag']
+                        self.backend.delete('command/' + c['_id'], headers)
             if self.type == 'timeperiod' or self.type == 'all':
                 print("Deleting timeperiods")
                 timeperiods = self.backend.get_all('timeperiod')
