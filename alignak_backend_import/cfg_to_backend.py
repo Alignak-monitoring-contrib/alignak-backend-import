@@ -405,6 +405,13 @@ class CfgToBackend(object):
             if self.type == 'livesynthesis' or self.type == 'all':
                 print("Deleting livesynthesis")
                 self.backend.delete('livesynthesis', headers)
+            if self.type == 'action' or self.type == 'all':
+                print("Deleting actions acknowledge")
+                self.backend.delete('actionacknowledge', headers)
+                print("Deleting actions downtime")
+                self.backend.delete('actiondowntime', headers)
+                print("Deleting actions re-check")
+                self.backend.delete('actionforcecheck', headers)
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
         except BackendException as e:
             print("# Backend deletion error")
