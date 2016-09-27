@@ -1459,11 +1459,11 @@ class CfgToBackend(object):
                         if dependent_host_name in self.inserted['host']:
                             dependent_host_name = self.inserted['host'][dependent_host_name]
 
-                    service = ''
+                    service_name = ''
                     if item['services']:
-                        service = item['services'][0]
-                        if service in self.inserted['service']:
-                            service = self.inserted['service'][service]
+                        service_name = item['services'][0]
+                        if service_name in self.inserted['service']:
+                            service_name = self.inserted['service'][service_name]
                     dependent_service = ''
                     if item['dependent_services']:
                         dependent_service = item['dependent_services'][0]
@@ -1471,7 +1471,7 @@ class CfgToBackend(object):
                             dependent_service = self.inserted['service'][dependent_service]
 
                     item['name'] = "%s/%s -> %s/%s" % (
-                        host_name, service, dependent_host_name, dependent_service
+                        host_name, service_name, dependent_host_name, dependent_service
                     )
 
             # Remove unused fields
@@ -1555,12 +1555,16 @@ class CfgToBackend(object):
                     response = self.backend.get(r_name, params=params)
                     if len(response['_items']) > 0:
                         # Exists in the backend, we can update...
-                        headers = {'Content-Type': 'application/json', 'If-Match': r['_etag']}
+                        headers = {
+                            'Content-Type': 'application/json',
+                            'If-Match': response['_items'][0]['_etag']
+                        }
                         self.backend.patch(
                             r_name + '/' + response['_items'][0]['_id'], item,
                             headers=headers, inception=True
                         )
-                        exit()
+                        print("Updated %s: %s" % (r_name, item['name']))
+                        continue
                 else:
                     # With headers=None, the post method manages correctly the posted data ...
                     response = self.backend.post(r_name, item, headers=None)
