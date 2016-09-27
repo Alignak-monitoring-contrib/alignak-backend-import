@@ -1540,7 +1540,7 @@ class CfgToBackend(object):
                     })}
                 response = self.backend.get(r_name, params=params)
                 if len(response['_items']) > 0:
-                    # Still exists in the backend, log and continue ...
+                    # Still exists in the backend, log and continue...
                     if r_name not in self.ignored:
                         self.ignored[r_name] = {}
                     self.ignored[r_name][item['name']] = item
@@ -1554,13 +1554,21 @@ class CfgToBackend(object):
 
                 if self.update_backend_data:
                     print("Updating %s: %s" % (r_name, item['name']))
-                    response = self.backend.get(r_name, params={'search': {'name': item['name']}})
-                    print(len(response['_items']))
-                    for r in response['_items']:
-                        print (r)
-                        exit()
+                    params = {'where': json.dumps({'name': item['name']})}
+                    if r_name == 'service':
+                        params = {'where': json.dumps({
+                            'name': item['name'],
+                            'host': item['host']
+                        })}
+                    response = self.backend.get(r_name, params=params)
+                    if len(response['_items']) > 0:
+                        # Exists in the backend, we can update...
                         headers = {'Content-Type': 'application/json', 'If-Match': r['_etag']}
-                        self.backend.update(r_name + '/' + r['_id'], headers)
+                        self.backend.patch(
+                            r_name + '/' + response['_items'][0]['_id'], item,
+                            headers=headers, inception=True
+                        )
+                        exit()
                 else:
                     # With headers=None, the post method manages correctly the posted data ...
                     response = self.backend.post(r_name, item, headers=None)
@@ -2123,12 +2131,14 @@ def main():
     print("alignak_backend_import, ignored elements: ")
     for object_type in sorted(fill.ignored):
         count = len(fill.ignored[object_type])
-        if '%s_template' % object_type in fill.inserted:
-            count = count - len(fill.inserted['%s_template' % object_type])
+        if '%s_template' % object_type in fill.ignored:
+            count = count - len(fill.ignored['%s_template' % object_type])
         if count:
             print(" - %s %s(s)" % (count, object_type))
         else:
             print(" - no %s(s)" % object_type)
+        for elt in sorted(fill.ignored[object_type]):
+            print("%s: %s" % (object_type, fill.ignored[object_type][elt]))
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 if __name__ == "__main__":  # pragma: no cover
