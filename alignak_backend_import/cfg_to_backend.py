@@ -187,12 +187,9 @@ class CfgToBackend(object):
         self.log("Updating backend data: %s" % self.update_backend_data)
         print("Updating backend data: %s" % self.update_backend_data)
 
-        self.type = 'all'
-        print("Managing objects of type: %s" % self.type)
-
         self.allow_duplicates = False
         if '--duplicate' in args:
-            self.models = args['--duplicate']
+            self.allow_duplicates = args['--duplicate']
         self.log("Allowing duplicate objects: %s" % self.allow_duplicates)
         print("Allowing duplicate objects: %s" % self.allow_duplicates)
 
