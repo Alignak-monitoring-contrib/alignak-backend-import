@@ -505,7 +505,7 @@ class CfgToBackend(object):
             # Only the one with declared host_name...
             host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
             if not host_name:
-                # Use the backend default dummy host
+                # Use the backend default dummy host
                 setattr(services.templates[tpl_uuid], 'host_name', self.dummy_host)
                 self.log(
                     "Service template with no host: %s" % (services.templates[tpl_uuid])
@@ -1302,7 +1302,7 @@ class CfgToBackend(object):
                 item.pop('usergroups')
                 item.pop('expert')
                 # TODO: manage the notification ways in the backend
-                # Delete (temporarily...) this property
+                # Delete (temporarily...) this property
                 item.pop('notificationways')
 
                 if 'contact_name' in item:
@@ -1384,9 +1384,6 @@ class CfgToBackend(object):
                         item[values['field']] = self.inserted_uuid[values['resource']].keys()[idx]
 
                     else:
-                        # print("***Not found (1): %s = %s in inserted %ss identifiers nor values" % (
-                        #     values['field'], item[values['field']], values['resource']
-                        # ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
 
@@ -1424,18 +1421,12 @@ class CfgToBackend(object):
                     if add:
                         item[values['field']] = objectsid
                     else:
-                        # print("***Not found (2): %s = %s in inserted %ss identifiers nor values" % (
-                        #     values['field'], item[values['field']], values['resource']
-                        # ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
 
                 elif values['field'] in item \
                         and values['type'] == 'list' \
                         and not values['now']:
-                    # print("***Not found (3): %s = %s in inserted %ss identifiers not values" % (
-                    #     values['field'], item[values['field']], values['resource']
-                    # ))
                     later_tmp[values['field']] = item[values['field']]
                     del item[values['field']]
 
