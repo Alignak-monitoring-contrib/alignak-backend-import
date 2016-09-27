@@ -1585,7 +1585,8 @@ class CfgToBackend(object):
                 #   u'notification_options': u"unallowed values [u'n']"
                 # },
                 # u'_error': {
-                #   u'message': u'Insertion failure: 1 document(s) contain(s) error(s)', u'code': 422
+                #   u'message': u'Insertion failure: 1 document(s) contain(s) error(s)',
+                #   u'code': 422
                 # }
                 # }
                 exit(5)
