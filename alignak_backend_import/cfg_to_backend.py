@@ -70,6 +70,7 @@ alignak_backend_import command line interface::
 """
 from __future__ import print_function
 import re
+import json
 import traceback
 
 from copy import deepcopy
@@ -131,6 +132,7 @@ class CfgToBackend(object):
         self.later = {}
         self.inserted = {}
         self.inserted_uuid = {}
+        self.ignored = {}
 
         # Get command line parameters
         args = None
@@ -1529,14 +1531,21 @@ class CfgToBackend(object):
             self.log("before_post: %s : %s:" % (r_name, item))
             if self.allow_duplicates:
                 # Check if element still exists in the backend
-                print("Checking elemnt existence for %s: %s" % (r_name, item['name']))
-                response = self.backend.get(r_name, params={'search': {'name': item['name']}})
-                print(len(response['_items']))
-                for r in response['_items']:
-                    print(r)
-                    exit()
-                    headers = {'Content-Type': 'application/json', 'If-Match': r['_etag']}
-                    self.backend.update(r_name + '/' + r['_id'], headers)
+                print("Checking element existence for %s: %s" % (r_name, item['name']))
+                params = {'where': json.dumps({'name': item['name']})}
+                if r_name == 'service':
+                    params = {'where': json.dumps({
+                        'name': item['name'],
+                        'host': item['host']
+                    })}
+                response = self.backend.get(r_name, params=params)
+                if len(response['_items']) > 0:
+                    # Still exists in the backend, log and continue ...
+                    if r_name not in self.ignored:
+                        self.ignored[r_name] = {}
+                    self.ignored[r_name][item['name']] = item
+                    continue
+
             try:
                 # Special case for templates ... some have check_command some do not have!
                 if template:
@@ -2104,6 +2113,16 @@ def main():
     print("alignak_backend_import, inserted elements: ")
     for object_type in sorted(fill.inserted):
         count = len(fill.inserted[object_type])
+        if '%s_template' % object_type in fill.inserted:
+            count = count - len(fill.inserted['%s_template' % object_type])
+        if count:
+            print(" - %s %s(s)" % (count, object_type))
+        else:
+            print(" - no %s(s)" % object_type)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import, ignored elements: ")
+    for object_type in sorted(fill.ignored):
+        count = len(fill.ignored[object_type])
         if '%s_template' % object_type in fill.inserted:
             count = count - len(fill.inserted['%s_template' % object_type])
         if count:
