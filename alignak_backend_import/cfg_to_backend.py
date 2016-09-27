@@ -1219,7 +1219,7 @@ class CfgToBackend(object):
 
             # Special case of hosts
             if r_name == 'host':
-                if self.models and item_obj.is_tpl():
+                if template and self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     if 'check_command' not in item:
                         item['check_command'] = ''
@@ -1251,7 +1251,7 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
-                if self.models and item_obj.is_tpl():
+                if template and self.models and item_obj.is_tpl():
                     print("Service is a template ...")
                     item['_is_template'] = True
                     item['host'] = ''
