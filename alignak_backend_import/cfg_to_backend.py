@@ -157,6 +157,7 @@ class CfgToBackend(object):
         if '<cfg_file>' in args:
             cfg = args['<cfg_file>']
             self.log("Configuration to load: %s" % cfg)
+            print("Importing configuration: %s" % cfg)
         else:
             self.log("No configuration specified")
 
