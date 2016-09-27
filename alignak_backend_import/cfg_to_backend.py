@@ -1302,7 +1302,7 @@ class CfgToBackend(object):
                 item['ui_preferences'] = {}
                 item.pop('usergroups')
                 item.pop('expert')
-                # TODO: manage the notification ways in the backend
+                # Waiting for manage the notification ways in the backend
                 # Delete (temporarily...) this property
                 item.pop('notificationways')
 
