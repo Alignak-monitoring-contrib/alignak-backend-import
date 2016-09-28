@@ -673,8 +673,12 @@ class CfgToBackend(object):
 
         # Second iteration after update of notification ways (#19)
         for prop in source:
-            # Unique commands
-            if prop in ['check_command']:
+            # Unique commands with arguments
+            # Removed the event handlers and snapshot command parameters because of this issue:
+            # https://github.com/Alignak-monitoring-contrib/alignak-backend/issues/119
+            # The backend is not currently managing the parameters of event_handler nor
+            # snapshot_command
+            if prop in ['check_command', 'event_handler', 'snapshot_command']:
                 is_commands_list = isinstance(source[prop], list)
 
                 new_commands = self.recompose_commands(source[prop])
@@ -686,7 +690,8 @@ class CfgToBackend(object):
                         source[prop].append(c_name)
                     else:
                         source[prop] = c_name
-                    if c_args:
+                    # TODO: no more filtering to manage parameters?
+                    if prop in ['check_command'] and c_args:
                         addprop['%s_args' % prop] = c_args
                         self.output("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
                     if not is_commands_list:
@@ -970,6 +975,7 @@ class CfgToBackend(object):
             elements = ugs
         else:
             elements = getattr(self.arbiter.conf, alignak_resource)
+            print("Alignak elements: %s" % elements)
 
         # Alignak defined realms
         if self.default_realm == '':
@@ -1200,6 +1206,7 @@ class CfgToBackend(object):
 
             # Special case of hostdependency
             if r_name == 'hostdependency':
+                print("Host dependency: %s" % item)
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -2163,8 +2170,8 @@ def main():
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("Exiting with error code: 4")
         exit(4)
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("alignak_backend_import, inserted elements: ")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import, inserted elements: ")
     for object_type in sorted(fill.inserted):
         count = len(fill.inserted[object_type])
         if '%s_template' % object_type in fill.inserted:
@@ -2173,8 +2180,8 @@ def main():
             print(" - %s %s(s)" % (count, object_type))
         else:
             print(" - no %s(s)" % object_type)
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("alignak_backend_import, ignored elements: ")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import, ignored elements: ")
     for object_type in sorted(fill.ignored):
         count = len(fill.ignored[object_type])
         if '%s_template' % object_type in fill.ignored:
@@ -2184,8 +2191,8 @@ def main():
         else:
             print(" - no %s(s)" % object_type)
         for elt in sorted(fill.ignored[object_type]):
-            print("%s: %s" % (object_type, fill.ignored[object_type][elt]))
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("   %s: %s" % (object_type, fill.ignored[object_type][elt]))
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     end = time.time()
     print("Global configuration import duration: %s" % (end - start))

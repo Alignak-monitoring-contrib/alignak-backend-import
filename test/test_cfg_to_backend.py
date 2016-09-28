@@ -561,7 +561,10 @@ class TestContactsNW(unittest2.TestCase):
                 cmd_nh2 = cmd['_id']
             if cmd['name'] == 'notify-service-by-email':
                 cmd_ns = cmd['_id']
-        self.assertEqual(len(cmds), 3)
+        self.assertGreaterEqual(len(cmds), 3)
+        self.assertIsNotNone(cmd_nh1)
+        self.assertIsNotNone(cmd_nh2)
+        self.assertIsNotNone(cmd_ns)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -613,11 +616,14 @@ class TestContacts(unittest2.TestCase):
         result = self.backend.get('command')
         cmds = result['_items']
         for cmd in cmds:
+            print("Command: %s" % cmd)
             if cmd['name'] == 'notify-host-by-email':
                 cmd_nh1 = cmd['_id']
             if cmd['name'] == 'notify-service-by-email':
                 cmd_ns = cmd['_id']
-        self.assertEqual(len(cmds), 2)
+        self.assertGreaterEqual(len(cmds), 2)
+        self.assertIsNotNone(cmd_nh1)
+        self.assertIsNotNone(cmd_ns)
 
         result = self.backend.get_all('user')
         users = result['_items']
