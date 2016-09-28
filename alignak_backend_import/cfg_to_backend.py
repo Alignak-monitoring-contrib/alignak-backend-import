@@ -690,7 +690,7 @@ class CfgToBackend(object):
                         source[prop].append(c_name)
                     else:
                         source[prop] = c_name
-                    # TODO: no more filtering to manage parameters?
+                    # no more filtering to manage parameters?
                     if prop in ['check_command'] and c_args:
                         addprop['%s_args' % prop] = c_args
                         self.output("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
