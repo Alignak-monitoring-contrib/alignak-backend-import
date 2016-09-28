@@ -975,7 +975,6 @@ class CfgToBackend(object):
             elements = ugs
         else:
             elements = getattr(self.arbiter.conf, alignak_resource)
-            print("Alignak elements: %s" % elements)
 
         # Alignak defined realms
         if self.default_realm == '':
@@ -1563,9 +1562,6 @@ class CfgToBackend(object):
             self.log("before_post: %s : %s:" % (r_name, item))
             if self.allow_duplicates:
                 # Check if element still exists in the backend
-                self.output("Checking element existence for %s: %s - %s" % (
-                    r_name, item['name'], item
-                ))
                 params = {'where': json.dumps({'name': item['name']})}
                 if r_name == 'service':
                     if 'host' in item:
@@ -1573,12 +1569,27 @@ class CfgToBackend(object):
                             'name': item['name'],
                             'host': item['host']
                         })}
+                    self.output("Checking element existence for %s: %s/%s" % (
+                        r_name, item['host'], item['name']
+                    ))
+                else:
+                    self.output("Checking element existence for %s: %s" % (
+                        r_name, item['name']
+                    ))
                 response = self.backend.get(r_name, params=params)
                 if len(response['_items']) > 0:
                     # Still exists in the backend, log and continue...
                     if r_name not in self.ignored:
                         self.ignored[r_name] = {}
                     self.ignored[r_name][item['name']] = item
+
+                    # Make it as inserted for further search...
+                    exist = response['_items'][0]
+                    self.output(" -> exists: %s" % (exist))
+                    if template:
+                        self.inserted['%s_template' % r_name][exist['_id']] = item['name']
+                    self.inserted[r_name][exist['_id']] = item['name']
+                    self.inserted_uuid[r_name][exist['_id']] = item_obj.uuid
                     continue
 
             try:
@@ -1597,16 +1608,24 @@ class CfgToBackend(object):
                         })}
                     response = self.backend.get(r_name, params=params)
                     if len(response['_items']) > 0:
+                        exist = response['_items'][0]
+
                         # Exists in the backend, we can update...
                         headers = {
                             'Content-Type': 'application/json',
-                            'If-Match': response['_items'][0]['_etag']
+                            'If-Match': exist['_etag']
                         }
                         self.backend.patch(
-                            r_name + '/' + response['_items'][0]['_id'], item,
+                            r_name + '/' + exist['_id'], item,
                             headers=headers, inception=True
                         )
                         self.output("Updated %s: %s" % (r_name, item['name']))
+
+                        # Make it as inserted for further search...
+                        if template:
+                            self.inserted['%s_template' % r_name][exist['_id']] = item['name']
+                        self.inserted[r_name][exist['_id']] = item['name']
+                        self.inserted_uuid[r_name][exist['_id']] = item_obj.uuid
                         continue
                 else:
                     # With headers=None, the post method manages correctly the posted data ...
@@ -1615,10 +1634,12 @@ class CfgToBackend(object):
                         self.output("-> Created a new: %s template: %s (%s)" % (
                             r_name, item['name'], response['_id']
                         ))
+                        self.output("-> %s" % (item))
                     else:
                         self.output("-> Created a new: %s : %s (%s) (%s)" % (
                             r_name, item['name'], response['_id'], item_obj.uuid
                         ))
+                        self.output("-> %s" % (item))
             except BackendException as e:
                 print("# Post/patch error for: %s : %s" % (r_name, item))
                 print("***** Exception: %s" % str(e))
