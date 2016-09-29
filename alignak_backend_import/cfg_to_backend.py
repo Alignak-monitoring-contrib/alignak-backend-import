@@ -23,17 +23,21 @@
 alignak_backend_import command line interface::
 
     Usage:
-        {command} [-h] [-v] [-d] [-c] [-m] [-b=url] [-u=username] [-p=password] [<cfg_file>...]
+        {command} [-h] [-v] [-q] [-d] [-i] [-e] [-m] [-f] [-c]
+                  [-b=url] [-u=username] [-p=password] [<cfg_file>...]
 
     Options:
         -h, --help                  Show this screen.
         -V, --version               Show application version.
         -c, --check                 Check only (dry run), do not change the backend.
         -b, --backend url           Specify backend URL [default: http://127.0.0.1:5000]
-        -d, --delete                Delete existing backend data
+        -d, --delete                Delete existing backend data [default: False]
+        -e, --update                Update existing backend data [default: False]
+        -i, --duplicate             Do not stop on duplicate items [default: False]
         -u, --username username     Backend login username [default: admin]
         -p, --password password     Backend login password [default: admin]
         -v, --verbose               Run in verbose mode (more info to display)
+        -q, --quiet                 Run in quiet mode (almost nothing displayed)
         -m, --model                 Import templates when they exist
         -g, --gps lat,lng           Specify default GPS location [default: 46.60611,1.87528]
 
@@ -131,6 +135,7 @@ class CfgToBackend(object):
         self.later = {}
         self.inserted = {}
         self.inserted_uuid = {}
+        self.ignored = {}
 
         start = time.time()
 
@@ -151,6 +156,11 @@ class CfgToBackend(object):
         self.verbose = False
         if '--verbose' in args and args['--verbose']:
             self.verbose = True
+
+        # Quiet mode
+        self.quiet = False
+        if '--quiet' in args and args['--quiet']:
+            self.quiet = True
 
         # Define here the path of the cfg files
         cfg = None
@@ -190,6 +200,17 @@ class CfgToBackend(object):
         self.log("Delete existing backend data: %s" % self.destroy_backend_data)
         print("Delete existing backend data: %s" % self.destroy_backend_data)
 
+        # Update objects in the backend rather than create them
+        self.update_backend_data = args['--update']
+        self.log("Updating backend data: %s" % self.update_backend_data)
+        print("Updating backend data: %s" % self.update_backend_data)
+
+        # Allow duplicate objects
+        self.allow_duplicates = False
+        if '--duplicate' in args:
+            self.allow_duplicates = args['--duplicate']
+        self.log("Allowing duplicate objects: %s" % self.allow_duplicates)
+        print("Allowing duplicate objects: %s" % self.allow_duplicates)
 
         self.models = False
         if '--model' in args:
@@ -313,6 +334,12 @@ class CfgToBackend(object):
             print("Found %d hosts templates" % len(self.hosts_templates))
             print("Found %d services templates" % len(self.services_templates))
 
+            if not self.dummy_host:
+                print("**********")
+                print("No _dummy host found in the backend. "
+                      "Importing service models may raise errors!")
+                print("**********")
+
         end = time.time()
         print("Elapsed time after templates are built: %s" % (end - start))
 
@@ -360,6 +387,7 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 2")
             exit(2)
+
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     def delete_data(self):
@@ -379,8 +407,9 @@ class CfgToBackend(object):
                 if r['name'] != 'All':
                     print("Deleting realm: %s" % r['name'])
                     to_del = self.backend.get('realm/' + r['_id'])
-                    headers['If-Match'] = to_del['_etag']
-                    self.backend.delete('realm/' + to_del['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = to_del['_etag']
+                        self.backend.delete('realm/' + to_del['_id'], headers)
 
             print("Deleting commands")
             commands = self.backend.get_all('command')
@@ -388,8 +417,9 @@ class CfgToBackend(object):
             for c in commands['_items']:
                 if c['name'] != '_internal_host_up' and c['name'] != '_echo':
                     print("Deleting command: %s" % c['name'])
-                    headers['If-Match'] = c['_etag']
-                    self.backend.delete('command/' + c['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = c['_etag']
+                        self.backend.delete('command/' + c['_id'], headers)
 
             print("Deleting timeperiods")
             timeperiods = self.backend.get_all('timeperiod')
@@ -397,8 +427,9 @@ class CfgToBackend(object):
             for tp in timeperiods['_items']:
                 if tp['name'] != '24x7' and tp['name'] != 'Never':
                     print("Deleting timeperiod: %s" % tp['name'])
-                    headers['If-Match'] = tp['_etag']
-                    self.backend.delete('timeperiod/' + tp['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = tp['_etag']
+                        self.backend.delete('timeperiod/' + tp['_id'], headers)
 
             print("Deleting users")
             users = self.backend.get_all('user')
@@ -406,8 +437,9 @@ class CfgToBackend(object):
             for u in users['_items']:
                 if u['name'] != 'admin':
                     print("Deleting user: %s" % u['name'])
-                    headers['If-Match'] = u['_etag']
-                    self.backend.delete('user/' + u['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = u['_etag']
+                        self.backend.delete('user/' + u['_id'], headers)
 
             print("Deleting usergroups")
             usergroups = self.backend.get_all('usergroup')
@@ -415,14 +447,23 @@ class CfgToBackend(object):
             for ug in usergroups['_items']:
                 if ug['name'] != 'All':
                     print("Deleting usergroup: %s" % ug['name'])
-                    headers['If-Match'] = ug['_etag']
-                    self.backend.delete('usergroup/' + ug['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = ug['_etag']
+                        self.backend.delete('usergroup/' + ug['_id'], headers)
 
-            print("Deleting hosts")
-            self.backend.delete('host', headers)
+            self.output("Deleting hosts")
+            hosts = self.backend.get_all('host')
+            headers = {'Content-Type': 'application/json'}
+            for h in hosts['_items']:
+                if h['name'] != '_dummy':
+                    self.output("Deleting host: %s" % h['name'])
+                    if not self.dry_run:
+                        headers['If-Match'] = h['_etag']
+                        self.backend.delete('host/' + h['_id'], headers)
 
             print("Deleting hostdependencys")
-            self.backend.delete('hostdependency', headers)
+            if not self.dry_run:
+                self.backend.delete('hostdependency', headers)
 
             print("Deleting hostgroups")
             hostgroups = self.backend.get_all('hostgroup')
@@ -430,17 +471,21 @@ class CfgToBackend(object):
             for hg in hostgroups['_items']:
                 if hg['name'] != 'All':
                     print("Deleting hostgroup: %s" % hg['name'])
-                    headers['If-Match'] = hg['_etag']
-                    self.backend.delete('hostgroup/' + hg['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = hg['_etag']
+                        self.backend.delete('hostgroup/' + hg['_id'], headers)
 
             print("Deleting hostescalations")
-            self.backend.delete('hostescalation', headers)
+            if not self.dry_run:
+                self.backend.delete('hostescalation', headers)
 
             print("Deleting services")
-            self.backend.delete('service', headers)
+            if not self.dry_run:
+                self.backend.delete('service', headers)
 
             print("Deleting servicedependencys")
-            self.backend.delete('servicedependency', headers)
+            if not self.dry_run:
+                self.backend.delete('servicedependency', headers)
 
             print("Deleting servicegroups")
             servicegroups = self.backend.get_all('servicegroup')
@@ -448,24 +493,31 @@ class CfgToBackend(object):
             for sg in servicegroups['_items']:
                 if sg['name'] != 'All':
                     print("Deleting servicegroup: %s" % sg['name'])
-                    headers['If-Match'] = sg['_etag']
-                    self.backend.delete('servicegroup/' + sg['_id'], headers)
+                    if not self.dry_run:
+                        headers['If-Match'] = sg['_etag']
+                        self.backend.delete('servicegroup/' + sg['_id'], headers)
 
             print("Deleting serviceescalations")
-            self.backend.delete('serviceescalation', headers)
+            if not self.dry_run:
+                self.backend.delete('serviceescalation', headers)
 
             print("Deleting userrestrictroles")
-            self.backend.delete('userrestrictrole', headers)
+            if not self.dry_run:
+                self.backend.delete('userrestrictrole', headers)
 
             print("Deleting livesynthesis")
-            self.backend.delete('livesynthesis', headers)
+            if not self.dry_run:
+                self.backend.delete('livesynthesis', headers)
 
             print("Deleting actions acknowledge")
-            self.backend.delete('actionacknowledge', headers)
+            if not self.dry_run:
+                self.backend.delete('actionacknowledge', headers)
             print("Deleting actions downtime")
-            self.backend.delete('actiondowntime', headers)
+            if not self.dry_run:
+                self.backend.delete('actiondowntime', headers)
             print("Deleting actions re-check")
-            self.backend.delete('actionforcecheck', headers)
+            if not self.dry_run:
+                self.backend.delete('actionforcecheck', headers)
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
         except BackendException as e:
             print("# Backend deletion error")
@@ -509,6 +561,12 @@ class CfgToBackend(object):
             # Only the one with declared host_name...
             host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
             if not host_name:
+                # Use the backend default dummy host
+                setattr(services.templates[tpl_uuid], 'host_name', self.dummy_host)
+                self.log(
+                    "Service template with no host: %s" % (services.templates[tpl_uuid])
+                )
+                self.services_templates.append(services.templates[tpl_uuid])
                 continue
             # Several host templates can be specified as a comma separated list...
             if ',' in host_name:
@@ -794,9 +852,12 @@ class CfgToBackend(object):
             endpoint = ''.join([resource, '/', index])
             try:
                 self.log("before_patch: %s : %s:" % (endpoint, data))
-                to_patch = self.backend.get(endpoint)
-                headers['If-Match'] = to_patch['_etag']
-                resp = self.backend.patch(endpoint, data, headers, True)
+                if not self.dry_run:
+                    to_patch = self.backend.get(endpoint)
+                    headers['If-Match'] = to_patch['_etag']
+                    resp = self.backend.patch(endpoint, data, headers, True)
+                else:
+                    resp = {'_status': 'OK', '_etag': '_fake'}
             except BackendException as e:
                 print("# Patch error for: %s : %s" % (endpoint, data))
                 print("***** Exception: %s" % str(e))
@@ -1270,6 +1331,8 @@ class CfgToBackend(object):
                 if 'host_name' in item:
                     item['host'] = item['host_name']
                     item.pop('host_name')
+                else:
+                    item['host'] = self.dummy_host
 
                 if 'hostgroup_name' in item:
                     item['hostgroups'] = item['hostgroup_name']
@@ -1503,21 +1566,90 @@ class CfgToBackend(object):
             # item['comment']   never included, what to do?
 
             self.log("before_post: %s : %s:" % (r_name, item))
+            if self.allow_duplicates:
+                # Check if element still exists in the backend
+                params = {'where': json.dumps({'name': item['name']})}
+                if r_name == 'service':
+                    if 'host' in item:
+                        params = {'where': json.dumps({
+                            'name': item['name'],
+                            'host': item['host']
+                        })}
+                    print("Checking element existence for %s: %s/%s" % (
+                        r_name, item['host'], item['name']
+                    ))
+                else:
+                    print("Checking element existence for %s: %s" % (
+                        r_name, item['name']
+                    ))
+                response = self.backend.get(r_name, params=params)
+                if len(response['_items']) > 0:
+                    # Still exists in the backend, log and continue...
+                    if r_name not in self.ignored:
+                        self.ignored[r_name] = {}
+                    self.ignored[r_name][item['name']] = item
+
+                    # Make it as inserted for further search...
+                    exist = response['_items'][0]
+                    print(" -> exists: %s" % (exist))
+                    if template:
+                        self.inserted['%s_template' % r_name][exist['_id']] = item['name']
+                    self.inserted[r_name][exist['_id']] = item['name']
+                    self.inserted_uuid[r_name][exist['_id']] = item_obj.uuid
+                    continue
+
             try:
                 # Special case for templates ... some have check_command some do not have!
                 if template:
                     if 'check_command' not in item:
                         item['check_command'] = ''
-                # With headers=None, the post method manages correctly the posted data ...
-                response = self.backend.post(r_name, item, headers=None)
-                if '_is_template' in item and item['_is_template']:
-                    print("-> Created a new: %s template: %s (%s): %s" % (
-                        r_name, item['name'], response['_id'], item
-                    ))
+
+                if self.update_backend_data:
+                    print("Updating %s: %s" % (r_name, item['name']))
+                    params = {'where': json.dumps({'name': item['name']})}
+                    if r_name == 'service':
+                        params = {'where': json.dumps({
+                            'name': item['name'],
+                            'host': item['host']
+                        })}
+                    response = self.backend.get(r_name, params=params)
+                    if len(response['_items']) > 0:
+                        exist = response['_items'][0]
+
+                        # Exists in the backend, we can update...
+                        if not self.dry_run:
+                            headers = {
+                                'Content-Type': 'application/json',
+                                'If-Match': exist['_etag']
+                            }
+                            self.backend.patch(
+                                r_name + '/' + exist['_id'], item,
+                                headers=headers, inception=True
+                            )
+                        print("Updated %s: %s" % (r_name, item['name']))
+
+                        # Make it as inserted for further search...
+                        if template:
+                            self.inserted['%s_template' % r_name][exist['_id']] = item['name']
+                        self.inserted[r_name][exist['_id']] = item['name']
+                        self.inserted_uuid[r_name][exist['_id']] = item_obj.uuid
+                        continue
                 else:
-                    print("-> Created a new: %s : %s (%s) (%s)" % (
-                        r_name, item['name'], response['_id'], item_obj.uuid
-                    ))
+                    # With headers=None, the post method manages correctly the posted data ...
+                    if not self.dry_run:
+                        response = self.backend.post(r_name, item, headers=None)
+                    else:
+                        response = {'_id': '_fake', '_etag': '_fake'}
+                    if '_is_template' in item and item['_is_template']:
+                        print("-> Created a new: %s template: %s (%s)" % (
+                            r_name, item['name'], response['_id']
+                        ))
+                        print("-> %s" % (item))
+                    else:
+                        print("-> Created a new: %s : %s (%s) (%s)" % (
+                            r_name, item['name'], response['_id'], item_obj.uuid
+                        ))
+                        print("-> %s" % (item))
             except BackendException as e:
                 print("# Post/patch error for: %s : %s" % (r_name, item))
                 print("***** Exception: %s" % str(e))
@@ -1566,7 +1698,10 @@ class CfgToBackend(object):
                             'resource': '*',
                             'crud': ['read']
                         }
-                        response = self.backend.post('userrestrictrole', user_role, headers=None)
+                        if not self.dry_run:
+                            response = self.backend.post(
+                                'userrestrictrole', user_role, headers=None
+                            )
                         print("-> Created a new user_role: %s : %s (%s)" % (
                             r_name, user_role, response['_id']
                         ))
@@ -2068,6 +2203,18 @@ def main():
             print(" - %s %s(s)" % (count, object_type))
         else:
             print(" - no %s(s)" % object_type)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import, ignored elements: ")
+    for object_type in sorted(fill.ignored):
+        count = len(fill.ignored[object_type])
+        if '%s_template' % object_type in fill.ignored:
+            count = count - len(fill.ignored['%s_template' % object_type])
+        if count:
+            print(" - %s %s(s)" % (count, object_type))
+        else:
+            print(" - no %s(s)" % object_type)
+        for elt in sorted(fill.ignored[object_type]):
+            print("   %s: %s" % (object_type, fill.ignored[object_type][elt]))
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     end = time.time()
