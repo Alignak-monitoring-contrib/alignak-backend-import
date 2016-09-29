@@ -399,125 +399,126 @@ class CfgToBackend(object):
         try:
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Deleting existing backend data ~~~~~~~~~~~~~~~~~~~~~~")
             headers = {'Content-Type': 'application/json'}
-            print("Deleting realms")
+            self.output("Deleting realms")
             # Get realms in _level reverse order to be able to delete them ...
             realms = self.backend.get('realm', params={'sort': '-_level'})
             headers = {'Content-Type': 'application/json'}
             for r in realms['_items']:
                 if r['name'] != 'All':
-                    print("Deleting realm: %s" % r['name'])
+                    self.output("Deleting realm: %s" % r['name'])
                     to_del = self.backend.get('realm/' + r['_id'])
                     if not self.dry_run:
                         headers['If-Match'] = to_del['_etag']
                         self.backend.delete('realm/' + to_del['_id'], headers)
 
-            print("Deleting commands")
+            self.output("Deleting commands")
             commands = self.backend.get_all('command')
             headers = {'Content-Type': 'application/json'}
             for c in commands['_items']:
                 if c['name'] != '_internal_host_up' and c['name'] != '_echo':
-                    print("Deleting command: %s" % c['name'])
+                    self.output("Deleting command: %s" % c['name'])
                     if not self.dry_run:
                         headers['If-Match'] = c['_etag']
                         self.backend.delete('command/' + c['_id'], headers)
 
-            print("Deleting timeperiods")
+            self.output("Deleting timeperiods")
             timeperiods = self.backend.get_all('timeperiod')
             headers = {'Content-Type': 'application/json'}
             for tp in timeperiods['_items']:
                 if tp['name'] != '24x7' and tp['name'] != 'Never':
-                    print("Deleting timeperiod: %s" % tp['name'])
+                    self.output("Deleting timeperiod: %s" % tp['name'])
                     if not self.dry_run:
                         headers['If-Match'] = tp['_etag']
                         self.backend.delete('timeperiod/' + tp['_id'], headers)
 
-            print("Deleting users")
+            self.output("Deleting users")
             users = self.backend.get_all('user')
             headers = {'Content-Type': 'application/json'}
             for u in users['_items']:
                 if u['name'] != 'admin':
-                    print("Deleting user: %s" % u['name'])
+                    self.output("Deleting user: %s" % u['name'])
                     if not self.dry_run:
                         headers['If-Match'] = u['_etag']
                         self.backend.delete('user/' + u['_id'], headers)
 
-            print("Deleting usergroups")
+            self.output("Deleting usergroups")
             usergroups = self.backend.get_all('usergroup')
             headers = {'Content-Type': 'application/json'}
             for ug in usergroups['_items']:
                 if ug['name'] != 'All':
-                    print("Deleting usergroup: %s" % ug['name'])
+                    self.output("Deleting usergroup: %s" % ug['name'])
                     if not self.dry_run:
                         headers['If-Match'] = ug['_etag']
                         self.backend.delete('usergroup/' + ug['_id'], headers)
 
-            print("Deleting hosts")
+            self.output("Deleting hosts")
             hosts = self.backend.get_all('host')
             headers = {'Content-Type': 'application/json'}
             for h in hosts['_items']:
                 if h['name'] != '_dummy':
-                    print("Deleting host: %s" % h['name'])
+                    self.output("Deleting host: %s" % h['name'])
                     if not self.dry_run:
                         headers['If-Match'] = h['_etag']
                         self.backend.delete('host/' + h['_id'], headers)
 
-            print("Deleting hostdependencys")
+            self.output("Deleting hostdependencys")
             if not self.dry_run:
                 self.backend.delete('hostdependency', headers)
 
-            print("Deleting hostgroups")
+            self.output("Deleting hostgroups")
             hostgroups = self.backend.get_all('hostgroup')
             headers = {'Content-Type': 'application/json'}
             for hg in hostgroups['_items']:
                 if hg['name'] != 'All':
-                    print("Deleting hostgroup: %s" % hg['name'])
+                    self.output("Deleting hostgroup: %s" % hg['name'])
                     if not self.dry_run:
                         headers['If-Match'] = hg['_etag']
                         self.backend.delete('hostgroup/' + hg['_id'], headers)
 
-            print("Deleting hostescalations")
+            self.output("Deleting hostescalations")
             if not self.dry_run:
                 self.backend.delete('hostescalation', headers)
 
-            print("Deleting services")
+            self.output("Deleting services")
             if not self.dry_run:
                 self.backend.delete('service', headers)
 
-            print("Deleting servicedependencys")
+            self.output("Deleting servicedependencys")
             if not self.dry_run:
                 self.backend.delete('servicedependency', headers)
 
-            print("Deleting servicegroups")
+            self.output("Deleting servicegroups")
             servicegroups = self.backend.get_all('servicegroup')
             headers = {'Content-Type': 'application/json'}
             for sg in servicegroups['_items']:
                 if sg['name'] != 'All':
-                    print("Deleting servicegroup: %s" % sg['name'])
+                    self.output("Deleting servicegroup: %s" % sg['name'])
                     if not self.dry_run:
                         headers['If-Match'] = sg['_etag']
                         self.backend.delete('servicegroup/' + sg['_id'], headers)
 
-            print("Deleting serviceescalations")
+            self.output("Deleting serviceescalations")
             if not self.dry_run:
                 self.backend.delete('serviceescalation', headers)
 
-            print("Deleting userrestrictroles")
+            self.output("Deleting userrestrictroles")
             if not self.dry_run:
                 self.backend.delete('userrestrictrole', headers)
 
-            print("Deleting livesynthesis")
+            self.output("Deleting livesynthesis")
             if not self.dry_run:
                 self.backend.delete('livesynthesis', headers)
 
-            print("Deleting actions acknowledge")
+            self.output("Deleting actions acknowledge")
             if not self.dry_run:
                 self.backend.delete('actionacknowledge', headers)
-            print("Deleting actions downtime")
+            self.output("Deleting actions downtime")
             if not self.dry_run:
                 self.backend.delete('actiondowntime', headers)
-            print("Deleting actions re-check")
+            self.output("Deleting actions re-check")
             if not self.dry_run:
                 self.backend.delete('actionforcecheck', headers)
+
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
         except BackendException as e:
             print("# Backend deletion error")
@@ -568,6 +569,7 @@ class CfgToBackend(object):
                 )
                 self.services_templates.append(services.templates[tpl_uuid])
                 continue
+
             # Several host templates can be specified as a comma separated list...
             if ',' in host_name:
                 host_names = host_name.split(',')
@@ -647,7 +649,7 @@ class CfgToBackend(object):
                 commands = getattr(self.arbiter.conf, 'commands')
                 for cmd in commands:
                     if cmd.command_name == c_command:
-                        print("-> Replaced command name with command id for: %s" % (
+                        self.output("-> Replaced command name with command id for: %s" % (
                             cmd.command_name
                         ))
                         commands_list.append((cmd.uuid, c_command, c_params))
@@ -715,14 +717,14 @@ class CfgToBackend(object):
                 if is_commands_list:
                     source[prop] = []
                 for c_id, c_name, c_args in new_commands:
-                    print("- new command: %s - %s - %s" % (c_id, c_name, c_args))
+                    self.output("- new command: %s - %s - %s" % (c_id, c_name, c_args))
                     if is_commands_list:
                         source[prop].append(c_name)
                     else:
                         source[prop] = c_name
                     if c_args:
                         addprop['%s_args' % prop] = c_args
-                        print("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
+                        self.output("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
                     if not is_commands_list:
                         break
                 addprop[prop] = source[prop]
@@ -735,14 +737,14 @@ class CfgToBackend(object):
                 if is_commands_list:
                     source[prop] = []
                 for c_id, c_name, c_args in new_commands:
-                    print("- new command: %s - %s - %s" % (c_id, c_name, c_args))
+                    self.output("- new command: %s - %s - %s" % (c_id, c_name, c_args))
                     if is_commands_list:
                         source[prop].append(c_name)
                     else:
                         source[prop] = c_name
                     if c_args:
                         addprop['%s_args' % prop] = c_args
-                        print("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
+                        self.output("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
                     if not is_commands_list:
                         break
                 addprop[prop] = source[prop]
@@ -805,7 +807,7 @@ class CfgToBackend(object):
         """
         headers = {'Content-Type': 'application/json'}
         for (index, item) in iteritems(self.later[resource][field]):
-            print("Late update for: %s/%s -> %s" % (resource, index, item))
+            self.output("Late update for: %s/%s -> %s" % (resource, index, item))
             if item['type'] == 'simple':
                 data = {field: []}
                 val = item['value']
@@ -823,7 +825,7 @@ class CfgToBackend(object):
                     elif val in self.inserted_uuid[item['resource']].values():
                         idx = self.inserted_uuid[item['resource']].values().index(val)
                         data[field] = self.inserted_uuid[item['resource']].keys()[idx]
-                print("Late update for: %s/%s -> %s" % (resource, index, data))
+                self.output("Late update for: %s/%s -> %s" % (resource, index, data))
             elif item['type'] == 'list':
                 data = {field: []}
                 if isinstance(item['value'], basestring):
@@ -847,7 +849,7 @@ class CfgToBackend(object):
                                 data[field].append(
                                     self.inserted_uuid[item['resource']].keys()[idx]
                                 )
-                print("Late update for: %s/%s -> %s" % (resource, index, data))
+                self.output("Late update for: %s/%s -> %s" % (resource, index, data))
 
             endpoint = ''.join([resource, '/', index])
             try:
@@ -935,18 +937,18 @@ class CfgToBackend(object):
                     if not child:
                         continue
                     # Search child group...
-                    print("Found child: %s for %s" % (
+                    self.output("Found child: %s for %s" % (
                         child, hg.hostgroup_name
                     ))
                     for group in hgs:
                         if group.get_name() == child:
-                            print("Found parent: %s (%s) for %s" % (
+                            self.output("Found parent: %s (%s) for %s" % (
                                 hg.uuid, hg.hostgroup_name, group
                             ))
                             group._parent = hg.uuid
                             break
             for hg in hgs:
-                print("HG: %s (%s) - %s" % (
+                self.output("HG: %s (%s) - %s" % (
                     hg.uuid, hg.hostgroup_name, hg._parent
                 ))
                 hg.properties['_parent'] = hg._parent
@@ -962,18 +964,18 @@ class CfgToBackend(object):
                     if not child:
                         continue
                     # Search child group...
-                    print("Found child: %s for %s" % (
+                    self.output("Found child: %s for %s" % (
                         child, sg.servicegroup_name
                     ))
                     for group in sgs:
                         if group.get_name() == child:
-                            print("Found parent: %s (%s) for %s" % (
+                            self.output("Found parent: %s (%s) for %s" % (
                                 sg.uuid, sg.servicegroup_name, group
                             ))
                             group._parent = sg.uuid
                             break
             for sg in sgs:
-                print("SG: %s (%s) - %s" % (
+                self.output("SG: %s (%s) - %s" % (
                     sg.uuid, sg.servicegroup_name, sg._parent
                 ))
                 sg.properties['_parent'] = sg._parent
@@ -989,18 +991,18 @@ class CfgToBackend(object):
                     if not child:
                         continue
                     # Search child group...
-                    print("Found child: %s for %s" % (
+                    self.output("Found child: %s for %s" % (
                         child, ug.contactgroup_name
                     ))
                     for group in ugs:
                         if group.get_name() == child:
-                            print("Found parent: %s (%s) for %s" % (
+                            self.output("Found parent: %s (%s) for %s" % (
                                 ug.uuid, ug.contactgroup_name, group
                             ))
                             group._parent = ug.uuid
                             break
             for ug in ugs:
-                print("UG: %s (%s) - %s" % (
+                self.output("UG: %s (%s) - %s" % (
                     ug.uuid, ug.contactgroup_name, ug._parent
                 ))
                 ug.properties['_parent'] = ug._parent
@@ -1012,9 +1014,9 @@ class CfgToBackend(object):
         if self.default_realm == '':
             realms = getattr(self.arbiter.conf, 'realms')
             default_realm = realms.get_default()
-            print ("Realms: %s, default: %s" % (realms, default_realm))
+            self.output("Realms: %s, default: %s" % (realms, default_realm))
             self.default_realm = default_realm.uuid
-            print ("*** Alignak default realm: %s (%s)" % (
+            self.output("*** Alignak default realm: %s (%s)" % (
                 self.default_realm, default_realm.get_name()
             ))
 
@@ -1034,8 +1036,17 @@ class CfgToBackend(object):
 
             self.log("...................................")
             self.log("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
-            print("...................................")
-            print("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
+            self.output("...................................")
+            if template:
+                self.output("Manage template %s: %s (%s)" % (
+                    r_name, item_obj.uuid, item_obj.get_name()
+                ))
+                print("Manage template %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
+            else:
+                self.output("Manage resource %s: %s (%s)" % (
+                    r_name, item_obj.uuid, item_obj.get_name()
+                ))
+                print("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
 
             # Only deal with properties,
             for prop in item_obj.properties.keys():
@@ -1048,10 +1059,10 @@ class CfgToBackend(object):
             # ------------------------------------------------------------
             #  - retain_nonstatus_information / retain_status_information
             if 'retain_status_information' in item:
-                # print ("-> remove retain_status_information.")
+                # self.output("-> remove retain_status_information.")
                 item.pop('retain_status_information')
             if 'retain_nonstatus_information' in item:
-                # print ("-> remove retain_nonstatus_information.")
+                # self.output("-> remove retain_nonstatus_information.")
                 item.pop('retain_nonstatus_information')
 
             # Ignore specific items ...
@@ -1060,43 +1071,43 @@ class CfgToBackend(object):
 
             #  - default timeperiod
             if r_name == 'timeperiod' and item[id_name] == "24x7":
-                print ("-> do not change anything for default timeperiod.")
+                self.output("-> do not change anything for default timeperiod.")
                 self.al_always = item_obj.uuid
                 continue
 
             if r_name == 'timeperiod' and item[id_name] == "none":
                 self.al_none = item_obj.uuid
-                print ("-> do not change anything for default timeperiod.")
+                self.output("-> do not change anything for default timeperiod.")
                 continue
 
             if r_name == 'timeperiod' and item[id_name] == "Never":
                 self.al_never = item_obj.uuid
-                print ("-> do not change anything for default timeperiod.")
+                self.output("-> do not change anything for default timeperiod.")
                 continue
 
             #  - default realm
             if r_name == 'realm' and item[id_name] == "All":
-                print ("-> do not change anything for default realm: %s." % self.realm_all)
+                self.output("-> do not change anything for default realm: %s." % self.realm_all)
                 continue
 
             #  - default hostgroup
             if r_name == 'hostgroup' and item[id_name] == "All":
-                print ("-> do not change anything for default hostgroup.")
+                self.output("-> do not change anything for default hostgroup.")
                 continue
 
             #  - default servicegroup
             if r_name == 'servicegroup' and item[id_name] == "All":
-                print ("-> do not change anything for default servicegroup.")
+                self.output("-> do not change anything for default servicegroup.")
                 continue
 
             #  - default usergroup
             if r_name == 'usergroup' and item['contactgroup_name'] == "All":
-                print ("-> do not change anything for default usergroup.")
+                self.output("-> do not change anything for default usergroup.")
                 continue
 
             #  - specific commands
             if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
-                print ("-> do not import this command.")
+                self.output("-> do not import this command.")
                 continue
 
             # Update specific values for timeperiods...
@@ -1157,7 +1168,7 @@ class CfgToBackend(object):
 
             # Special process for realms
             if r_name == 'realm':
-                print(" --> realm: %s - %s" % (id_name, item))
+                self.output(" --> realm: %s - %s" % (id_name, item))
 
                 if 'definition_order' in item:
                     # Remove this field
@@ -1168,13 +1179,15 @@ class CfgToBackend(object):
                     self.default_realm = item['uuid']
 
                 if 'realm_members' in item:
-                    print(" --> Drop realm members for %s: %s" % (
+                    self.output(" --> Drop realm members for %s: %s" % (
                         item[id_name], item['realm_members']
                     ))
                     item.pop('realm_members')
 
                 if 'higher_realms' in item:
-                    print(" --> Higher realms for %s: %s" % (item[id_name], item['higher_realms']))
+                    self.output(" --> Higher realms for %s: %s" % (
+                        item[id_name], item['higher_realms']
+                    ))
                     if not item['higher_realms']:
                         # Link to default All backend realm
                         item['_parent'] = self.realm_all
@@ -1188,7 +1201,7 @@ class CfgToBackend(object):
 
                 if 'broker_complete_links' in item:
                     item.pop('broker_complete_links')
-                print(" --> realm(modified): %s" % item)
+                self.output(" --> realm(modified): %s" % item)
             else:
                 # Default is to set element in the default realm
                 item['_realm'] = self.realm_all
@@ -1196,7 +1209,7 @@ class CfgToBackend(object):
                 # Realms related to other elements...
                 if 'realm' in item:
                     if r_name in ['hostgroup', 'host']:
-                        print(" --> %s, realm: %s" % (r_name, item['realm']))
+                        self.output(" --> %s, realm: %s" % (r_name, item['realm']))
 
                         if item['realm'] == self.default_realm or not item['realm']:
                             item['_realm'] = self.realm_all
@@ -1204,7 +1217,7 @@ class CfgToBackend(object):
                             item['_realm'] = item['realm']
 
                     if r_name in ['servicegroup', 'service']:
-                        print(" --> %s, realm: %s" % (r_name, item['realm']))
+                        self.output(" --> %s, realm: %s" % (r_name, item['realm']))
 
                         if item['realm'] == self.default_realm or not item['realm']:
                             item['_realm'] = self.realm_all
@@ -1285,7 +1298,7 @@ class CfgToBackend(object):
                 if 'hostgroups' in item:
                     # Remove hostgroups relations ... still useful?
                     if item['hostgroups']:
-                        print(" --> %s, hostgroups: %s" % (item[id_name], item['hostgroups']))
+                        self.output(" --> remove hostgroups relation: %s" % (item['hostgroups']))
                     item.pop('hostgroups')
                 if 'trigger_name' in item:
                     item['trigger'] = item['trigger_name']
@@ -1310,6 +1323,7 @@ class CfgToBackend(object):
             # Special case of services
             if r_name == 'service':
                 if template and self.models and item_obj.is_tpl():
+                    self.output("Service is a template ...")
                     item['_is_template'] = True
                     item['host'] = ''
                     if 'check_command' not in item:
@@ -1318,7 +1332,7 @@ class CfgToBackend(object):
                 if 'servicegroups' in item:
                     # Remove servicegroups relations ... still useful?
                     if item['servicegroups']:
-                        print(" --> %s, servicegroups: %s" % (
+                        self.output(" --> %s, servicegroups: %s" % (
                             item[id_name], item['servicegroups']
                         ))
                     item.pop('servicegroups')
@@ -1333,6 +1347,9 @@ class CfgToBackend(object):
                     item.pop('host_name')
                 else:
                     item['host'] = self.dummy_host
+                self.output("Service host/description: %s/%s" % (
+                    item['host'], item['service_description']
+                ))
 
                 if 'hostgroup_name' in item:
                     item['hostgroups'] = item['hostgroup_name']
@@ -1359,7 +1376,7 @@ class CfgToBackend(object):
                 if 'contact_name' in item:
                     item['name'] = item[id_name]
                     if item['contact_name'] == 'admin':
-                        print ("-> import user 'admin' renamed as 'imported_admin'.")
+                        self.output("-> import user 'admin' renamed as 'imported_admin'.")
                         item['name'] = 'imported_admin'
 
                     # Remove contact_name, replaced with name...
@@ -1376,13 +1393,13 @@ class CfgToBackend(object):
                 if 'address6' in item:
                     if item['address6'] in self.inserted['realm']:
                         item['_realm'] = self.inserted['realm'][item['address6']]
-                        print("-> import user '%s' in realm '%s'." % (
+                        self.output("-> import user '%s' in realm '%s'." % (
                             item['name'], item['address6']
                         ))
                     if item['address6'] in self.inserted['realm'].values():
                         index = self.inserted['realm'].values().index(item['address6'])
                         item['_realm'] = self.inserted['realm'].keys()[index]
-                        print("-> import user '%s' in realm '%s'." % (
+                        self.output("-> import user '%s' in realm '%s'." % (
                             item['name'], item['address6']
                         ))
 
@@ -1531,7 +1548,7 @@ class CfgToBackend(object):
                 # As of #95 in the alignak-backend, interesting to get used as tags ...
                 if item['use'] and r_name in ['host', 'service', 'contact']:
                     item['tags'] = item['use']
-                    print("Set item 'tags' as: %s" % item['tags'])
+                    self.output("Set item 'tags' as: %s" % item['tags'])
                 self.log("removed 'use' field from: %s : %s:" % (r_name, item))
                 item.pop('use')
 
@@ -1555,12 +1572,13 @@ class CfgToBackend(object):
 
             # item['name']      ok
             if id_name != 'name':
+                self.output(" --> id_name: %s" % (id_name))
                 item['name'] = item[id_name]
                 item.pop(id_name)
-                print(" --> replaced name for %s: %s" % (r_name, item['name']))
+                self.output(" --> replaced name for %s: %s" % (r_name, item['name']))
                 if '$' in item['name']:
                     item['name'] = item['name'].replace('$', '_')
-                    print(" --> replaced name for %s: %s" % (r_name, item['name']))
+                    self.output(" --> replaced name for %s: %s" % (r_name, item['name']))
 
             # item['alias']     not always included, what to do?
             # item['comment']   never included, what to do?
@@ -1575,11 +1593,11 @@ class CfgToBackend(object):
                             'name': item['name'],
                             'host': item['host']
                         })}
-                    print("Checking element existence for %s: %s/%s" % (
+                    self.output("Checking element existence for %s: %s/%s" % (
                         r_name, item['host'], item['name']
                     ))
                 else:
-                    print("Checking element existence for %s: %s" % (
+                    self.output("Checking element existence for %s: %s" % (
                         r_name, item['name']
                     ))
                 response = self.backend.get(r_name, params=params)
@@ -1591,7 +1609,7 @@ class CfgToBackend(object):
 
                     # Make it as inserted for further search...
                     exist = response['_items'][0]
-                    print(" -> exists: %s" % (exist))
+                    self.output(" -> exists: %s" % (exist))
                     if template:
                         self.inserted['%s_template' % r_name][exist['_id']] = item['name']
                     self.inserted[r_name][exist['_id']] = item['name']
@@ -1605,7 +1623,7 @@ class CfgToBackend(object):
                         item['check_command'] = ''
 
                 if self.update_backend_data:
-                    print("Updating %s: %s" % (r_name, item['name']))
+                    self.output("Updating %s: %s" % (r_name, item['name']))
                     params = {'where': json.dumps({'name': item['name']})}
                     if r_name == 'service':
                         params = {'where': json.dumps({
@@ -1626,7 +1644,7 @@ class CfgToBackend(object):
                                 r_name + '/' + exist['_id'], item,
                                 headers=headers, inception=True
                             )
-                        print("Updated %s: %s" % (r_name, item['name']))
+                        self.output("Updated %s: %s" % (r_name, item['name']))
 
                         # Make it as inserted for further search...
                         if template:
@@ -1641,15 +1659,15 @@ class CfgToBackend(object):
                     else:
                         response = {'_id': '_fake', '_etag': '_fake'}
                     if '_is_template' in item and item['_is_template']:
-                        print("-> Created a new: %s template: %s (%s)" % (
+                        self.output("-> Created a new: %s template: %s (%s)" % (
                             r_name, item['name'], response['_id']
                         ))
-                        print("-> %s" % (item))
+                        self.output("-> %s" % (item))
                     else:
-                        print("-> Created a new: %s : %s (%s) (%s)" % (
+                        self.output("-> Created a new: %s : %s (%s) (%s)" % (
                             r_name, item['name'], response['_id'], item_obj.uuid
                         ))
-                        print("-> %s" % (item))
+                        self.output("-> %s" % (item))
             except BackendException as e:
                 print("# Post/patch error for: %s : %s" % (r_name, item))
                 print("***** Exception: %s" % str(e))
@@ -1677,7 +1695,7 @@ class CfgToBackend(object):
 
                 for dummy, values in enumerate(data_later):
                     if values['field'] in later_tmp:
-                        print("***Update later: %s/%s, with %s = %s" % (
+                        self.output("***Update later: %s/%s, with %s = %s" % (
                             r_name, response['_id'], values['field'], later_tmp[values['field']]
                         ))
                         self.later[r_name][values['field']][response['_id']] = {
@@ -1702,7 +1720,7 @@ class CfgToBackend(object):
                             response = self.backend.post(
                                 'userrestrictrole', user_role, headers=None
                             )
-                        print("-> Created a new user_role: %s : %s (%s)" % (
+                        self.output("-> Created a new user_role: %s : %s (%s)" % (
                             r_name, user_role, response['_id']
                         ))
                     except BackendException as e:
@@ -2173,6 +2191,17 @@ class CfgToBackend(object):
         :return: None
         """
         if self.verbose:
+            self.output(message)
+
+    def output(self, message):
+        """
+        Display message if in verbose mode
+
+        :param message: message to display
+        :type message: str
+        :return: None
+        """
+        if not self.quiet:
             print(message)
 
 
