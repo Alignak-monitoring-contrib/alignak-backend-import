@@ -451,12 +451,12 @@ class CfgToBackend(object):
                         headers['If-Match'] = ug['_etag']
                         self.backend.delete('usergroup/' + ug['_id'], headers)
 
-            self.output("Deleting hosts")
+            print("Deleting hosts")
             hosts = self.backend.get_all('host')
             headers = {'Content-Type': 'application/json'}
             for h in hosts['_items']:
                 if h['name'] != '_dummy':
-                    self.output("Deleting host: %s" % h['name'])
+                    print("Deleting host: %s" % h['name'])
                     if not self.dry_run:
                         headers['If-Match'] = h['_etag']
                         self.backend.delete('host/' + h['_id'], headers)
