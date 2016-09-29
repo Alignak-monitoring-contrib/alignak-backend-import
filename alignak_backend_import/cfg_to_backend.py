@@ -23,7 +23,7 @@
 alignak_backend_import command line interface::
 
     Usage:
-        {command} [-h] [-v] [-d] [-m] [-b=url] [-u=username] [-p=password] [-t=type] [<cfg_file>...]
+        {command} [-h] [-v] [-d] [-m] [-b=url] [-u=username] [-p=password] [<cfg_file>...]
 
     Options:
         -h, --help                  Show this screen.
@@ -33,7 +33,6 @@ alignak_backend_import command line interface::
         -u, --username username     Backend login username [default: admin]
         -p, --password password     Backend login password [default: admin]
         -v, --verbose               Run in verbose mode (more info to display)
-        -t, --type type             Only manages this object type [default: all]
         -m, --model                 Import templates when they exist
         -g, --gps lat,lng           Specify default GPS location [default: 46.60611,1.87528]
 
@@ -179,12 +178,6 @@ class CfgToBackend(object):
         self.username = args['--username']
         self.password = args['--password']
         self.log("Backend login with credentials: %s/%s" % (self.username, self.password))
-
-        self.type = 'all'
-        if '--type' in args:
-            self.type = args['--type']
-        self.log("Managing objects of type: %s" % self.type)
-        print("Managing objects of type: %s" % self.type)
 
         self.models = False
         if '--model' in args:
@@ -332,102 +325,101 @@ class CfgToBackend(object):
         try:
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Deleting existing backend data ~~~~~~~~~~~~~~~~~~~~~~")
             headers = {'Content-Type': 'application/json'}
-            if self.type == 'realm' or self.type == 'all':
-                print("Deleting realms")
-                # Get realms in _level reverse order to be able to delete them ...
-                realms = self.backend.get('realm', params={'sort': '-_level'})
-                headers = {'Content-Type': 'application/json'}
-                for r in realms['_items']:
-                    if r['name'] != 'All':
-                        print("Deleting realm: %s" % r['name'])
-                        to_del = self.backend.get('realm/' + r['_id'])
-                        headers['If-Match'] = to_del['_etag']
-                        self.backend.delete('realm/' + to_del['_id'], headers)
-            if self.type == 'command' or self.type == 'all':
-                print("Deleting commands")
-                commands = self.backend.get_all('command')
-                headers = {'Content-Type': 'application/json'}
-                for c in commands['_items']:
-                    if c['name'] != '_internal_host_up' and c['name'] != '_echo':
-                        print("Deleting command: %s" % c['name'])
-                        headers['If-Match'] = c['_etag']
-                        self.backend.delete('command/' + c['_id'], headers)
-            if self.type == 'timeperiod' or self.type == 'all':
-                print("Deleting timeperiods")
-                timeperiods = self.backend.get_all('timeperiod')
-                headers = {'Content-Type': 'application/json'}
-                for tp in timeperiods['_items']:
-                    if tp['name'] != '24x7' and tp['name'] != 'Never':
-                        print("Deleting timeperiod: %s" % tp['name'])
-                        headers['If-Match'] = tp['_etag']
-                        self.backend.delete('timeperiod/' + tp['_id'], headers)
-            if self.type == 'user' or self.type == 'all':
-                print("Deleting users")
-                users = self.backend.get_all('user')
-                headers = {'Content-Type': 'application/json'}
-                for u in users['_items']:
-                    if u['name'] != 'admin':
-                        print("Deleting user: %s" % u['name'])
-                        headers['If-Match'] = u['_etag']
-                        self.backend.delete('user/' + u['_id'], headers)
-            if self.type == 'usergroup' or self.type == 'all':
-                print("Deleting usergroups")
-                usergroups = self.backend.get_all('usergroup')
-                headers = {'Content-Type': 'application/json'}
-                for ug in usergroups['_items']:
-                    if ug['name'] != 'All':
-                        print("Deleting usergroup: %s" % ug['name'])
-                        headers['If-Match'] = ug['_etag']
-                        self.backend.delete('usergroup/' + ug['_id'], headers)
-            if self.type == 'host' or self.type == 'all':
-                print("Deleting hosts")
-                self.backend.delete('host', headers)
-            if self.type == 'hostdependency' or self.type == 'all':
-                print("Deleting hostdependencys")
-                self.backend.delete('hostdependency', headers)
-            if self.type == 'hostgroup' or self.type == 'all':
-                print("Deleting hostgroups")
-                hostgroups = self.backend.get_all('hostgroup')
-                headers = {'Content-Type': 'application/json'}
-                for hg in hostgroups['_items']:
-                    if hg['name'] != 'All':
-                        print("Deleting hostgroup: %s" % hg['name'])
-                        headers['If-Match'] = hg['_etag']
-                        self.backend.delete('hostgroup/' + hg['_id'], headers)
-            if self.type == 'hostescalation' or self.type == 'all':
-                print("Deleting hostescalations")
-                self.backend.delete('hostescalation', headers)
-            if self.type == 'service' or self.type == 'all':
-                print("Deleting services")
-                self.backend.delete('service', headers)
-            if self.type == 'servicedependency' or self.type == 'all':
-                print("Deleting servicedependencys")
-                self.backend.delete('servicedependency', headers)
-            if self.type == 'servicegroup' or self.type == 'all':
-                print("Deleting servicegroups")
-                servicegroups = self.backend.get_all('servicegroup')
-                headers = {'Content-Type': 'application/json'}
-                for sg in servicegroups['_items']:
-                    if sg['name'] != 'All':
-                        print("Deleting servicegroup: %s" % sg['name'])
-                        headers['If-Match'] = sg['_etag']
-                        self.backend.delete('servicegroup/' + sg['_id'], headers)
-            if self.type == 'serviceescalation' or self.type == 'all':
-                print("Deleting serviceescalations")
-                self.backend.delete('serviceescalation', headers)
-            if self.type == 'userrestrictrole' or self.type == 'all':
-                print("Deleting userrestrictroles")
-                self.backend.delete('userrestrictrole', headers)
-            if self.type == 'livesynthesis' or self.type == 'all':
-                print("Deleting livesynthesis")
-                self.backend.delete('livesynthesis', headers)
-            if self.type == 'action' or self.type == 'all':
-                print("Deleting actions acknowledge")
-                self.backend.delete('actionacknowledge', headers)
-                print("Deleting actions downtime")
-                self.backend.delete('actiondowntime', headers)
-                print("Deleting actions re-check")
-                self.backend.delete('actionforcecheck', headers)
+            print("Deleting realms")
+            # Get realms in _level reverse order to be able to delete them ...
+            realms = self.backend.get('realm', params={'sort': '-_level'})
+            headers = {'Content-Type': 'application/json'}
+            for r in realms['_items']:
+                if r['name'] != 'All':
+                    print("Deleting realm: %s" % r['name'])
+                    to_del = self.backend.get('realm/' + r['_id'])
+                    headers['If-Match'] = to_del['_etag']
+                    self.backend.delete('realm/' + to_del['_id'], headers)
+
+            print("Deleting commands")
+            commands = self.backend.get_all('command')
+            headers = {'Content-Type': 'application/json'}
+            for c in commands['_items']:
+                if c['name'] != '_internal_host_up' and c['name'] != '_echo':
+                    print("Deleting command: %s" % c['name'])
+                    headers['If-Match'] = c['_etag']
+                    self.backend.delete('command/' + c['_id'], headers)
+
+            print("Deleting timeperiods")
+            timeperiods = self.backend.get_all('timeperiod')
+            headers = {'Content-Type': 'application/json'}
+            for tp in timeperiods['_items']:
+                if tp['name'] != '24x7' and tp['name'] != 'Never':
+                    print("Deleting timeperiod: %s" % tp['name'])
+                    headers['If-Match'] = tp['_etag']
+                    self.backend.delete('timeperiod/' + tp['_id'], headers)
+
+            print("Deleting users")
+            users = self.backend.get_all('user')
+            headers = {'Content-Type': 'application/json'}
+            for u in users['_items']:
+                if u['name'] != 'admin':
+                    print("Deleting user: %s" % u['name'])
+                    headers['If-Match'] = u['_etag']
+                    self.backend.delete('user/' + u['_id'], headers)
+
+            print("Deleting usergroups")
+            usergroups = self.backend.get_all('usergroup')
+            headers = {'Content-Type': 'application/json'}
+            for ug in usergroups['_items']:
+                if ug['name'] != 'All':
+                    print("Deleting usergroup: %s" % ug['name'])
+                    headers['If-Match'] = ug['_etag']
+                    self.backend.delete('usergroup/' + ug['_id'], headers)
+
+            print("Deleting hosts")
+            self.backend.delete('host', headers)
+
+            print("Deleting hostdependencys")
+            self.backend.delete('hostdependency', headers)
+
+            print("Deleting hostgroups")
+            hostgroups = self.backend.get_all('hostgroup')
+            headers = {'Content-Type': 'application/json'}
+            for hg in hostgroups['_items']:
+                if hg['name'] != 'All':
+                    print("Deleting hostgroup: %s" % hg['name'])
+                    headers['If-Match'] = hg['_etag']
+                    self.backend.delete('hostgroup/' + hg['_id'], headers)
+
+            print("Deleting hostescalations")
+            self.backend.delete('hostescalation', headers)
+
+            print("Deleting services")
+            self.backend.delete('service', headers)
+
+            print("Deleting servicedependencys")
+            self.backend.delete('servicedependency', headers)
+
+            print("Deleting servicegroups")
+            servicegroups = self.backend.get_all('servicegroup')
+            headers = {'Content-Type': 'application/json'}
+            for sg in servicegroups['_items']:
+                if sg['name'] != 'All':
+                    print("Deleting servicegroup: %s" % sg['name'])
+                    headers['If-Match'] = sg['_etag']
+                    self.backend.delete('servicegroup/' + sg['_id'], headers)
+
+            print("Deleting serviceescalations")
+            self.backend.delete('serviceescalation', headers)
+
+            print("Deleting userrestrictroles")
+            self.backend.delete('userrestrictrole', headers)
+
+            print("Deleting livesynthesis")
+            self.backend.delete('livesynthesis', headers)
+
+            print("Deleting actions acknowledge")
+            self.backend.delete('actionacknowledge', headers)
+            print("Deleting actions downtime")
+            self.backend.delete('actiondowntime', headers)
+            print("Deleting actions re-check")
+            self.backend.delete('actionforcecheck', headers)
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
         except BackendException as e:
             print("# Backend deletion error")
@@ -1533,84 +1525,131 @@ class CfgToBackend(object):
 
         :return: None
         """
-        if self.type == 'realm' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add realm ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'realm', 'now': True
-                }
-            ]
-            schema = realm.get_schema()
-            self.manage_resource('realm', data_later, 'realm_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post realms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('realm', '_parent')
+        print("~~~~~~~~~~~~~~~~~~~~~~ add realm ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': '_parent', 'type': 'simple',
+                'resource': 'realm', 'now': True
+            }
+        ]
+        schema = realm.get_schema()
+        self.manage_resource('realm', data_later, 'realm_name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ post realms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.update_later('realm', '_parent')
 
-        if self.type == 'command' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = []
-            schema = command.get_schema()
-            self.manage_resource('command', data_later, 'command_name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = []
+        schema = command.get_schema()
+        self.manage_resource('command', data_later, 'command_name', schema)
 
-        if self.type == 'timeperiod' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add timeperiods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = []
-            schema = timeperiod.get_schema()
-            self.manage_resource('timeperiod', data_later, 'timeperiod_name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add timeperiods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = []
+        schema = timeperiod.get_schema()
+        self.manage_resource('timeperiod', data_later, 'timeperiod_name', schema)
 
         # ------------------------------
         # User part
         # ------------------------------
-        if self.type == 'user' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': 'host_notification_period', 'type': 'simple',
-                    'resource': 'timeperiod', 'now': True
-                },
-                {
-                    'field': 'service_notification_period', 'type': 'simple',
-                    'resource': 'timeperiod', 'now': True
-                },
-                {
-                    'field': 'host_notification_commands', 'type': 'list',
-                    'resource': 'command', 'now': True
-                },
-                {
-                    'field': 'service_notification_commands', 'type': 'list',
-                    'resource': 'command', 'now': True
-                }
-            ]
-            schema = user.get_schema()
-            self.manage_resource('user', data_later, 'name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'host_notification_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'service_notification_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'host_notification_commands', 'type': 'list',
+                'resource': 'command', 'now': True
+            },
+            {
+                'field': 'service_notification_commands', 'type': 'list',
+                'resource': 'command', 'now': True
+            }
+        ]
+        schema = user.get_schema()
+        self.manage_resource('user', data_later, 'name', schema)
 
-        if self.type == 'usergroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'usergroup', 'now': True
-                },
-                {
-                    'field': 'usergroups', 'type': 'list',
-                    'resource': 'usergroup', 'now': False
-                },
-                {
-                    'field': 'users', 'type': 'list',
-                    'resource': 'user', 'now': True
-                }
-            ]
-            schema = usergroup.get_schema()
-            self.manage_resource('usergroup', data_later, 'name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('usergroup', '_parent')
-            self.update_later('usergroup', 'usergroups')
+        print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': '_parent', 'type': 'simple',
+                'resource': 'usergroup', 'now': True
+            },
+            {
+                'field': 'usergroups', 'type': 'list',
+                'resource': 'usergroup', 'now': False
+            },
+            {
+                'field': 'users', 'type': 'list',
+                'resource': 'user', 'now': True
+            }
+        ]
+        schema = usergroup.get_schema()
+        self.manage_resource('usergroup', data_later, 'name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.update_later('usergroup', '_parent')
+        self.update_later('usergroup', 'usergroups')
 
         # ------------------------------
         # Host part
         # ------------------------------
-        if self.type == 'host' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'parents', 'type': 'list',
+                'resource': 'host', 'now': False
+            },
+            {
+                'field': '_realm', 'type': 'simple',
+                'resource': 'realm', 'now': True
+            },
+            {
+                'field': 'check_command', 'type': 'simple',
+                'resource': 'command', 'now': True
+            },
+            {
+                'field': 'event_handler', 'type': 'simple',
+                'resource': 'command', 'now': True
+            },
+            {
+                'field': 'check_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'users', 'type': 'list',
+                'resource': 'user', 'now': True
+            },
+            {
+                'field': 'usergroups', 'type': 'list',
+                'resource': 'usergroup', 'now': True
+            },
+            {
+                'field': 'notification_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'escalations', 'type': 'list',
+                'resource': 'escalation', 'now': True
+            },
+            {
+                'field': 'maintenance_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'snapshot_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            }
+        ]
+        schema = host.get_schema()
+        self.manage_resource('host', data_later, 'host_name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.update_later('host', 'parents')
+
+        if self.models:
+            print("~~~~~~~~~~~~~~~~~~~~~~ add host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
                     'field': 'parents', 'type': 'list',
@@ -1619,6 +1658,10 @@ class CfgToBackend(object):
                 {
                     'field': '_realm', 'type': 'simple',
                     'resource': 'realm', 'now': True
+                },
+                {
+                    'field': 'hostgroups', 'type': 'list',
+                    'resource': 'hostgroup', 'now': True
                 },
                 {
                     'field': 'check_command', 'type': 'simple',
@@ -1658,141 +1701,145 @@ class CfgToBackend(object):
                 }
             ]
             schema = host.get_schema()
-            self.manage_resource('host', data_later, 'host_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            # Import hosts templates
+            self.manage_resource('host', data_later, 'name', schema, template=True)
+            print("~~~~~~~~~~~~~~~~~~~~~~ post host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('host', 'parents')
 
-            if self.models:
-                print("~~~~~~~~~~~~~~~~~~~~~~ add host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                data_later = [
-                    {
-                        'field': 'parents', 'type': 'list',
-                        'resource': 'host', 'now': False
-                    },
-                    {
-                        'field': '_realm', 'type': 'simple',
-                        'resource': 'realm', 'now': True
-                    },
-                    {
-                        'field': 'hostgroups', 'type': 'list',
-                        'resource': 'hostgroup', 'now': True
-                    },
-                    {
-                        'field': 'check_command', 'type': 'simple',
-                        'resource': 'command', 'now': True
-                    },
-                    {
-                        'field': 'event_handler', 'type': 'simple',
-                        'resource': 'command', 'now': True
-                    },
-                    {
-                        'field': 'check_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'users', 'type': 'list',
-                        'resource': 'user', 'now': True
-                    },
-                    {
-                        'field': 'usergroups', 'type': 'list',
-                        'resource': 'usergroup', 'now': True
-                    },
-                    {
-                        'field': 'notification_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'escalations', 'type': 'list',
-                        'resource': 'escalation', 'now': True
-                    },
-                    {
-                        'field': 'maintenance_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'snapshot_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    }
-                ]
-                schema = host.get_schema()
-                # Import hosts templates
-                self.manage_resource('host', data_later, 'name', schema, template=True)
-                print("~~~~~~~~~~~~~~~~~~~~~~ post host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                self.update_later('host', 'parents')
+        print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'hosts', 'type': 'list',
+                'resource': 'host', 'now': True
+            },
+            {
+                'field': 'dependent_hosts', 'type': 'list',
+                'resource': 'host', 'now': True
+            },
+            {
+                'field': 'hostgroups', 'type': 'list',
+                'resource': 'hostgroup', 'now': True
+            },
+            {
+                'field': 'dependent_hostgroups', 'type': 'list',
+                'resource': 'hostgroup', 'now': True
+            },
+            {
+                'field': 'dependency_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            }
+        ]
+        schema = hostdependency.get_schema()
+        self.manage_resource('hostdependency', data_later, 'name', schema)
 
-        if self.type == 'hostdependency' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': 'hosts', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'dependent_hosts', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': 'dependent_hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': 'dependency_period', 'type': 'simple',
-                    'resource': 'timeperiod', 'now': True
-                }
-            ]
-            schema = hostdependency.get_schema()
-            self.manage_resource('hostdependency', data_later, 'name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': '_parent', 'type': 'simple',
+                'resource': 'hostgroup', 'now': True
+            },
+            {
+                'field': '_realm', 'type': 'simple',
+                'resource': 'realm', 'now': True
+            },
+            {
+                'field': 'hostgroups', 'type': 'list',
+                'resource': 'hostgroup', 'now': False
+            },
+            {
+                'field': 'hosts', 'type': 'list',
+                'resource': 'host', 'now': True
+            }
+        ]
+        schema = hostgroup.get_schema()
+        self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.update_later('hostgroup', '_parent')
+        self.update_later('hostgroup', 'hostgroups')
 
-        if self.type == 'hostgroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': '_realm', 'type': 'simple',
-                    'resource': 'realm', 'now': True
-                },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': False
-                },
-                {
-                    'field': 'hosts', 'type': 'list',
-                    'resource': 'host', 'now': True
-                }
-            ]
-            schema = hostgroup.get_schema()
-            self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('hostgroup', '_parent')
-            self.update_later('hostgroup', 'hostgroups')
-
-        if self.type == 'hostescalation' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': 'users', 'type': 'list',
-                    'resource': 'user', 'now': True
-                },
-                {
-                    'field': 'usergroups', 'type': 'list',
-                    'resource': 'usergroup', 'now': True
-                }
-            ]
-            schema = hostescalation.get_schema()
-            self.manage_resource('hostescalation', data_later, 'host', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'users', 'type': 'list',
+                'resource': 'user', 'now': True
+            },
+            {
+                'field': 'usergroups', 'type': 'list',
+                'resource': 'usergroup', 'now': True
+            }
+        ]
+        schema = hostescalation.get_schema()
+        self.manage_resource('hostescalation', data_later, 'host', schema)
 
         # ------------------------------
         # Service part
         # ------------------------------
-        if self.type == 'service' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'host', 'type': 'simple',
+                'resource': 'host', 'now': True
+            },
+            {
+                'field': '_realm', 'type': 'simple',
+                'resource': 'realm', 'now': True
+            },
+            {
+                'field': 'servicegroups', 'type': 'list',
+                'resource': 'servicegroup', 'now': True
+            },
+            {
+                'field': 'hostgroups', 'type': 'list',
+                'resource': 'hostgroup', 'now': True
+            },
+            {
+                'field': 'check_command', 'type': 'simple',
+                'resource': 'command', 'now': True
+            },
+            {
+                'field': 'event_handler', 'type': 'simple',
+                'resource': 'command', 'now': True
+            },
+            {
+                'field': 'check_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'notification_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'users', 'type': 'list',
+                'resource': 'user', 'now': True
+            },
+            {
+                'field': 'usergroups', 'type': 'list',
+                'resource': 'usergroup',
+                'now': True
+            },
+            {
+                'field': 'escalations', 'type': 'list',
+                'resource': 'escalation', 'now': True
+            },
+            {
+                'field': 'maintenance_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'snapshot_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            },
+            {
+                'field': 'service_dependencies', 'type': 'list',
+                'resource': 'service', 'now': True
+            }
+        ]
+        schema = service.get_schema()
+        self.manage_resource('service', data_later, 'service_description', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ post service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        if self.models:
+            print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
                     'field': 'host', 'type': 'simple',
@@ -1805,10 +1852,6 @@ class CfgToBackend(object):
                 {
                     'field': 'servicegroups', 'type': 'list',
                     'resource': 'servicegroup', 'now': True
-                },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
                 },
                 {
                     'field': 'check_command', 'type': 'simple',
@@ -1853,143 +1896,79 @@ class CfgToBackend(object):
                 }
             ]
             schema = service.get_schema()
-            self.manage_resource('service', data_later, 'service_description', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.manage_resource(
+                'service', data_later, 'service_description', schema, template=True
+            )
+            print("~~~~~~~~~~~~~~~~~~~~~~ post service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-            if self.models:
-                print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                data_later = [
-                    {
-                        'field': 'host', 'type': 'simple',
-                        'resource': 'host', 'now': True
-                    },
-                    {
-                        'field': '_realm', 'type': 'simple',
-                        'resource': 'realm', 'now': True
-                    },
-                    {
-                        'field': 'servicegroups', 'type': 'list',
-                        'resource': 'servicegroup', 'now': True
-                    },
-                    {
-                        'field': 'check_command', 'type': 'simple',
-                        'resource': 'command', 'now': True
-                    },
-                    {
-                        'field': 'event_handler', 'type': 'simple',
-                        'resource': 'command', 'now': True
-                    },
-                    {
-                        'field': 'check_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'notification_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'users', 'type': 'list',
-                        'resource': 'user', 'now': True
-                    },
-                    {
-                        'field': 'usergroups', 'type': 'list',
-                        'resource': 'usergroup',
-                        'now': True
-                    },
-                    {
-                        'field': 'escalations', 'type': 'list',
-                        'resource': 'escalation', 'now': True
-                    },
-                    {
-                        'field': 'maintenance_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'snapshot_period', 'type': 'simple',
-                        'resource': 'timeperiod', 'now': True
-                    },
-                    {
-                        'field': 'service_dependencies', 'type': 'list',
-                        'resource': 'service', 'now': True
-                    }
-                ]
-                schema = service.get_schema()
-                self.manage_resource(
-                    'service', data_later, 'service_description', schema, template=True
-                )
-                print("~~~~~~~~~~~~~~~~~~~~~~ post service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'hosts', 'type': 'list',
+                'resource': 'host', 'now': True
+            },
+            {
+                'field': 'services', 'type': 'list',
+                'resource': 'service', 'now': True
+            },
+            {
+                'field': 'dependent_hosts', 'type': 'list',
+                'resource': 'host', 'now': True
+            },
+            {
+                'field': 'dependent_services', 'type': 'list',
+                'resource': 'service', 'now': True
+            },
+            {
+                'field': 'hostgroups', 'type': 'list',
+                'resource': 'hostgroup', 'now': True
+            },
+            {
+                'field': 'dependent_hostgroups', 'type': 'list',
+                'resource': 'hostgroup', 'now': True
+            },
+            {
+                'field': 'dependency_period', 'type': 'simple',
+                'resource': 'timeperiod', 'now': True
+            }
+        ]
+        schema = servicedependency.get_schema()
+        self.manage_resource('servicedependency', data_later, 'name', schema)
 
-        if self.type == 'servicedependency' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': 'hosts', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'services', 'type': 'list',
-                    'resource': 'service', 'now': True
-                },
-                {
-                    'field': 'dependent_hosts', 'type': 'list',
-                    'resource': 'host', 'now': True
-                },
-                {
-                    'field': 'dependent_services', 'type': 'list',
-                    'resource': 'service', 'now': True
-                },
-                {
-                    'field': 'hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': 'dependent_hostgroups', 'type': 'list',
-                    'resource': 'hostgroup', 'now': True
-                },
-                {
-                    'field': 'dependency_period', 'type': 'simple',
-                    'resource': 'timeperiod', 'now': True
-                }
-            ]
-            schema = servicedependency.get_schema()
-            self.manage_resource('servicedependency', data_later, 'name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': '_parent', 'type': 'simple',
+                'resource': 'servicegroup', 'now': True
+            },
+            {
+                'field': 'servicegroups', 'type': 'list',
+                'resource': 'servicegroup', 'now': False
+            },
+            {
+                'field': 'services', 'type': 'list',
+                'resource': 'service', 'now': True
+            }
+        ]
+        schema = servicegroup.get_schema()
+        self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.update_later('servicegroup', '_parent')
+        self.update_later('servicegroup', 'servicegroups')
 
-        if self.type == 'servicegroup' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': '_parent', 'type': 'simple',
-                    'resource': 'servicegroup', 'now': True
-                },
-                {
-                    'field': 'servicegroups', 'type': 'list',
-                    'resource': 'servicegroup', 'now': False
-                },
-                {
-                    'field': 'services', 'type': 'list',
-                    'resource': 'service', 'now': True
-                }
-            ]
-            schema = servicegroup.get_schema()
-            self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            self.update_later('servicegroup', '_parent')
-            self.update_later('servicegroup', 'servicegroups')
-
-        if self.type == 'serviceescalation' or self.type == 'all':
-            print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            data_later = [
-                {
-                    'field': 'users', 'type': 'list',
-                    'resource': 'user', 'now': True
-                },
-                {
-                    'field': 'usergroups', 'type': 'list',
-                    'resource': 'usergroup', 'now': True
-                }
-            ]
-            schema = serviceescalation.get_schema()
-            self.manage_resource('serviceescalation', data_later, 'host', schema)
+        print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        data_later = [
+            {
+                'field': 'users', 'type': 'list',
+                'resource': 'user', 'now': True
+            },
+            {
+                'field': 'usergroups', 'type': 'list',
+                'resource': 'usergroup', 'now': True
+            }
+        ]
+        schema = serviceescalation.get_schema()
+        self.manage_resource('serviceescalation', data_later, 'host', schema)
 
     def log(self, message):
         """
