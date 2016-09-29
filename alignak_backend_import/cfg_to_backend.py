@@ -1377,6 +1377,9 @@ class CfgToBackend(object):
                 item['ui_preferences'] = {}
                 item.pop('usergroups')
                 item.pop('expert')
+                # Waiting for manage the notification ways in the backend
+                # Delete (temporarily...) this property
+                item.pop('notificationways')
 
                 if 'contact_name' in item:
                     item['name'] = item[id_name]
