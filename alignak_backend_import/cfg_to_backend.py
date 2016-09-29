@@ -67,6 +67,7 @@ alignak_backend_import command line interface::
             3 if required configuration cannot be loaded by Alignak
             4 if some problems were encountered during backend importation
             5 if an exception occured when creating/updating data in the Alignak backend
+            6 if an imported element is not named (can not find its name)
 
             64 if command line parameters are not used correctly
 """
@@ -1573,6 +1574,10 @@ class CfgToBackend(object):
             # item['name']      ok
             if id_name != 'name':
                 self.output(" --> id_name: %s" % (id_name))
+                if id_name not in item and 'name' not in item:
+                    self.output(" --> not named item: %s" % (item))
+                    exit(6)
+                # if 'name' not in item or not item[id_name]:
                 item['name'] = item[id_name]
                 item.pop(id_name)
                 self.output(" --> replaced name for %s: %s" % (r_name, item['name']))
