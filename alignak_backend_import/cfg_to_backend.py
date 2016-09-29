@@ -1330,6 +1330,9 @@ class CfgToBackend(object):
                     item['host'] = ''
                     if 'check_command' not in item:
                         item['check_command'] = ''
+                    if 'service_description' not in item:
+                        self.output("Set service_description as name...")
+                        item['service_description'] = item['name']
 
                 if 'servicegroups' in item:
                     # Remove servicegroups relations ... still useful?
