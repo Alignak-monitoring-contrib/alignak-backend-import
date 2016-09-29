@@ -723,7 +723,8 @@ class CfgToBackend(object):
                         source[prop].append(c_name)
                     else:
                         source[prop] = c_name
-                    if c_args:
+                    # Only manage arguments for check_command
+                    if prop in ['check_command'] and c_args:
                         addprop['%s_args' % prop] = c_args
                         self.output("-> Added %s_args: %s" % (prop, addprop['%s_args' % prop]))
                     if not is_commands_list:
