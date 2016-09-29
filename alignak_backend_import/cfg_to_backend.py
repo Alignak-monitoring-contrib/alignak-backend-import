@@ -23,11 +23,12 @@
 alignak_backend_import command line interface::
 
     Usage:
-        {command} [-h] [-v] [-d] [-m] [-b=url] [-u=username] [-p=password] [<cfg_file>...]
+        {command} [-h] [-v] [-d] [-c] [-m] [-b=url] [-u=username] [-p=password] [<cfg_file>...]
 
     Options:
         -h, --help                  Show this screen.
         -V, --version               Show application version.
+        -c, --check                 Check only (dry run), do not change the backend.
         -b, --backend url           Specify backend URL [default: http://127.0.0.1:5000]
         -d, --delete                Delete existing backend data
         -u, --username username     Backend login username [default: admin]
@@ -67,6 +68,8 @@ alignak_backend_import command line interface::
 """
 from __future__ import print_function
 import re
+import time
+import json
 import traceback
 
 from copy import deepcopy
@@ -129,6 +132,8 @@ class CfgToBackend(object):
         self.inserted = {}
         self.inserted_uuid = {}
 
+        start = time.time()
+
         # Get command line parameters
         args = None
         try:
@@ -152,6 +157,7 @@ class CfgToBackend(object):
         if '<cfg_file>' in args:
             cfg = args['<cfg_file>']
             self.log("Configuration to load: %s" % cfg)
+            print("Importing configuration: %s" % cfg)
         else:
             self.log("No configuration specified")
 
@@ -170,14 +176,20 @@ class CfgToBackend(object):
         self.log("Backend URL: %s" % self.backend_url)
         print("Backend URL: %s" % self.backend_url)
 
+        self.username = args['--username']
+        self.password = args['--password']
+        self.log("Backend login with credentials: %s/%s" % (self.username, self.password))
+
+        # Dry-run mode?
+        self.dry_run = args['--check']
+        self.log("Dry-run mode (check only): %s" % self.dry_run)
+        print("Dry-run mode (check only): %s" % self.dry_run)
+
         # Delete all objects in backend ?
         self.destroy_backend_data = args['--delete']
         self.log("Delete existing backend data: %s" % self.destroy_backend_data)
         print("Delete existing backend data: %s" % self.destroy_backend_data)
 
-        self.username = args['--username']
-        self.password = args['--password']
-        self.log("Backend login with credentials: %s/%s" % (self.username, self.password))
 
         self.models = False
         if '--model' in args:
@@ -191,57 +203,6 @@ class CfgToBackend(object):
             self.gps.coordinates = point
         self.log("Default host location: %s" % self.gps)
         print("Default host location: %s" % self.gps)
-
-        # Authenticate on Backend
-        self.authenticate()
-        # Delete data in backend if asked in arguments
-        self.delete_data()
-
-        # Default realm
-        self.realm_all = ''
-        self.default_realm = ''
-        realms = self.backend.get_all('realm')
-        for r in realms['_items']:
-            if r['name'] == 'All' and r['_level'] == 0:
-                self.inserted['realm'] = {}
-                self.inserted['realm'][r['_id']] = 'All'
-                self.realm_all = r['_id']
-
-        # Default timeperiod
-        self.inserted['timeperiod'] = {}
-        self.al_always = None
-        self.tp_always = None
-        timeperiods = self.backend.get_all('timeperiod')
-        for tp in timeperiods['_items']:
-            if tp['name'] == '24x7':
-                self.inserted['timeperiod'][tp['_id']] = '24x7'
-                self.tp_always = tp['_id']
-
-        self.al_none = None
-        self.al_never = None
-        self.tp_never = None
-        timeperiods = self.backend.get_all('timeperiod')
-        for tp in timeperiods['_items']:
-            if tp['name'] == 'Never':
-                self.inserted['timeperiod'][tp['_id']] = 'Never'
-                self.tp_never = tp['_id']
-
-        # Default user
-        users = self.backend.get_all('user')
-        for u in users['_items']:
-            if u['name'] == 'admin':
-                self.inserted['user'] = {}
-                self.inserted['user'][u['_id']] = 'admin'
-
-        # Default command
-        self.default_command = ''
-        commands = self.backend.get_all('command')
-        for c in commands['_items']:
-            if c['name'] == '_internal_host_up' or c['name'] == '_echo':
-                if 'command' not in self.inserted:
-                    self.inserted['command'] = {}
-                self.inserted['command'][c['_id']] = c['name']
-                self.default_command = r['_id']
 
         # Alignak arbiter configuration
         # - configuration
@@ -275,14 +236,102 @@ class CfgToBackend(object):
             print("Exiting with error code: 3")
             exit(3)
 
-        # Build templates lists from raw objects
-        self.build_templates()
+        end = time.time()
+        print("Elapsed time after Arbiter has loaded the configuration: %s" % (end - start))
 
-        # Rebuild the date ranges in the raw objects (raw objects are modified!)
+        # Authenticate on Backend
+        self.authenticate()
+
+        if self.dry_run:
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                  "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("alignak_backend_import is running in dry-run mode.")
+            print("No data will be modified in the Alignak backend.")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                  "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+        # Default realm
+        self.realm_all = ''
+        self.default_realm = ''
+        realms = self.backend.get_all('realm')
+        for r in realms['_items']:
+            if r['name'] == 'All' and r['_level'] == 0:
+                self.inserted['realm'] = {}
+                self.inserted['realm'][r['_id']] = 'All'
+                self.realm_all = r['_id']
+
+        # Default timeperiods
+        self.inserted['timeperiod'] = {}
+        self.al_always = None
+        self.tp_always = None
+        timeperiods = self.backend.get_all('timeperiod')
+        for tp in timeperiods['_items']:
+            if tp['name'] == '24x7':
+                self.inserted['timeperiod'][tp['_id']] = '24x7'
+                self.tp_always = tp['_id']
+
+        self.al_none = None
+        self.al_never = None
+        self.tp_never = None
+        timeperiods = self.backend.get_all('timeperiod')
+        for tp in timeperiods['_items']:
+            if tp['name'] == 'Never':
+                self.inserted['timeperiod'][tp['_id']] = 'Never'
+                self.tp_never = tp['_id']
+
+        # Default user
+        users = self.backend.get_all('user')
+        for u in users['_items']:
+            if u['name'] == 'admin':
+                self.inserted['user'] = {}
+                self.inserted['user'][u['_id']] = 'admin'
+
+        # Default commands
+        self.default_command = ''
+        commands = self.backend.get_all('command')
+        for c in commands['_items']:
+            if c['name'] == '_internal_host_up' or c['name'] == '_echo':
+                if 'command' not in self.inserted:
+                    self.inserted['command'] = {}
+                self.inserted['command'][c['_id']] = c['name']
+                self.default_command = c['_id']
+
+        # Default dummy host
+        self.dummy_host = ''
+        hosts = self.backend.get_all('host')
+        for h in hosts['_items']:
+            if h['name'] == '_dummy':
+                if 'host' not in self.inserted:
+                    self.inserted['host'] = {}
+                self.inserted['host'][h['_id']] = h['name']
+                self.dummy_host = h['_id']
+
+        # Build templates lists from raw Arbiter objects
+        if self.models:
+            self.build_templates()
+            print("-----")
+            print("Found %d hosts templates" % len(self.hosts_templates))
+            print("Found %d services templates" % len(self.services_templates))
+
+        end = time.time()
+        print("Elapsed time after templates are built: %s" % (end - start))
+
+        # Rebuild the date ranges in the raw Arbiter objects (raw objects are modified!)
         self.recompose_dateranges()
+
+        # Delete data in backend if asked in arguments
+        if self.destroy_backend_data:
+            self.delete_data()
+
+        end = time.time()
+        print("Elapsed time after backend is cleant: %s" % (end - start))
 
         # Import the objects in the backend
         self.import_objects()
+
+        end = time.time()
+        print("Elapsed time after importation: %s" % (end - start))
+
         if self.errors_found:
             print('############################# errors report ##################################')
             for error in self.errors_found:
@@ -319,9 +368,6 @@ class CfgToBackend(object):
 
         :return: None
         """
-        if not self.destroy_backend_data:
-            return
-
         try:
             print("~~~~~~~~~~~~~~~~~~~~~~~~ Deleting existing backend data ~~~~~~~~~~~~~~~~~~~~~~")
             headers = {'Content-Type': 'application/json'}
@@ -449,11 +495,12 @@ class CfgToBackend(object):
         # Fill default values
         self.raw_conf.fill_default()
 
-        # From raw configuration...
+        self.log("*** Parse templates ***")
+
         self.hosts_templates = []
         hosts = getattr(self.raw_conf, 'hosts')
         for tpl_uuid in hosts.templates:
-            print("Host template: %s" % (hosts.templates[tpl_uuid]))
+            self.log("Host template: %s" % (hosts.templates[tpl_uuid]))
             self.hosts_templates.append(hosts.templates[tpl_uuid])
 
         self.services_templates = []
@@ -471,7 +518,7 @@ class CfgToBackend(object):
             # Define a service template for each host
             for host_name in host_names:
                 setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
-                print("Service template: %s" % (services.templates[tpl_uuid]))
+                self.log("Service template with host: %s" % (services.templates[tpl_uuid]))
                 self.services_templates.append(services.templates[tpl_uuid])
 
     def recompose_dateranges(self):
@@ -574,7 +621,7 @@ class CfgToBackend(object):
                     if nw.host_notification_period == self.al_always:
                         addprop['host_notification_period'] = self.tp_always
                     elif nw.host_notification_period == self.al_none:
-                        addprop['host_notification_period'] = self.tp_none
+                        addprop['host_notification_period'] = self.tp_never
                     elif nw.host_notification_period == self.al_never:
                         addprop['host_notification_period'] = self.tp_never
                     else:
@@ -582,7 +629,7 @@ class CfgToBackend(object):
                     if nw.service_notification_period == self.al_always:
                         addprop['service_notification_period'] = self.tp_always
                     elif nw.service_notification_period == self.al_none:
-                        addprop['service_notification_period'] = self.tp_none
+                        addprop['service_notification_period'] = self.tp_never
                     elif nw.service_notification_period == self.al_never:
                         addprop['service_notification_period'] = self.tp_never
                     else:
@@ -598,7 +645,11 @@ class CfgToBackend(object):
 
         # Second iteration after update of notification ways (#19)
         for prop in source:
-            # Unique commands
+            # Unique commands with arguments
+            # Removed the event handlers and snapshot command parameters because of this issue:
+            # https://github.com/Alignak-monitoring-contrib/alignak-backend/issues/119
+            # The backend is not currently managing the parameters of event_handler nor
+            # snapshot_command
             if prop in ['check_command', 'event_handler', 'snapshot_command']:
                 is_commands_list = isinstance(source[prop], list)
 
@@ -1165,8 +1216,7 @@ class CfgToBackend(object):
 
             # Special case of hosts
             if r_name == 'host':
-                # item['freshness_state'] = 'DOWN'
-                if self.models and item_obj.is_tpl():
+                if template and self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     if 'check_command' not in item:
                         item['check_command'] = ''
@@ -1186,7 +1236,6 @@ class CfgToBackend(object):
                     item['location']['coordinates'][0] = float(item['customs']['_LOC_LAT'])
                 if 'customs' in item and '_LOC_LNG' in item['customs']:
                     item['location']['coordinates'][1] = float(item['customs']['_LOC_LNG'])
-                # print("Host location: %s" % item['location'])
 
             # Special case of servicegroups
             if r_name == 'servicegroup':
@@ -1199,7 +1248,7 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
-                if self.models and item_obj.is_tpl():
+                if template and self.models and item_obj.is_tpl():
                     item['_is_template'] = True
                     item['host'] = ''
                     if 'check_command' not in item:
@@ -1301,30 +1350,34 @@ class CfgToBackend(object):
 
             self.log("Creating links with other objects (data_later)")
             for dummy, values in enumerate(data_later):
-                if values['field'] in item and values['type'] == 'simple':
+
+                if values['field'] in item \
+                        and values['type'] == 'simple':
                     if values['now'] and \
                        values['resource'] in self.inserted and \
                        item[values['field']] in self.inserted[values['resource']]:
                         # Link is still existing and should be valid... do nothing, except logging.
                         self.log("***Found: %s = %s" % (values['field'], item[values['field']]))
+
                     elif item[values['field']] in self.inserted[values['resource']].values():
                         index = self.inserted[values['resource']].values().index(
                             item[values['field']]
                         )
                         item[values['field']] = self.inserted[values['resource']].keys()[index]
+
                     elif item[values['field']] in self.inserted_uuid[values['resource']].values():
                         idx = self.inserted_uuid[values['resource']].values().index(
                             item[values['field']]
                         )
                         item[values['field']] = self.inserted_uuid[values['resource']].keys()[idx]
+
                     else:
-                        print("***Not found (1): %s = %s in inserted %ss identifiers nor values" % (
-                            values['field'], item[values['field']], values['resource']
-                        ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
 
-                elif values['field'] in item and values['type'] == 'list' and values['now']:
+                elif values['field'] in item \
+                        and values['type'] == 'list' \
+                        and values['now']:
                     add = True
                     objectsid = []
 
@@ -1356,15 +1409,12 @@ class CfgToBackend(object):
                     if add:
                         item[values['field']] = objectsid
                     else:
-                        print("***Not found (2): %s = %s in inserted %ss identifiers nor values" % (
-                            values['field'], item[values['field']], values['resource']
-                        ))
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
-                elif values['field'] in item and values['type'] == 'list' and not values['now']:
-                    print("***Not found (3): %s = %s in inserted %ss identifiers not values" % (
-                        values['field'], item[values['field']], values['resource']
-                    ))
+
+                elif values['field'] in item \
+                        and values['type'] == 'list' \
+                        and not values['now']:
                     later_tmp[values['field']] = item[values['field']]
                     del item[values['field']]
 
@@ -1372,12 +1422,12 @@ class CfgToBackend(object):
             if r_name == 'hostdependency':
                 if 'name' not in item or not item['name']:
                     host_name = ''
-                    if item['hosts']:
+                    if 'hosts' in item and item['hosts']:
                         host_name = item['hosts'][0]
                         if host_name in self.inserted['host']:
                             host_name = self.inserted['host'][host_name]
                     dependent_host_name = ''
-                    if item['hosts']:
+                    if 'dependent_hosts' in item and item['dependent_hosts']:
                         dependent_host_name = item['dependent_hosts'][0]
                         if dependent_host_name in self.inserted['host']:
                             dependent_host_name = self.inserted['host'][dependent_host_name]
@@ -1386,29 +1436,29 @@ class CfgToBackend(object):
             if r_name == 'servicedependency':
                 if 'name' not in item or not item['name']:
                     host_name = ''
-                    if item['hosts']:
+                    if 'hosts' in item and item['hosts']:
                         host_name = item['hosts'][0]
                         if host_name in self.inserted['host']:
                             host_name = self.inserted['host'][host_name]
                     dependent_host_name = ''
-                    if item['dependent_hosts']:
+                    if 'dependent_hosts' in item and item['dependent_hosts']:
                         dependent_host_name = item['dependent_hosts'][0]
                         if dependent_host_name in self.inserted['host']:
                             dependent_host_name = self.inserted['host'][dependent_host_name]
 
-                    service = ''
-                    if item['services']:
-                        service = item['services'][0]
-                        if service in self.inserted['service']:
-                            service = self.inserted['service'][service]
+                    service_name = ''
+                    if 'services' in item and item['services']:
+                        service_name = item['services'][0]
+                        if service_name in self.inserted['service']:
+                            service_name = self.inserted['service'][service_name]
                     dependent_service = ''
-                    if item['dependent_services']:
+                    if 'dependent_services' in item and item['dependent_services']:
                         dependent_service = item['dependent_services'][0]
                         if dependent_service in self.inserted['service']:
                             dependent_service = self.inserted['service'][dependent_service]
 
                     item['name'] = "%s/%s -> %s/%s" % (
-                        host_name, service, dependent_host_name, dependent_service
+                        host_name, service_name, dependent_host_name, dependent_service
                     )
 
             # Remove unused fields
@@ -1416,7 +1466,7 @@ class CfgToBackend(object):
             # - Shinken template link...
             if 'use' in item:
                 # As of #95 in the alignak-backend, interesting to get used as tags ...
-                if item['use']:
+                if item['use'] and r_name in ['host', 'service', 'contact']:
                     item['tags'] = item['use']
                     print("Set item 'tags' as: %s" % item['tags'])
                 self.log("removed 'use' field from: %s : %s:" % (r_name, item))
@@ -1469,12 +1519,22 @@ class CfgToBackend(object):
                         r_name, item['name'], response['_id'], item_obj.uuid
                     ))
             except BackendException as e:
-                print("# Post error for: %s : %s" % (r_name, item))
+                print("# Post/patch error for: %s : %s" % (r_name, item))
                 print("***** Exception: %s" % str(e))
                 print("***** %s", traceback.format_exc())
                 print("***** response: %s" % e.response)
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 print("Exiting with error code: 5")
+                # Response is formed as a dictionary: {
+                # u'_status': u'ERR',
+                # u'_issues': {
+                #   u'notification_options': u"unallowed values [u'n']"
+                # },
+                # u'_error': {
+                #   u'message': u'Insertion failure: 1 document(s) contain(s) error(s)',
+                #   u'code': 422
+                # }
+                # }
                 exit(5)
             else:
                 self.log("Element insertion response : %s:" % response)
@@ -1521,7 +1581,7 @@ class CfgToBackend(object):
 
     def import_objects(self):
         """
-        Import objects in backend
+        Import objects in the backend
 
         :return: None
         """
@@ -1899,7 +1959,6 @@ class CfgToBackend(object):
             self.manage_resource(
                 'service', data_later, 'service_description', schema, template=True
             )
-            print("~~~~~~~~~~~~~~~~~~~~~~ post service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
@@ -1986,9 +2045,12 @@ def main():
     """
     Main function
     """
+    start = time.time()
+
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("alignak_backend_import, version: %s" % __version__)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
     fill = CfgToBackend()
     if not fill.result:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -2007,6 +2069,9 @@ def main():
         else:
             print(" - no %s(s)" % object_type)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+    end = time.time()
+    print("Global configuration import duration: %s" % (end - start))
 
 if __name__ == "__main__":  # pragma: no cover
     main()
