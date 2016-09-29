@@ -99,6 +99,129 @@ class TestCfgToBackend(unittest2.TestCase):
             self.assertEqual(comm, ref)
         self.assertTrue(found)
 
+    def test_timeperiod_duplicates(self):
+        # Do not allow duplicates ...
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/timeperiods_duplicate.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        # Importation is ok because Alignak filters the duplicated timeperiods
+        self.assertEqual(exit_code, 0)
+
+        # Allow duplicates ... and do not delete the backend data
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                               '--duplicate', 'alignak_cfg_files/timeperiods.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        # The second defined TP is the one that got imported on first importation
+        # The last importation did not imported the only defined TP
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(tps), 1+2)   # Imported TP + 2 default backend created TPs
+        found = False
+        for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u'_sub_realm': True,
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-18:00'}, {u'tuesday': u'09:00-18:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                                   {u'wednesday': u'09:00-18:00'},
+                                   {u'thursday': u'09:00-18:00'}],
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+        self.assertTrue(found)
+
+    def test_timeperiod_update(self):
+        # Delete the backend content and import a TP
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/timeperiods_duplicate.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        # Importation is ok because Alignak filters the duplicated timeperiods
+        self.assertEqual(exit_code, 0)
+
+        # The second defined TP (09:00-18:00) is the one that got imported on first importation
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(tps), 1+2)   # Imported TP + 2 default backend created TPs
+        found = False
+        for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u'_sub_realm': True,
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-18:00'}, {u'tuesday': u'09:00-18:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                                   {u'wednesday': u'09:00-18:00'},
+                                   {u'thursday': u'09:00-18:00'}],
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+        self.assertTrue(found)
+
+        # Update an existing element
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                              '--update', 'alignak_cfg_files/timeperiods.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        # The former existing TP (09:00-18:00) has been updated (09:00-17:00)
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(tps), 1 + 2)  # Imported TP + 2 default backend created TPs
+        found = False
+        for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u'_sub_realm': True,
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                                   {u'wednesday': u'09:00-17:00'},
+                                   {u'thursday': u'09:00-17:00'}],
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+        self.assertTrue(found)
+
     def test_timeperiod_complex(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/timeperiods_complex.cfg'])
@@ -438,7 +561,10 @@ class TestContactsNW(unittest2.TestCase):
                 cmd_nh2 = cmd['_id']
             if cmd['name'] == 'notify-service-by-email':
                 cmd_ns = cmd['_id']
-        self.assertEqual(len(cmds), 3)
+        self.assertGreaterEqual(len(cmds), 3)
+        self.assertIsNotNone(cmd_nh1)
+        self.assertIsNotNone(cmd_nh2)
+        self.assertIsNotNone(cmd_ns)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -490,11 +616,14 @@ class TestContacts(unittest2.TestCase):
         result = self.backend.get('command')
         cmds = result['_items']
         for cmd in cmds:
+            print("Command: %s" % cmd)
             if cmd['name'] == 'notify-host-by-email':
                 cmd_nh1 = cmd['_id']
             if cmd['name'] == 'notify-service-by-email':
                 cmd_ns = cmd['_id']
-        self.assertEqual(len(cmds), 2)
+        self.assertGreaterEqual(len(cmds), 2)
+        self.assertIsNotNone(cmd_nh1)
+        self.assertIsNotNone(cmd_ns)
 
         result = self.backend.get_all('user')
         users = result['_items']
