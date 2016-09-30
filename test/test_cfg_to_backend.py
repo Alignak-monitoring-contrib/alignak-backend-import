@@ -708,8 +708,11 @@ class TestHosts(unittest2.TestCase):
 
         result = self.backend.get('host')
         hosts = result['_items']
-        self.assertEqual(len(hosts), 3)
+        # Backend dummy host + newly created host
+        self.assertEqual(len(hosts), 4)
         for host in hosts:
+            if host['name'] == '_dummy':
+                continue
             # Hosts specific fields
             if host['name'] == 'srv01':
                 self.assertEqual(host['address'], '192.168.1.11')
