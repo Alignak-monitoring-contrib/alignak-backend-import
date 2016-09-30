@@ -138,6 +138,9 @@ class CfgToBackend(object):
         self.inserted_uuid = {}
         self.ignored = {}
 
+        self.hosts_templates = []
+        self.services_templates = []
+
         start = time.time()
 
         # Get command line parameters
@@ -402,75 +405,80 @@ class CfgToBackend(object):
             headers = {'Content-Type': 'application/json'}
             self.output("Deleting realms")
             # Get realms in _level reverse order to be able to delete them ...
-            realms = self.backend.get_all('realm', params={'sort': '-_level'})
+            elements = self.backend.get_all('realm', params={'sort': '-_level'})
             headers = {'Content-Type': 'application/json'}
-            for r in realms['_items']:
-                if r['name'] != 'All':
-                    self.output(" -> deleting realm: %s" % r['name'])
-                    to_del = self.backend.get('realm/' + r['_id'])
-                    if not self.dry_run:
-                        headers['If-Match'] = to_del['_etag']
-                        self.backend.delete('realm/' + to_del['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == 'All':
+                    continue
+                self.output(" -> deleting realm: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('realm/' + element['_id'], headers)
             elements = self.backend.get_all('realm')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting commands")
-            commands = self.backend.get_all('command')
+            elements = self.backend.get_all('command')
             headers = {'Content-Type': 'application/json'}
-            for c in commands['_items']:
-                if c['name'] != '_internal_host_up' and c['name'] != '_echo':
-                    self.output(" -> deleting command: %s" % c['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = c['_etag']
-                        self.backend.delete('command/' + c['_id'], headers)
+            for element in elements['_items']:
+                if element['name'][1] == '_':
+                    continue
+                self.output(" -> deleting command: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('command/' + element['_id'], headers)
             elements = self.backend.get_all('command')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting timeperiods")
-            timeperiods = self.backend.get_all('timeperiod')
+            elements = self.backend.get_all('timeperiod')
             headers = {'Content-Type': 'application/json'}
-            for tp in timeperiods['_items']:
-                if tp['name'] != '24x7' and tp['name'] != 'Never':
-                    self.output(" -> deleting timeperiod: %s" % tp['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = tp['_etag']
-                        self.backend.delete('timeperiod/' + tp['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == '24x7' or element['name'] == 'Never':
+                    continue
+                self.output(" -> deleting timeperiod: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('timeperiod/' + element['_id'], headers)
             elements = self.backend.get_all('timeperiod')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting users")
-            users = self.backend.get_all('user')
+            elements = self.backend.get_all('user')
             headers = {'Content-Type': 'application/json'}
-            for u in users['_items']:
-                if u['name'] != 'admin':
-                    self.output(" -> deleting user: %s" % u['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = u['_etag']
-                        self.backend.delete('user/' + u['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == 'admin':
+                    continue
+                self.output(" -> deleting user: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('user/' + element['_id'], headers)
             elements = self.backend.get_all('user')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting usergroups")
-            usergroups = self.backend.get_all('usergroup')
+            elements = self.backend.get_all('usergroup')
             headers = {'Content-Type': 'application/json'}
-            for ug in usergroups['_items']:
-                if ug['name'] != 'All':
-                    self.output(" -> deleting usergroup: %s" % ug['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = ug['_etag']
-                        self.backend.delete('usergroup/' + ug['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == 'All':
+                    continue
+                self.output(" -> deleting usergroup: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('usergroup/' + element['_id'], headers)
             elements = self.backend.get_all('usergroup')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting hosts")
-            hosts = self.backend.get_all('host')
+            elements = self.backend.get_all('host')
             headers = {'Content-Type': 'application/json'}
-            for h in hosts['_items']:
-                if h['name'] != '_dummy':
-                    self.output(" -> deleting host: %s" % h['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = h['_etag']
-                        self.backend.delete('host/' + h['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == '_dummy':
+                    continue
+                self.output(" -> deleting host: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('host/' + element['_id'], headers)
             elements = self.backend.get_all('host')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
@@ -481,14 +489,15 @@ class CfgToBackend(object):
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting hostgroups")
-            hostgroups = self.backend.get_all('hostgroup')
+            elements = self.backend.get_all('hostgroup')
             headers = {'Content-Type': 'application/json'}
-            for hg in hostgroups['_items']:
-                if hg['name'] != 'All':
-                    self.output(" -> deleting hostgroup: %s" % hg['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = hg['_etag']
-                        self.backend.delete('hostgroup/' + hg['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == 'All':
+                    continue
+                self.output(" -> deleting hostgroup: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('hostgroup/' + element['_id'], headers)
             elements = self.backend.get_all('hostgroup')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
@@ -499,8 +508,15 @@ class CfgToBackend(object):
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting services")
-            if not self.dry_run:
-                self.backend.delete('service', headers)
+            elements = self.backend.get_all('service')
+            headers = {'Content-Type': 'application/json'}
+            for element in elements['_items']:
+                if element['name'] == '_dummy':
+                    continue
+                self.output(" -> deleting service: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('service/' + element['_id'], headers)
             elements = self.backend.get_all('service')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
@@ -511,14 +527,15 @@ class CfgToBackend(object):
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting servicegroups")
-            servicegroups = self.backend.get_all('servicegroup')
+            elements = self.backend.get_all('servicegroup')
             headers = {'Content-Type': 'application/json'}
-            for sg in servicegroups['_items']:
-                if sg['name'] != 'All':
-                    self.output(" -> deleting servicegroup: %s" % sg['name'])
-                    if not self.dry_run:
-                        headers['If-Match'] = sg['_etag']
-                        self.backend.delete('servicegroup/' + sg['_id'], headers)
+            for element in elements['_items']:
+                if element['name'] == 'All':
+                    continue
+                self.output(" -> deleting servicegroup: %s" % element['name'])
+                if not self.dry_run:
+                    headers['If-Match'] = element['_etag']
+                    self.backend.delete('servicegroup/' + element['_id'], headers)
             elements = self.backend.get_all('servicegroup')
             self.output(" -> remaining: %d elements" % len(elements['_items']))
 
@@ -923,6 +940,7 @@ class CfgToBackend(object):
         now: tries to update immediatly or store for a future update (update_later)
 
 
+        :param template:
         :param r_name: resource name
         :type r_name: str
         :param data_later:
