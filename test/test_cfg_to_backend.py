@@ -15,28 +15,30 @@ from alignak_backend_client.client import Backend
 class TestCfgToBackend(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
+        print("start alignak backend")
+
         cls.maxDiff = None
-        # cls.p = subprocess.Popen(['uwsgi', '-w', 'alignakbackend:app', '--socket',
-        # '0.0.0.0:5000', '--protocol=http', '--enable-threads'])
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
             shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME']
-            )
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
-        time.sleep(1)
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
+
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
@@ -45,16 +47,7 @@ class TestCfgToBackend(unittest2.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.backend.delete("user", {})
-        # cls.backend.delete("usergroup", {})
-        # cls.backend.delete("command", {})
-        # cls.backend.delete("timeperiod", {})
-        # cls.backend.delete("host", {})
-        # cls.backend.delete("hostgroup", {})
-        # cls.backend.delete("service", {})
-        # cls.backend.delete("servicegroup", {})
-        # cls.backend.delete("command", {})
-        # cls.backend.delete("livesynthesis", {})
-        cls.p.kill()
+        cls.pid.kill()
 
     @classmethod
     def tearDown(cls):
@@ -525,12 +518,25 @@ class TestCfgToBackend(unittest2.TestCase):
 class TestContactsNW(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        print("start alignak backend")
+
+        cls.maxDiff = None
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -538,11 +544,7 @@ class TestContactsNW(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.p.kill()
-
-    @classmethod
-    def tearDown(cls):
-        print("")
+        cls.pid.kill()
 
     def test_user_notification_ways(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -587,12 +589,25 @@ class TestContactsNW(unittest2.TestCase):
 class TestContacts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        print("start alignak backend")
+
+        cls.maxDiff = None
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -600,11 +615,7 @@ class TestContacts(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.p.kill()
-
-    @classmethod
-    def tearDown(cls):
-        print("")
+        cls.pid.kill()
 
     def test_user_direct_notification(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -647,12 +658,25 @@ class TestContacts(unittest2.TestCase):
 class TestHosts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        print("start alignak backend")
+
+        cls.maxDiff = None
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -660,11 +684,7 @@ class TestHosts(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.p.kill()
-
-    @classmethod
-    def tearDown(cls):
-        print("")
+        cls.pid.kill()
 
     def test_hosts(self):
 
