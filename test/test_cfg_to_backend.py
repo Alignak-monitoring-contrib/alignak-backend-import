@@ -747,7 +747,8 @@ class TestHosts(unittest2.TestCase):
         self.assertEqual(exit_code, 0)
 
         r = self.backend.get('host')
-        self.assertEqual(len(r['_items']), 1)
+        # Backend dummy host + newly created host
+        self.assertEqual(len(r['_items']), 2)
         for comm in r['_items']:
             reg_comm = comm.copy()
 
