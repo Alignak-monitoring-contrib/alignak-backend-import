@@ -237,10 +237,10 @@ class CfgToBackend(object):
         # - analyse=None
         # pylint: disable=too-many-function-args
         try:
-            print("Try new Arbiter signature...")
+            # Try new Arbiter signature...
             self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master', None)
         except Exception as e:
-            print("Try old Arbiter signature... %s" % str(e))
+            # Try old Arbiter signature
             self.arbiter = Arbiter(cfg, False, False, False, False, '', None)
 
         try:
@@ -402,109 +402,137 @@ class CfgToBackend(object):
             headers = {'Content-Type': 'application/json'}
             self.output("Deleting realms")
             # Get realms in _level reverse order to be able to delete them ...
-            realms = self.backend.get('realm', params={'sort': '-_level'})
+            realms = self.backend.get_all('realm', params={'sort': '-_level'})
             headers = {'Content-Type': 'application/json'}
             for r in realms['_items']:
                 if r['name'] != 'All':
-                    self.output("Deleting realm: %s" % r['name'])
+                    self.output(" -> deleting realm: %s" % r['name'])
                     to_del = self.backend.get('realm/' + r['_id'])
                     if not self.dry_run:
                         headers['If-Match'] = to_del['_etag']
                         self.backend.delete('realm/' + to_del['_id'], headers)
+            elements = self.backend.get_all('realm')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting commands")
             commands = self.backend.get_all('command')
             headers = {'Content-Type': 'application/json'}
             for c in commands['_items']:
                 if c['name'] != '_internal_host_up' and c['name'] != '_echo':
-                    self.output("Deleting command: %s" % c['name'])
+                    self.output(" -> deleting command: %s" % c['name'])
                     if not self.dry_run:
                         headers['If-Match'] = c['_etag']
                         self.backend.delete('command/' + c['_id'], headers)
+            elements = self.backend.get_all('command')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting timeperiods")
             timeperiods = self.backend.get_all('timeperiod')
             headers = {'Content-Type': 'application/json'}
             for tp in timeperiods['_items']:
                 if tp['name'] != '24x7' and tp['name'] != 'Never':
-                    self.output("Deleting timeperiod: %s" % tp['name'])
+                    self.output(" -> deleting timeperiod: %s" % tp['name'])
                     if not self.dry_run:
                         headers['If-Match'] = tp['_etag']
                         self.backend.delete('timeperiod/' + tp['_id'], headers)
+            elements = self.backend.get_all('timeperiod')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting users")
             users = self.backend.get_all('user')
             headers = {'Content-Type': 'application/json'}
             for u in users['_items']:
                 if u['name'] != 'admin':
-                    self.output("Deleting user: %s" % u['name'])
+                    self.output(" -> deleting user: %s" % u['name'])
                     if not self.dry_run:
                         headers['If-Match'] = u['_etag']
                         self.backend.delete('user/' + u['_id'], headers)
+            elements = self.backend.get_all('user')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting usergroups")
             usergroups = self.backend.get_all('usergroup')
             headers = {'Content-Type': 'application/json'}
             for ug in usergroups['_items']:
                 if ug['name'] != 'All':
-                    self.output("Deleting usergroup: %s" % ug['name'])
+                    self.output(" -> deleting usergroup: %s" % ug['name'])
                     if not self.dry_run:
                         headers['If-Match'] = ug['_etag']
                         self.backend.delete('usergroup/' + ug['_id'], headers)
+            elements = self.backend.get_all('usergroup')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting hosts")
             hosts = self.backend.get_all('host')
             headers = {'Content-Type': 'application/json'}
             for h in hosts['_items']:
                 if h['name'] != '_dummy':
-                    self.output("Deleting host: %s" % h['name'])
+                    self.output(" -> deleting host: %s" % h['name'])
                     if not self.dry_run:
                         headers['If-Match'] = h['_etag']
                         self.backend.delete('host/' + h['_id'], headers)
+            elements = self.backend.get_all('host')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting hostdependencys")
             if not self.dry_run:
                 self.backend.delete('hostdependency', headers)
+            elements = self.backend.get_all('hostdependency')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting hostgroups")
             hostgroups = self.backend.get_all('hostgroup')
             headers = {'Content-Type': 'application/json'}
             for hg in hostgroups['_items']:
                 if hg['name'] != 'All':
-                    self.output("Deleting hostgroup: %s" % hg['name'])
+                    self.output(" -> deleting hostgroup: %s" % hg['name'])
                     if not self.dry_run:
                         headers['If-Match'] = hg['_etag']
                         self.backend.delete('hostgroup/' + hg['_id'], headers)
+            elements = self.backend.get_all('hostgroup')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting hostescalations")
             if not self.dry_run:
                 self.backend.delete('hostescalation', headers)
+            elements = self.backend.get_all('hostescalation')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting services")
             if not self.dry_run:
                 self.backend.delete('service', headers)
+            elements = self.backend.get_all('service')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting servicedependencys")
             if not self.dry_run:
                 self.backend.delete('servicedependency', headers)
+            elements = self.backend.get_all('servicedependency')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting servicegroups")
             servicegroups = self.backend.get_all('servicegroup')
             headers = {'Content-Type': 'application/json'}
             for sg in servicegroups['_items']:
                 if sg['name'] != 'All':
-                    self.output("Deleting servicegroup: %s" % sg['name'])
+                    self.output(" -> deleting servicegroup: %s" % sg['name'])
                     if not self.dry_run:
                         headers['If-Match'] = sg['_etag']
                         self.backend.delete('servicegroup/' + sg['_id'], headers)
+            elements = self.backend.get_all('servicegroup')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting serviceescalations")
             if not self.dry_run:
                 self.backend.delete('serviceescalation', headers)
+            elements = self.backend.get_all('serviceescalation')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting userrestrictroles")
             if not self.dry_run:
                 self.backend.delete('userrestrictrole', headers)
+            elements = self.backend.get_all('userrestrictrole')
+            self.output(" -> remaining: %d elements" % len(elements['_items']))
 
             self.output("Deleting livesynthesis")
             if not self.dry_run:
