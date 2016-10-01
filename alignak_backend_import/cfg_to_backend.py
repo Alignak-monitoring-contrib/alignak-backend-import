@@ -72,6 +72,7 @@ alignak_backend_import command line interface::
             64 if command line parameters are not used correctly
 """
 from __future__ import print_function
+import os
 import re
 import time
 import json
@@ -143,6 +144,9 @@ class CfgToBackend(object):
 
         start = time.time()
 
+        # Set DB name for tests
+        os.environ['ALIGNAK_BACKEND_IMPORT_RUN'] = '1'
+
         # Get command line parameters
         args = None
         try:
@@ -154,7 +158,7 @@ class CfgToBackend(object):
             )
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 64")
-            exit(64)
+            self.exit(64)
 
         # Verbose
         self.verbose = False
@@ -179,7 +183,7 @@ class CfgToBackend(object):
             print("No configuration specified")
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 2")
-            exit(2)
+            self.exit(2)
 
         if not isinstance(cfg, list):
             cfg = [cfg]
@@ -259,7 +263,7 @@ class CfgToBackend(object):
             print("***** Traceback: %s", traceback.format_exc())
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 3")
-            exit(3)
+            self.exit(3)
 
         end = time.time()
         print("Elapsed time after Arbiter has loaded the configuration: %s" % (end - start))
@@ -276,12 +280,12 @@ class CfgToBackend(object):
                   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         # Default realm
+        self.inserted['realm'] = {}
         self.realm_all = ''
         self.default_realm = ''
         realms = self.backend.get_all('realm')
         for r in realms['_items']:
             if r['name'] == 'All' and r['_level'] == 0:
-                self.inserted['realm'] = {}
                 self.inserted['realm'][r['_id']] = 'All'
                 self.realm_all = r['_id']
 
@@ -305,29 +309,29 @@ class CfgToBackend(object):
                 self.tp_never = tp['_id']
 
         # Default user
+        self.inserted['user'] = {}
         users = self.backend.get_all('user')
         for u in users['_items']:
             if u['name'] == 'admin':
-                self.inserted['user'] = {}
                 self.inserted['user'][u['_id']] = 'admin'
 
         # Default commands
+        self.inserted['command'] = {}
         self.default_command = ''
         commands = self.backend.get_all('command')
         for c in commands['_items']:
-            if c['name'] == '_internal_host_up' or c['name'] == '_echo':
-                if 'command' not in self.inserted:
-                    self.inserted['command'] = {}
+            if c['name'] == '_internal_host_up':
                 self.inserted['command'][c['_id']] = c['name']
                 self.default_command = c['_id']
+            if c['name'] == '_echo':
+                self.inserted['command'][c['_id']] = c['name']
 
         # Default dummy host
+        self.inserted['host'] = {}
         self.dummy_host = ''
         hosts = self.backend.get_all('host')
         for h in hosts['_items']:
             if h['name'] == '_dummy':
-                if 'host' not in self.inserted:
-                    self.inserted['host'] = {}
                 self.inserted['host'][h['_id']] = h['name']
                 self.dummy_host = h['_id']
 
@@ -355,7 +359,7 @@ class CfgToBackend(object):
             self.delete_data()
 
         end = time.time()
-        print("Elapsed time after backend is cleant: %s" % (end - start))
+        print("Elapsed time after backend cleaning: %s" % (end - start))
 
         # Import the objects in the backend
         self.import_objects()
@@ -370,13 +374,25 @@ class CfgToBackend(object):
             print('##############################################################################')
         self.result = len(self.errors_found) == 0
 
+    def exit(self, code):
+        """
+        Exit the script
+        :param code: script exit code
+        :return:
+        """
+
+        # Delete environment variable
+        del os.environ['ALIGNAK_BACKEND_IMPORT_RUN']
+
+        exit(code)
+
     def authenticate(self):
         """
         Login on backend with username and password
 
         :return: None
         """
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Backend authentication ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~ Backend authentication ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         try:
             # Backend authentication with token generation
             # headers = {'Content-Type': 'application/json'}
@@ -390,9 +406,9 @@ class CfgToBackend(object):
             print("Access denied!")
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 2")
-            exit(2)
+            self.exit(2)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     def delete_data(self):
         """
@@ -421,7 +437,7 @@ class CfgToBackend(object):
             elements = self.backend.get_all('command')
             headers = {'Content-Type': 'application/json'}
             for element in elements['_items']:
-                if element['name'][1] == '_':
+                if element['name'].startswith('_'):
                     continue
                 self.output(" -> deleting command: %s" % element['name'])
                 if not self.dry_run:
@@ -573,7 +589,7 @@ class CfgToBackend(object):
             print("***** response: %s" % e.response)
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 5")
-            exit(5)
+            self.exit(5)
 
     def build_templates(self):
         """
@@ -763,7 +779,7 @@ class CfgToBackend(object):
                 if is_commands_list:
                     source[prop] = []
                 for c_id, c_name, c_args in new_commands:
-                    self.output("- new command: %s - %s - %s" % (c_id, c_name, c_args))
+                    self.output("- new command %s: %s - %s - %s" % (prop, c_id, c_name, c_args))
                     if is_commands_list:
                         source[prop].append(c_name)
                     else:
@@ -784,7 +800,7 @@ class CfgToBackend(object):
                 if is_commands_list:
                     source[prop] = []
                 for c_id, c_name, c_args in new_commands:
-                    self.output("- new command: %s - %s - %s" % (c_id, c_name, c_args))
+                    self.output("- new command %s: %s - %s - %s" % (prop, c_id, c_name, c_args))
                     if is_commands_list:
                         source[prop].append(c_name)
                     else:
@@ -914,7 +930,7 @@ class CfgToBackend(object):
                 print("***** response: %s" % e.response)
                 print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
                 print("Exiting with error code: 5")
-                exit(5)
+                self.exit(5)
             else:
                 if '_status' in resp:
                     if resp['_status'] == 'ERR':
@@ -1089,12 +1105,10 @@ class CfgToBackend(object):
                 self.output("Manage template %s: %s (%s)" % (
                     r_name, item_obj.uuid, item_obj.get_name()
                 ))
-                print("Manage template %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
             else:
                 self.output("Manage resource %s: %s (%s)" % (
                     r_name, item_obj.uuid, item_obj.get_name()
                 ))
-                print("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
 
             # Only deal with properties,
             for prop in item_obj.properties.keys():
@@ -1339,6 +1353,7 @@ class CfgToBackend(object):
             # Special case of hosts
             if r_name == 'host':
                 if template and self.models and item_obj.is_tpl():
+                    self.output("Host is a template ...")
                     item['_is_template'] = True
                     if 'check_command' not in item:
                         item['check_command'] = ''
@@ -1491,13 +1506,18 @@ class CfgToBackend(object):
                        values['resource'] in self.inserted and \
                        item[values['field']] in self.inserted[values['resource']]:
                         # Link is still existing and should be valid... do nothing, except logging.
-                        self.log("***Found: %s = %s" % (values['field'], item[values['field']]))
+                        self.log("***Found %s for %s = %s" % (
+                            values['resource'], values['field'], item[values['field']]
+                        ))
 
                     elif item[values['field']] in self.inserted[values['resource']].values():
                         index = self.inserted[values['resource']].values().index(
                             item[values['field']]
                         )
                         item[values['field']] = self.inserted[values['resource']].keys()[index]
+                        self.log("***Found %s for %s = %s" % (
+                            values['resource'], values['field'], item[values['field']]
+                        ))
 
                     elif item[values['field']] in self.inserted_uuid[values['resource']].values():
                         idx = self.inserted_uuid[values['resource']].values().index(
@@ -1508,6 +1528,17 @@ class CfgToBackend(object):
                     else:
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
+
+                    if values['field'] in item:
+                        self.log(
+                            "*** Object found for %s = %s" % (
+                                values['field'], item[values['field']]
+                            )
+                        )
+                    else:
+                        self.output(
+                            "*** Object not found for %s" % values['field']
+                        )
 
                 elif values['field'] in item \
                         and values['type'] == 'list' \
@@ -1542,13 +1573,24 @@ class CfgToBackend(object):
                             add = False
                     if add:
                         item[values['field']] = objectsid
+                        self.log(
+                            "*** Object list found for %s = %s" % (
+                                values['field'], item[values['field']]
+                            )
+                        )
                     else:
                         later_tmp[values['field']] = item[values['field']]
                         del item[values['field']]
+                        self.output(
+                            "*** Object list not found for %s" % values['field']
+                        )
 
                 elif values['field'] in item \
                         and values['type'] == 'list' \
                         and not values['now']:
+                    self.output(
+                        "*** Object list not found: %s" % (values['field'])
+                    )
                     later_tmp[values['field']] = item[values['field']]
                     del item[values['field']]
 
@@ -1597,7 +1639,7 @@ class CfgToBackend(object):
 
             # Remove unused fields
             # ------------------------------------------------------------
-            # - Shinken template link...
+            # - Template link...
             if 'use' in item:
                 # As of #95 in the alignak-backend, interesting to get used as tags ...
                 if item['use'] and r_name in ['host', 'service', 'contact']:
@@ -1629,7 +1671,7 @@ class CfgToBackend(object):
                 self.output(" --> id_name: %s" % (id_name))
                 if id_name not in item and 'name' not in item:
                     self.output(" --> not named item: %s" % (item))
-                    exit(6)
+                    self.exit(6)
                 # if 'name' not in item or not item[id_name]:
                 item['name'] = item[id_name]
                 item.pop(id_name)
@@ -1743,7 +1785,7 @@ class CfgToBackend(object):
                 #   u'code': 422
                 # }
                 # }
-                exit(5)
+                self.exit(5)
             else:
                 self.log("Element insertion response : %s:" % response)
                 if template:
@@ -1788,7 +1830,7 @@ class CfgToBackend(object):
                         print("***** response: %s" % e.response)
                         print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
                         print("Exiting with error code: 5")
-                        exit(5)
+                        self.exit(5)
 
     def import_objects(self):
         """
@@ -1796,7 +1838,7 @@ class CfgToBackend(object):
 
         :return: None
         """
-        print("~~~~~~~~~~~~~~~~~~~~~~ add realm ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add realms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -1805,7 +1847,6 @@ class CfgToBackend(object):
         ]
         schema = realm.get_schema()
         self.manage_resource('realm', data_later, 'realm_name', schema)
-        print("~~~~~~~~~~~~~~~~~~~~~~ post realms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         self.update_later('realm', '_parent')
 
         print("~~~~~~~~~~~~~~~~~~~~~~ add commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -1821,7 +1862,7 @@ class CfgToBackend(object):
         # ------------------------------
         # User part
         # ------------------------------
-        print("~~~~~~~~~~~~~~~~~~~~~~ add user ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add users ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'host_notification_period', 'type': 'simple',
@@ -1843,7 +1884,7 @@ class CfgToBackend(object):
         schema = user.get_schema()
         self.manage_resource('user', data_later, 'name', schema)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add usergroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -1860,14 +1901,13 @@ class CfgToBackend(object):
         ]
         schema = usergroup.get_schema()
         self.manage_resource('usergroup', data_later, 'name', schema)
-        print("~~~~~~~~~~~~~~~~~~~~~~ post usergroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         self.update_later('usergroup', '_parent')
         self.update_later('usergroup', 'usergroups')
 
         # ------------------------------
         # Host part
         # ------------------------------
-        print("~~~~~~~~~~~~~~~~~~~~~~ add host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add hosts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'parents', 'type': 'list',
@@ -1916,11 +1956,10 @@ class CfgToBackend(object):
         ]
         schema = host.get_schema()
         self.manage_resource('host', data_later, 'host_name', schema)
-        print("~~~~~~~~~~~~~~~~~~~~~~ post host ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         self.update_later('host', 'parents')
 
         if self.models:
-            print("~~~~~~~~~~~~~~~~~~~~~~ add host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("~~~~~~~~~~~~~~~~~~~~~~ add host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
                     'field': 'parents', 'type': 'list',
@@ -1974,10 +2013,9 @@ class CfgToBackend(object):
             schema = host.get_schema()
             # Import hosts templates
             self.manage_resource('host', data_later, 'name', schema, template=True)
-            print("~~~~~~~~~~~~~~~~~~~~~~ post host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             self.update_later('host', 'parents')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependencys ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'hosts', 'type': 'list',
@@ -2024,11 +2062,10 @@ class CfgToBackend(object):
         ]
         schema = hostgroup.get_schema()
         self.manage_resource('hostgroup', data_later, 'hostgroup_name', schema)
-        print("~~~~~~~~~~~~~~~~~~~~~~ post hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         self.update_later('hostgroup', '_parent')
         self.update_later('hostgroup', 'hostgroups')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'users', 'type': 'list',
@@ -2045,7 +2082,7 @@ class CfgToBackend(object):
         # ------------------------------
         # Service part
         # ------------------------------
-        print("~~~~~~~~~~~~~~~~~~~~~~ add service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add services ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'host', 'type': 'simple',
@@ -2107,10 +2144,9 @@ class CfgToBackend(object):
         ]
         schema = service.get_schema()
         self.manage_resource('service', data_later, 'service_description', schema)
-        print("~~~~~~~~~~~~~~~~~~~~~~ post service ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
         if self.models:
-            print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             data_later = [
                 {
                     'field': 'host', 'type': 'simple',
@@ -2171,7 +2207,7 @@ class CfgToBackend(object):
                 'service', data_later, 'service_description', schema, template=True
             )
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependency ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependencys ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'hosts', 'type': 'list',
@@ -2205,7 +2241,7 @@ class CfgToBackend(object):
         schema = servicedependency.get_schema()
         self.manage_resource('servicedependency', data_later, 'name', schema)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -2222,11 +2258,10 @@ class CfgToBackend(object):
         ]
         schema = servicegroup.get_schema()
         self.manage_resource('servicegroup', data_later, 'servicegroup_name', schema)
-        print("~~~~~~~~~~~~~~~~~~~~~~ post servicegroup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         self.update_later('servicegroup', '_parent')
         self.update_later('servicegroup', 'servicegroups')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         data_later = [
             {
                 'field': 'users', 'type': 'list',
@@ -2279,7 +2314,7 @@ def main():
         print("alignak_backend_import, some problems were encountered during importation")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("Exiting with error code: 4")
-        exit(4)
+        fill.exit(4)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("alignak_backend_import, inserted elements: ")
     for object_type in sorted(fill.inserted):
