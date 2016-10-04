@@ -15,28 +15,30 @@ from alignak_backend_client.client import Backend
 class TestCfgToBackend(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
+        print("start alignak backend")
+
         cls.maxDiff = None
-        # cls.p = subprocess.Popen(['uwsgi', '-w', 'alignakbackend:app', '--socket',
-        # '0.0.0.0:5000', '--protocol=http', '--enable-threads'])
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
             shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME']
-            )
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
-        time.sleep(1)
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
+
         cls.backend.delete("host", {})
         cls.backend.delete("service", {})
         cls.backend.delete("command", {})
@@ -45,16 +47,7 @@ class TestCfgToBackend(unittest2.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.backend.delete("user", {})
-        # cls.backend.delete("usergroup", {})
-        # cls.backend.delete("command", {})
-        # cls.backend.delete("timeperiod", {})
-        # cls.backend.delete("host", {})
-        # cls.backend.delete("hostgroup", {})
-        # cls.backend.delete("service", {})
-        # cls.backend.delete("servicegroup", {})
-        # cls.backend.delete("command", {})
-        # cls.backend.delete("livesynthesis", {})
-        cls.p.kill()
+        cls.pid.kill()
 
     @classmethod
     def tearDown(cls):
@@ -73,6 +66,129 @@ class TestCfgToBackend(unittest2.TestCase):
         result = self.backend.get('timeperiod')
         tps = result['_items']
         self.assertEqual(len(tps), 1+2)   # Imported TP + 2 default backend created TPs
+        found = False
+        for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u'_sub_realm': True,
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                                   {u'wednesday': u'09:00-17:00'},
+                                   {u'thursday': u'09:00-17:00'}],
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+        self.assertTrue(found)
+
+    def test_timeperiod_duplicates(self):
+        # Do not allow duplicates ...
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/timeperiods_duplicate.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        # Importation is ok because Alignak filters the duplicated timeperiods
+        self.assertEqual(exit_code, 0)
+
+        # Allow duplicates ... and do not delete the backend data
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                               '--duplicate', 'alignak_cfg_files/timeperiods.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        # The second defined TP is the one that got imported on first importation
+        # The last importation did not imported the only defined TP
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(tps), 1+2)   # Imported TP + 2 default backend created TPs
+        found = False
+        for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u'_sub_realm': True,
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-18:00'}, {u'tuesday': u'09:00-18:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                                   {u'wednesday': u'09:00-18:00'},
+                                   {u'thursday': u'09:00-18:00'}],
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+        self.assertTrue(found)
+
+    def test_timeperiod_update(self):
+        # Delete the backend content and import a TP
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/timeperiods_duplicate.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        # Importation is ok because Alignak filters the duplicated timeperiods
+        self.assertEqual(exit_code, 0)
+
+        # The second defined TP (09:00-18:00) is the one that got imported on first importation
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(tps), 1+2)   # Imported TP + 2 default backend created TPs
+        found = False
+        for comm in tps:
+            if comm['name'] != 'workhours':
+                continue
+
+            found = True
+            ref = {u"name": u"workhours",
+                   u"definition_order": 100,
+                   u"notes": u"",
+                   u'_sub_realm': True,
+                   u"alias": u"Normal Work Hours",
+                   u"dateranges": [{u'monday': u'09:00-18:00'}, {u'tuesday': u'09:00-18:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                                   {u'wednesday': u'09:00-18:00'},
+                                   {u'thursday': u'09:00-18:00'}],
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   }
+            del comm['_links']
+            del comm['_id']
+            del comm['_etag']
+            del comm['_created']
+            del comm['_updated']
+            del comm['_realm']
+            self.assertEqual(comm, ref)
+        self.assertTrue(found)
+
+        # Update an existing element
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                              '--update', 'alignak_cfg_files/timeperiods.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        # The former existing TP (09:00-18:00) has been updated (09:00-17:00)
+        result = self.backend.get('timeperiod')
+        tps = result['_items']
+        self.assertEqual(len(tps), 1 + 2)  # Imported TP + 2 default backend created TPs
         found = False
         for comm in tps:
             if comm['name'] != 'workhours':
@@ -402,12 +518,25 @@ class TestCfgToBackend(unittest2.TestCase):
 class TestContactsNW(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        print("start alignak backend")
+
+        cls.maxDiff = None
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -415,11 +544,7 @@ class TestContactsNW(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.p.kill()
-
-    @classmethod
-    def tearDown(cls):
-        print("")
+        cls.pid.kill()
 
     def test_user_notification_ways(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -438,7 +563,10 @@ class TestContactsNW(unittest2.TestCase):
                 cmd_nh2 = cmd['_id']
             if cmd['name'] == 'notify-service-by-email':
                 cmd_ns = cmd['_id']
-        self.assertEqual(len(cmds), 3)
+        self.assertGreaterEqual(len(cmds), 3)
+        self.assertIsNotNone(cmd_nh1)
+        self.assertIsNotNone(cmd_nh2)
+        self.assertIsNotNone(cmd_ns)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -461,12 +589,25 @@ class TestContactsNW(unittest2.TestCase):
 class TestContacts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        print("start alignak backend")
+
+        cls.maxDiff = None
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -474,11 +615,7 @@ class TestContacts(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.p.kill()
-
-    @classmethod
-    def tearDown(cls):
-        print("")
+        cls.pid.kill()
 
     def test_user_direct_notification(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -490,11 +627,14 @@ class TestContacts(unittest2.TestCase):
         result = self.backend.get('command')
         cmds = result['_items']
         for cmd in cmds:
+            print("Command: %s" % cmd)
             if cmd['name'] == 'notify-host-by-email':
                 cmd_nh1 = cmd['_id']
             if cmd['name'] == 'notify-service-by-email':
                 cmd_ns = cmd['_id']
-        self.assertEqual(len(cmds), 2)
+        self.assertGreaterEqual(len(cmds), 2)
+        self.assertIsNotNone(cmd_nh1)
+        self.assertIsNotNone(cmd_ns)
 
         result = self.backend.get_all('user')
         users = result['_items']
@@ -518,12 +658,25 @@ class TestContacts(unittest2.TestCase):
 class TestHosts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Set test mode for alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+        print("start alignak backend")
+
+        cls.maxDiff = None
+
+        # Set DB name for tests
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
-        cls.p = subprocess.Popen(['alignak_backend'])
-        print("Backend PID: %s" % cls.p)
+        # Delete used mongo DBs
+        exit_code = subprocess.call(
+            shlex.split(
+                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+        )
+        assert exit_code == 0
+
+        cls.pid = subprocess.Popen([
+            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
+            '/tmp/uwsgi.pid'
+        ])
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -531,11 +684,7 @@ class TestHosts(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.p.kill()
-
-    @classmethod
-    def tearDown(cls):
-        print("")
+        cls.pid.kill()
 
     def test_hosts(self):
 
@@ -559,8 +708,11 @@ class TestHosts(unittest2.TestCase):
 
         result = self.backend.get('host')
         hosts = result['_items']
-        self.assertEqual(len(hosts), 3)
+        # Backend dummy host + newly created host
+        self.assertEqual(len(hosts), 4)
         for host in hosts:
+            if host['name'] == '_dummy':
+                continue
             # Hosts specific fields
             if host['name'] == 'srv01':
                 self.assertEqual(host['address'], '192.168.1.11')
@@ -598,7 +750,8 @@ class TestHosts(unittest2.TestCase):
         self.assertEqual(exit_code, 0)
 
         r = self.backend.get('host')
-        self.assertEqual(len(r['_items']), 1)
+        # Backend dummy host + newly created host
+        self.assertEqual(len(r['_items']), 2)
         for comm in r['_items']:
             reg_comm = comm.copy()
 
