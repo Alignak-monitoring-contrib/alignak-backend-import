@@ -2348,5 +2348,14 @@ def main():
     end = time.time()
     print("Global configuration import duration: %s" % (end - start))
 
+
+def main_old():
+    """
+    Main function - deprecated script name
+    """
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import is deprecated. Use the new 'alignak-backend-import' script.")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
 if __name__ == "__main__":  # pragma: no cover
     main()
