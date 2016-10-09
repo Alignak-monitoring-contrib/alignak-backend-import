@@ -245,14 +245,16 @@ class CfgToBackend(object):
         # pylint: disable=too-many-function-args
         try:
             # Try new Arbiter signature...
-            self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master', None)
+            self.arbiter = Arbiter(None, cfg,
+                                   False, False, False, False, '', 'arbiter-master', None)
         except Exception as e:
             # Try old Arbiter signature
-            self.arbiter = Arbiter(cfg, False, False, False, False, '', None)
+            self.arbiter = Arbiter(None, cfg,
+                                   False, False, False, False, '', None)
 
         try:
             # Get flat files configuration
-            self.arbiter.load_config_file()
+            self.arbiter.load_monitoring_config_file()
 
             # Raw configuration
             self.raw_conf = Config()
