@@ -46,8 +46,15 @@ class TestCfgToBackend(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.backend.delete("user", {})
-        cls.pid.kill()
+        """
+        Stop alignak backend
+
+        :return: None
+        """
+        cls.backend.delete("host", {})
+
+        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
+        time.sleep(2)
 
     @classmethod
     def tearDown(cls):
@@ -544,7 +551,13 @@ class TestContactsNW(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.pid.kill()
+        """
+        Stop alignak backend
+
+        :return: None
+        """
+        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
+        time.sleep(2)
 
     def test_user_notification_ways(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -615,7 +628,13 @@ class TestContacts(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.pid.kill()
+        """
+        Stop alignak backend
+
+        :return: None
+        """
+        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
+        time.sleep(2)
 
     def test_user_direct_notification(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
@@ -684,7 +703,13 @@ class TestHosts(unittest2.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.pid.kill()
+        """
+        Stop alignak backend
+
+        :return: None
+        """
+        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
+        time.sleep(2)
 
     def test_hosts(self):
 

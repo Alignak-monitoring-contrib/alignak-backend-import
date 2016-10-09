@@ -234,7 +234,8 @@ class CfgToBackend(object):
         print("Default host location: %s" % self.gps)
 
         # Alignak arbiter configuration
-        # - configuration
+        # - daemon configuration file
+        # - monitoring configuration files list
         # - is_daemon
         # - do_replace
         # - verify_only
@@ -243,27 +244,45 @@ class CfgToBackend(object):
         # - config_name (new from 2016-08-06)
         # - analyse=None
         # pylint: disable=too-many-function-args
+        self.raw_conf = None
         try:
             # Try new Arbiter signature...
-            self.arbiter = Arbiter(cfg, False, False, False, False, '', 'arbiter-master', None)
-        except Exception as e:
-            # Try old Arbiter signature
-            self.arbiter = Arbiter(cfg, False, False, False, False, '', None)
+            self.arbiter = Arbiter(None, cfg,
+                                   False, False, False, False, '', 'arbiter-master', None)
 
-        try:
+            # Configure the logger
+            self.arbiter.setup_alignak_logger()
+
             # Get flat files configuration
-            self.arbiter.load_config_file()
+            self.arbiter.load_monitoring_config_file()
 
             # Raw configuration
             self.raw_conf = Config()
             buf = self.raw_conf.read_config(cfg)
             self.raw_objects = self.raw_conf.read_config_buf(buf)
         except Exception as e:
-            print("Configuration loading exception: %s" % str(e))
-            print("***** Traceback: %s", traceback.format_exc())
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("Exiting with error code: 3")
-            self.exit(3)
+            # Try old Arbiter signature
+            self.arbiter = Arbiter(cfg,
+                                   False, False, False, False, '', 'arbiter-master', None)
+
+        if not self.raw_conf:
+            try:
+                # Configure the logger
+                self.arbiter.setup_alignak_logger()
+
+                # Get flat files configuration
+                self.arbiter.load_config_file()
+
+                # Raw configuration
+                self.raw_conf = Config()
+                buf = self.raw_conf.read_config(cfg)
+                self.raw_objects = self.raw_conf.read_config_buf(buf)
+            except Exception as e:
+                print("Configuration loading exception: %s" % str(e))
+                print("***** Traceback: %s", traceback.format_exc())
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("Exiting with error code: 3")
+                self.exit(3)
 
         end = time.time()
         print("Elapsed time after Arbiter has loaded the configuration: %s" % (end - start))
@@ -2341,6 +2360,15 @@ def main():
 
     end = time.time()
     print("Global configuration import duration: %s" % (end - start))
+
+
+def main_old():
+    """
+    Main function - deprecated script name
+    """
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("alignak_backend_import is deprecated. Use the new 'alignak-backend-import' script.")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 if __name__ == "__main__":  # pragma: no cover
     main()

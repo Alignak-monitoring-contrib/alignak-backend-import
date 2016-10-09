@@ -40,20 +40,35 @@ class TestCfgToBackend(unittest2.TestCase):
     @classmethod
     def tearDownClass(cls):
         """
-        Kill uwsgi
+        Stop alignak backend
 
         :return: None
         """
         subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
         time.sleep(2)
 
-    def testImport1(self):
+    def testImportShinken1(self):
         """
-        Import configuration with backend deletion
+        Import a complete shinken configuration
         :return:
         """
         print ("Feeding backend...")
         exit_code = subprocess.call(
-            shlex.split('alignak_backend_import --delete shinken_cfg_files/default/_main.cfg')
+            shlex.split('alignak_backend_import '
+                        '--delete shinken_cfg_files/default/_main.cfg')
+        )
+        assert exit_code == 0
+
+    def testImportAlignak1(self):
+        """
+        Import the alignak demo server configuration (updated after log + arbiter interface
+        modification)
+
+        :return:
+        """
+        print ("Feeding backend...")
+        exit_code = subprocess.call(
+            shlex.split('alignak_backend_import '
+                        '--delete alignak_cfg_files/alignak_most_recent/alignak.backend-import.cfg')
         )
         assert exit_code == 0
