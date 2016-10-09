@@ -250,8 +250,8 @@ class CfgToBackend(object):
                                    False, False, False, False, '', 'arbiter-master', None)
         except Exception as e:
             # Try old Arbiter signature
-            self.arbiter = Arbiter(None, cfg,
-                                   False, False, False, False, False, '', None)
+            self.arbiter = Arbiter(cfg,
+                                   False, False, False, False, '', 'arbiter-master', None)
 
         try:
             # Configure the logger
