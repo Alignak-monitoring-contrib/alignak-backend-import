@@ -234,7 +234,8 @@ class CfgToBackend(object):
         print("Default host location: %s" % self.gps)
 
         # Alignak arbiter configuration
-        # - configuration
+        # - daemon configuration file
+        # - monitoring configuration files list
         # - is_daemon
         # - do_replace
         # - verify_only
@@ -250,9 +251,12 @@ class CfgToBackend(object):
         except Exception as e:
             # Try old Arbiter signature
             self.arbiter = Arbiter(None, cfg,
-                                   False, False, False, False, '', None)
+                                   False, False, False, False, False, '', None)
 
         try:
+            # Configure the logger
+            self.arbiter.setup_alignak_logger()
+
             # Get flat files configuration
             self.arbiter.load_monitoring_config_file()
 
