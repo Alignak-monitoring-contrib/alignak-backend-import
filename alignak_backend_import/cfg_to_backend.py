@@ -2369,6 +2369,7 @@ def main_old():
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("alignak_backend_import is deprecated. Use the new 'alignak-backend-import' script.")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    exit(1)
 
 if __name__ == "__main__":  # pragma: no cover
     main()
