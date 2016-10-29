@@ -138,6 +138,7 @@ class CfgToBackend(object):
         self.inserted = {}
         self.inserted_uuid = {}
         self.ignored = {}
+        self.updated = {}
 
         self.hosts_templates = []
         self.services_templates = []
@@ -1751,26 +1752,34 @@ class CfgToBackend(object):
                         })}
                     response = self.backend.get(r_name, params=params)
                     if len(response['_items']) > 0:
-                        exist = response['_items'][0]
+                        response = response['_items'][0]
 
                         # Exists in the backend, we can update...
                         if not self.dry_run:
                             headers = {
                                 'Content-Type': 'application/json',
-                                'If-Match': exist['_etag']
+                                'If-Match': response['_etag']
                             }
                             self.backend.patch(
-                                r_name + '/' + exist['_id'], item,
+                                r_name + '/' + response['_id'], item,
                                 headers=headers, inception=True
                             )
                         self.output("Updated %s: %s" % (r_name, item['name']))
 
+                        # Add to updated list
+                        if r_name not in self.updated:
+                            self.updated[r_name] = {}
+                        self.updated[r_name][item['name']] = item
+
                         # Make it as inserted for further search...
                         if template:
-                            self.inserted['%s_template' % r_name][exist['_id']] = item['name']
+                            self.inserted['%s_template' % r_name][response['_id']] = item['name']
                         self.inserted[r_name][exist['_id']] = item['name']
-                        self.inserted_uuid[r_name][exist['_id']] = item_obj.uuid
+                        self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
                         continue
+                    else:
+                        self.output("-> %s not existing, cannot be updated: %s" % (r_name, item['name']))
+                        response = None
                 else:
                     # With headers=None, the post method manages correctly the posted data ...
                     if not self.dry_run:
@@ -1806,6 +1815,8 @@ class CfgToBackend(object):
                 # }
                 self.exit(5)
             else:
+                if not response:
+                    continue
                 self.log("Element insertion response : %s:" % response)
                 if template:
                     self.inserted['%s_template' % r_name][response['_id']] = item['name']
@@ -2323,40 +2334,68 @@ def main():
     """
     start = time.time()
 
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("alignak_backend_import, version: %s" % __version__)
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     fill = CfgToBackend()
     if not fill.result:
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("alignak_backend_import, some problems were encountered during importation")
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("Exiting with error code: 4")
         fill.exit(4)
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("alignak_backend_import, inserted elements: ")
-    for object_type in sorted(fill.inserted):
-        count = len(fill.inserted[object_type])
-        if '%s_template' % object_type in fill.inserted:
-            count = count - len(fill.inserted['%s_template' % object_type])
-        if count:
-            print(" - %s %s(s)" % (count, object_type))
-        else:
-            print(" - no %s(s)" % object_type)
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("alignak_backend_import, ignored elements: ")
-    for object_type in sorted(fill.ignored):
-        count = len(fill.ignored[object_type])
-        if '%s_template' % object_type in fill.ignored:
-            count = count - len(fill.ignored['%s_template' % object_type])
-        if count:
-            print(" - %s %s(s)" % (count, object_type))
-        else:
-            print(" - no %s(s)" % object_type)
-        for elt in sorted(fill.ignored[object_type]):
-            print("   %s: %s" % (object_type, fill.ignored[object_type][elt]))
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    if len(fill.inserted):
+        print("alignak_backend_import, inserted elements: ")
+        for object_type in sorted(fill.inserted):
+            count = len(fill.inserted[object_type])
+            if '%s_template' % object_type in fill.inserted:
+                count = count - len(fill.inserted['%s_template' % object_type])
+            if count:
+                print(" - %s %s(s)" % (count, object_type))
+            else:
+                print(" - no %s(s)" % object_type)
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    if len(fill.ignored):
+        print("alignak_backend_import, ignored elements: ")
+        for object_type in sorted(fill.ignored):
+            count = len(fill.ignored[object_type])
+            if '%s_template' % object_type in fill.ignored:
+                count = count - len(fill.ignored['%s_template' % object_type])
+            if count:
+                print(" - %s %s(s)" % (count, object_type))
+            else:
+                print(" - no %s(s)" % object_type)
+            for elt in sorted(fill.ignored[object_type]):
+                print("   %s: %s" % (object_type, fill.ignored[object_type][elt]))
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    if len(fill.updated):
+        print("alignak_backend_import, updated elements: ")
+        for object_type in sorted(fill.updated):
+            count = len(fill.updated[object_type])
+            if '%s_template' % object_type in fill.updated:
+                count = count - len(fill.updated['%s_template' % object_type])
+            if count:
+                print(" - %s %s(s)" % (count, object_type))
+            else:
+                print(" - no %s(s)" % object_type)
+            for elt in sorted(fill.updated[object_type]):
+                print("   %s: %s" % (object_type, fill.updated[object_type][elt]))
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    else:
+        if fill.update_backend_data:
+            print("alignak_backend_import, no elements were updated.")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                  "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     end = time.time()
     print("Global configuration import duration: %s" % (end - start))
