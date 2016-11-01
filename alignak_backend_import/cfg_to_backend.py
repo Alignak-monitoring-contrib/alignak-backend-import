@@ -1774,7 +1774,7 @@ class CfgToBackend(object):
                         # Make it as inserted for further search...
                         if template:
                             self.inserted['%s_template' % r_name][response['_id']] = item['name']
-                        self.inserted[r_name][exist['_id']] = item['name']
+                        self.inserted[r_name][response['_id']] = item['name']
                         self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
                         continue
                     else:
