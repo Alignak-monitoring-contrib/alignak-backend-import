@@ -591,13 +591,6 @@ class CfgToBackend(object):
             if not self.dry_run:
                 self.backend.delete('livesynthesis', headers)
 
-            self.output("Deleting hosts retention data")
-            if not self.dry_run:
-                self.backend.delete('hostretention', headers)
-            self.output("Deleting services retention data")
-            if not self.dry_run:
-                self.backend.delete('serviceretention', headers)
-
             self.output("Deleting actions acknowledge")
             if not self.dry_run:
                 self.backend.delete('actionacknowledge', headers)
@@ -617,6 +610,20 @@ class CfgToBackend(object):
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 5")
             self.exit(5)
+
+        try:
+            self.output("Deleting hosts retention data")
+            if not self.dry_run:
+                self.backend.delete('hostretention', headers)
+        except BackendException as e:
+            print("Host retention not present")
+
+        try:
+            self.output("Deleting services retention data")
+            if not self.dry_run:
+                self.backend.delete('serviceretention', headers)
+        except BackendException as e:
+            print("Service retention not present")
 
     def build_templates(self):
         """
