@@ -591,6 +591,13 @@ class CfgToBackend(object):
             if not self.dry_run:
                 self.backend.delete('livesynthesis', headers)
 
+            self.output("Deleting hosts retention data")
+            if not self.dry_run:
+                self.backend.delete('hostretention', headers)
+            self.output("Deleting services retention data")
+            if not self.dry_run:
+                self.backend.delete('serviceretention', headers)
+
             self.output("Deleting actions acknowledge")
             if not self.dry_run:
                 self.backend.delete('actionacknowledge', headers)
