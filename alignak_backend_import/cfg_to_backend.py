@@ -82,11 +82,6 @@ from copy import deepcopy
 
 from logging import getLogger, INFO
 
-from docopt import docopt
-from docopt import DocoptExit
-
-from future.utils import iteritems
-
 try:
     from alignak.daemons.arbiterdaemon import Arbiter
     from alignak.commandcall import CommandCall
@@ -98,10 +93,6 @@ except ImportError:
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Exiting with error code: 1")
     exit(1)
-
-from alignak_backend_client.client import Backend, BackendException
-
-from alignak_backend_import import __version__
 
 from alignak_backend.models import realm
 from alignak_backend.models import command
@@ -117,6 +108,15 @@ from alignak_backend.models import serviceescalation
 from alignak_backend.models import user
 from alignak_backend.models import usergroup
 from alignak_backend.models import userrestrictrole
+
+from alignak_backend_import import __version__
+
+from alignak_backend_client.client import Backend, BackendException
+
+from future.utils import iteritems
+
+from docopt import docopt
+from docopt import DocoptExit
 
 loggerClient = getLogger('alignak_backend_client.client')
 loggerClient.setLevel(INFO)
@@ -643,7 +643,7 @@ class CfgToBackend(object):
         for tpl_uuid in services.templates:
             host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
             if not host_name:
-                # Todo: no more need for dummy host
+                # Todo: no more need for dummy host
                 # Use the backend default dummy host
                 # setattr(services.templates[tpl_uuid], 'host_name', self.dummy_host)
                 self.log(
@@ -679,7 +679,7 @@ class CfgToBackend(object):
                         break
                 self.log(" -> linked host: %s" % (linked_host))
                 services.templates[tpl_uuid].linked_hosts_templates = \
-                    set (services.templates[tpl_uuid].linked_hosts_templates)
+                    set(services.templates[tpl_uuid].linked_hosts_templates)
                 setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
                 self.services_templates.append(services.templates[tpl_uuid])
 
@@ -1801,7 +1801,8 @@ class CfgToBackend(object):
                         self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
                         continue
                     else:
-                        self.output("-> %s not existing, cannot be updated: %s" % (r_name, item['name']))
+                        self.output("-> %s not existing, cannot be updated: %s" %
+                                    (r_name, item['name']))
                         response = None
                 else:
                     # With headers=None, the post method manages correctly the posted data ...
