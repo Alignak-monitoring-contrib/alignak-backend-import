@@ -54,7 +54,7 @@ class TestCfgToBackend(unittest2.TestCase):
         """
         print ("Feeding backend...")
         exit_code = subprocess.call(
-            shlex.split('alignak_backend_import '
+            shlex.split('alignak-backend-import '
                         '--delete shinken_cfg_files/default/_main.cfg')
         )
         assert exit_code == 0
@@ -68,7 +68,7 @@ class TestCfgToBackend(unittest2.TestCase):
         """
         print ("Feeding backend...")
         exit_code = subprocess.call(
-            shlex.split('alignak_backend_import '
+            shlex.split('alignak-backend-import '
                         '--delete alignak_cfg_files/alignak_most_recent/alignak.backend-import.cfg')
         )
         assert exit_code == 0

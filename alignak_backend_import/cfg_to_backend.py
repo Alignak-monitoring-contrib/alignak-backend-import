@@ -678,8 +678,9 @@ class CfgToBackend(object):
                         services.templates[tpl_uuid].linked_hosts_templates.append(host_name)
                         break
                 self.log(" -> linked host: %s" % (linked_host))
-                services.templates[tpl_uuid].linked_hosts_templates = \
-                    set(services.templates[tpl_uuid].linked_hosts_templates)
+                if hasattr(services.templates[tpl_uuid], 'linked_hosts_templates'):
+                    services.templates[tpl_uuid].linked_hosts_templates = \
+                        set(services.templates[tpl_uuid].linked_hosts_templates)
                 setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
                 self.services_templates.append(services.templates[tpl_uuid])
 
