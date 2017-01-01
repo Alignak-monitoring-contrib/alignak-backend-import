@@ -611,6 +611,20 @@ class CfgToBackend(object):
             print("Exiting with error code: 5")
             self.exit(5)
 
+        try:
+            self.output("Deleting hosts retention data")
+            if not self.dry_run:
+                self.backend.delete('hostretention', headers)
+        except BackendException as e:
+            print("Host retention not present")
+
+        try:
+            self.output("Deleting services retention data")
+            if not self.dry_run:
+                self.backend.delete('serviceretention', headers)
+        except BackendException as e:
+            print("Service retention not present")
+
     def build_templates(self):
         """
         Get the templates from the raw objects and build templates lists
