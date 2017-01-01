@@ -734,7 +734,7 @@ class TestHosts(unittest2.TestCase):
         result = self.backend.get('host')
         hosts = result['_items']
         # Backend dummy host + newly created host
-        self.assertEqual(len(hosts), 3)
+        self.assertEqual(len(hosts), 4)
         for host in hosts:
             if host['name'] == '_dummy':
                 continue
@@ -776,8 +776,7 @@ class TestHosts(unittest2.TestCase):
 
         r = self.backend.get('host')
         # Backend dummy host + newly created host
-        print(r['_items'])
-        self.assertEqual(len(r['_items']), 1)
+        self.assertEqual(len(r['_items']), 2)
         for comm in r['_items']:
             reg_comm = comm.copy()
 

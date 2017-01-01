@@ -1447,9 +1447,9 @@ class CfgToBackend(object):
                             item[id_name], item['servicegroups']
                         ))
                     item.pop('servicegroups')
-                if 'trigger_name' in item:
-                    item['trigger'] = item['trigger_name']
-                    item.pop('trigger_name')
+                # if 'trigger_name' in item:
+                #     item['trigger'] = item['trigger_name']
+                #     item.pop('trigger_name')
                 if 'merge_host_contacts' in item:
                     item.pop('merge_host_contacts')
 
