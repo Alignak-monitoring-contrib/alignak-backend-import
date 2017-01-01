@@ -611,6 +611,20 @@ class CfgToBackend(object):
             print("Exiting with error code: 5")
             self.exit(5)
 
+        try:
+            self.output("Deleting hosts retention data")
+            if not self.dry_run:
+                self.backend.delete('hostretention', headers)
+        except BackendException as e:
+            print("Host retention not present")
+
+        try:
+            self.output("Deleting services retention data")
+            if not self.dry_run:
+                self.backend.delete('serviceretention', headers)
+        except BackendException as e:
+            print("Service retention not present")
+
     def build_templates(self):
         """
         Get the templates from the raw objects and build templates lists
@@ -678,8 +692,9 @@ class CfgToBackend(object):
                         services.templates[tpl_uuid].linked_hosts_templates.append(host_name)
                         break
                 self.log(" -> linked host: %s" % (linked_host))
-                services.templates[tpl_uuid].linked_hosts_templates = \
-                    set(services.templates[tpl_uuid].linked_hosts_templates)
+                if hasattr(services.templates[tpl_uuid], 'linked_hosts_templates'):
+                    services.templates[tpl_uuid].linked_hosts_templates = \
+                        set(services.templates[tpl_uuid].linked_hosts_templates)
                 setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
                 self.services_templates.append(services.templates[tpl_uuid])
 
