@@ -1420,9 +1420,9 @@ class CfgToBackend(object):
                     if item['hostgroups']:
                         self.output(" --> remove hostgroups relation: %s" % (item['hostgroups']))
                     item.pop('hostgroups')
-                if 'trigger_name' in item:
-                    item['trigger'] = item['trigger_name']
-                    item.pop('trigger_name')
+                # if 'trigger_name' in item:
+                #     item['trigger'] = item['trigger_name']
+                #     item.pop('trigger_name')
 
                 # Define location as default: France circle center ;))
                 item['location'] = deepcopy(self.gps)
@@ -1462,9 +1462,9 @@ class CfgToBackend(object):
                             item[id_name], item['servicegroups']
                         ))
                     item.pop('servicegroups')
-                if 'trigger_name' in item:
-                    item['trigger'] = item['trigger_name']
-                    item.pop('trigger_name')
+                # if 'trigger_name' in item:
+                #     item['trigger'] = item['trigger_name']
+                #     item.pop('trigger_name')
                 if 'merge_host_contacts' in item:
                     item.pop('merge_host_contacts')
 
