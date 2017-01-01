@@ -39,15 +39,11 @@ if python_version < (2, 7):
 elif python_version >= (3,):
     sys.exit("This application is not yet compatible with Python 3.x, sorry!")
 
-from alignak_backend_import import __application__, __version__, __author__, __copyright__
-from alignak_backend_import import __releasenotes__, __license__, __doc_url__
+from alignak_backend_import import __application__, __version__, __author__, __author_email__
+from alignak_backend_import import  __copyright__, __releasenotes__, __license__, __doc_url__
 from alignak_backend_import import __name__ as __pkg_name__
 
 package = import_module('alignak_backend_import')
-
-install_requires = [
-    'docopt', 'future'
-]
 
 # Define paths
 if 'linux' in sys.platform or 'sunos5' in sys.platform:
@@ -81,9 +77,9 @@ setup(
     license=__license__,
 
     # metadata for upload to PyPI
-    author="Frédéric MOHIER",
-    author_email="frederic.mohier@gmail.com",
-    keywords="alignak REST backend tool",
+    author=__author__,
+    author_email=__author_email__,
+    keywords="alignak REST backend import tool",
     url="https://github.com/Alignak-monitoring-contrib/alignak-webui",
     description=package.__doc__.strip(),
     long_description=open('README.rst').read(),
@@ -92,12 +88,10 @@ setup(
 
     packages=find_packages(),
     include_package_data=True,
-    # package_data={
-        # 'sample': ['package_data.dat'],
-    # },
-    # data_files = [(paths['etc'], ['etc/settings.cfg'])],
 
-    install_requires=install_requires,
+    install_requires=[
+        'docopt', 'future'
+    ],
 
     entry_points={
         'console_scripts': [
@@ -107,7 +101,7 @@ setup(
     },
 
     classifiers = [
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',

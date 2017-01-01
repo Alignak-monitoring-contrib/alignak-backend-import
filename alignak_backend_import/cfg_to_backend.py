@@ -82,11 +82,6 @@ from copy import deepcopy
 
 from logging import getLogger, INFO
 
-from docopt import docopt
-from docopt import DocoptExit
-
-from future.utils import iteritems
-
 try:
     from alignak.daemons.arbiterdaemon import Arbiter
     from alignak.commandcall import CommandCall
@@ -98,10 +93,6 @@ except ImportError:
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Exiting with error code: 1")
     exit(1)
-
-from alignak_backend_client.client import Backend, BackendException
-
-from alignak_backend_import import __version__
 
 from alignak_backend.models import realm
 from alignak_backend.models import command
@@ -117,6 +108,15 @@ from alignak_backend.models import serviceescalation
 from alignak_backend.models import user
 from alignak_backend.models import usergroup
 from alignak_backend.models import userrestrictrole
+
+from alignak_backend_import import __version__
+
+from alignak_backend_client.client import Backend, BackendException
+
+from future.utils import iteritems
+
+from docopt import docopt
+from docopt import DocoptExit
 
 loggerClient = getLogger('alignak_backend_client.client')
 loggerClient.setLevel(INFO)
@@ -343,7 +343,7 @@ class CfgToBackend(object):
             if c['name'] == '_internal_host_up':
                 self.inserted['command'][c['_id']] = c['name']
                 self.default_command = c['_id']
-            if c['name'] == '_echo':
+            if c['name'].startswith('_'):
                 self.inserted['command'][c['_id']] = c['name']
 
         # Default dummy host
@@ -655,28 +655,50 @@ class CfgToBackend(object):
         self.services_templates = []
         services = getattr(self.raw_conf, 'services')
         for tpl_uuid in services.templates:
-            # Only the one with declared host_name...
             host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
             if not host_name:
+                # Todo: no more need for dummy host
                 # Use the backend default dummy host
-                setattr(services.templates[tpl_uuid], 'host_name', self.dummy_host)
+                # setattr(services.templates[tpl_uuid], 'host_name', self.dummy_host)
                 self.log(
                     "Service template with no host: %s" % (services.templates[tpl_uuid])
                 )
                 self.services_templates.append(services.templates[tpl_uuid])
                 continue
 
+            # Only the service templates that are declared host_name... service template
+            # that may be related to an host template
             # Several host templates can be specified as a comma separated list...
             if ',' in host_name:
                 host_names = host_name.split(',')
             else:
                 host_names = [host_name]
-            # Define a service template for each host
+            # Define a service template for each host and define a link from the service
+            # template to the corresponding host template
             for host_name in host_names:
-                setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
                 self.log("Service template with host: %s" % (services.templates[tpl_uuid]))
+                linked_host = None
+                for host_template in self.hosts_templates:
+                    if host_name == host_template.get_name():
+                        self.log(" -> found host: %s" % (host_name))
+                        linked_host = host_template
+                        if not hasattr(host_template, 'linked_services_templates'):
+                            setattr(host_template, 'linked_services_templates', [tpl_uuid])
+                        host_template.linked_services_templates.append(tpl_uuid)
+                        if not hasattr(services.templates[tpl_uuid], 'linked_hosts_templates'):
+                            setattr(services.templates[tpl_uuid],
+                                    'linked_hosts_templates',
+                                    [host_name])
+                        services.templates[tpl_uuid].linked_hosts_templates.append(host_name)
+                        break
+                self.log(" -> linked host: %s" % (linked_host))
+                if hasattr(services.templates[tpl_uuid], 'linked_hosts_templates'):
+                    services.templates[tpl_uuid].linked_hosts_templates = \
+                        set(services.templates[tpl_uuid].linked_hosts_templates)
+                setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
                 self.services_templates.append(services.templates[tpl_uuid])
 
+        # exit(12)
     def recompose_dateranges(self):
         """
         For each timeperiod, recompose daterange in backend format
@@ -1202,7 +1224,8 @@ class CfgToBackend(object):
                 continue
 
             #  - specific commands
-            if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up', '_echo']:
+            if r_name == 'command' and item[id_name] in ['bp_rule', '_internal_host_up',
+                                                         '_echo', '_set_state']:
                 self.output("-> do not import this command.")
                 continue
 
@@ -1422,12 +1445,15 @@ class CfgToBackend(object):
                 if template and self.models and item_obj.is_tpl():
                     self.output("Service is a template ...")
                     item['_is_template'] = True
-                    item['host'] = ''
                     if 'check_command' not in item:
                         item['check_command'] = ''
                     if 'service_description' not in item:
                         self.output("Set service_description as name...")
                         item['service_description'] = item['name']
+                    if getattr(item_obj, 'linked_hosts_templates', []):
+                        self.output("This service template is linked to hosts templates: %s" %
+                                    getattr(item_obj, 'linked_hosts_templates', None))
+                    item['host'] = getattr(item_obj, 'linked_hosts_templates', '')
 
                 if 'servicegroups' in item:
                     # Remove servicegroups relations ... still useful?
@@ -1698,8 +1724,6 @@ class CfgToBackend(object):
             # - 'imported_from' with this script ...
             item['imported_from'] = 'alignak_backend_import'
 
-            # item['_id']       auto generated by the backend
-
             # item['name']      ok
             if id_name != 'name':
                 self.output(" --> id_name: %s" % (id_name))
@@ -1792,7 +1816,8 @@ class CfgToBackend(object):
                         self.inserted_uuid[r_name][response['_id']] = item_obj.uuid
                         continue
                     else:
-                        self.output("-> %s not existing, cannot be updated: %s" % (r_name, item['name']))
+                        self.output("-> %s not existing, cannot be updated: %s" %
+                                    (r_name, item['name']))
                         response = None
                 else:
                     # With headers=None, the post method manages correctly the posted data ...
