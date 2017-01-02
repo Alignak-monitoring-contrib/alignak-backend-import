@@ -3,33 +3,25 @@ Alignak Backend import
 
 *Import flat files Nagios-like configuration into the Alignak backend*
 
-Build status (stable release)
------------------------------
-
-.. image:: https://travis-ci.org/Alignak-monitoring-contrib/alignak-backend-import.svg?branch=master
-    :target: https://travis-ci.org/Alignak-monitoring-contrib/alignak-backend-import
-
-.. image:: https://readthedocs.org/projects/alignak-backend-import/badge/?version=latest
-  :target: http://alignak-backend-import.readthedocs.org/en/latest/?badge=latest
-  :alt: Documentation Status
-
-
-Build status (development release)
-----------------------------------
-
 .. image:: https://travis-ci.org/Alignak-monitoring-contrib/alignak-backend-import.svg?branch=develop
     :target: https://travis-ci.org/Alignak-monitoring-contrib/alignak-backend-import
+    :alt: Develop branch build status
+
+.. image:: https://readthedocs.org/projects/alignak-backend-import/badge/?version=latest
+    :target: http://alignak-backend-import.readthedocs.org/en/latest/?badge=latest
+    :alt: Latest documentation Status
 
 .. image:: https://readthedocs.org/projects/alignak-backend-import/badge/?version=develop
-  :target: http://alignak-backend-import.readthedocs.org/en/develop/?badge=develop
-  :alt: Documentation Status
+    :target: http://alignak-backend-import.readthedocs.org/en/develop/?badge=develop
+    :alt: Development documentation Status
 
+.. image:: https://badge.fury.io/py/alignak-backend-import.svg
+    :target: https://badge.fury.io/py/alignak-backend-import
+    :alt: Last PyPi version
 
-Most recent release
--------------------
-
-.. image:: https://badge.fury.io/py/alignak_backend_import.svg
-    :target: https://badge.fury.io/py/alignak_backend_import
+.. image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
+    :target: http://www.gnu.org/licenses/gpl-3.0
+    :alt: License GPLv3
 
 
 Documentation
