@@ -19,15 +19,10 @@ Alignak Backend import
     :target: https://badge.fury.io/py/alignak-backend-import
     :alt: Last PyPi version
 
-.. image:: https://img.shields.io/badge/License-GPL%20v3-blue.svg
-    :target: http://www.gnu.org/licenses/gpl-3.0
-    :alt: License GPLv3
+.. image:: https://img.shields.io/badge/License-AGPL%20v3-blue.svg
+    :target: http://www.gnu.org/licenses/agpl-3.0
+    :alt: License AGPL v3
 
-
-Documentation
--------------
-
-You can find online documentation on `Read The Docs <http://alignak-backend-import.readthedocs.org>`_.
 
 Release strategy
 ----------------
@@ -47,9 +42,4 @@ Bugs, issues and contributing
 -----------------------------
 
 Please report any issue using the project `GitHub repository<https://github.com/Alignak-monitoring-contrib/alignak-backend-import/issues>`_.
-
-License
--------
-
-Alignak Backend Import is available under the `GPL version 3 <http://opensource.org/licenses/GPL-3.0>`_.
 
