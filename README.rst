@@ -24,6 +24,12 @@ Alignak Backend import
     :alt: License AGPL v3
 
 
+Short description
+-----------------
+
+This package contains an utility tool `alignak_backend_import` that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
+
+
 Release strategy
 ----------------
 
@@ -33,13 +39,8 @@ ensure compatibility between all the packages. Use 0.4.x version of Backend impo
 client with a 0.4.x version of the Backend.
 
 
-Short description
------------------
-
-This package contains an utility tool `alignak_backend_import` that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
-
 Bugs, issues and contributing
 -----------------------------
 
-Please report any issue using the project `GitHub repository<https://github.com/Alignak-monitoring-contrib/alignak-backend-import/issues>`_.
+Please report any issue using the project `issues page <https://github.com/Alignak-monitoring-contrib/alignak-backend-import/issues>`_.
 
