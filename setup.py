@@ -39,8 +39,8 @@ if python_version < (2, 7):
 elif python_version >= (3,):
     sys.exit("This application is not yet compatible with Python 3.x, sorry!")
 
-from alignak_backend_import import __application__, __version__, __author__, __author_email__
-from alignak_backend_import import  __copyright__, __releasenotes__, __license__, __doc_url__
+from alignak_backend_import import __version__, __author__, __author_email__
+from alignak_backend_import import __license__, __doc_url__, __classifiers__
 from alignak_backend_import import __name__ as __pkg_name__
 
 package = import_module('alignak_backend_import')
@@ -59,30 +59,20 @@ setup(
     description=package.__doc__.strip(),
     long_description=open('README.rst').read(),
 
+    classifiers=__classifiers__,
+
     zip_safe=False,
 
     packages=find_packages(),
     include_package_data=True,
 
     install_requires=[
-        'docopt', 'future'
+        'docopt', 'future', 'alignak_backend_client'
     ],
 
     entry_points={
         'console_scripts': [
             'alignak-backend-import = alignak_backend_import.cfg_to_backend:main'
         ],
-    },
-
-    classifiers = [
-        'Development Status :: 5 - Production/Stable',
-        'Environment :: Console',
-        'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Natural Language :: English',
-        'Programming Language :: Python',
-        'Topic :: System :: Monitoring',
-        'Topic :: System :: Systems Administration'
-    ]
+    }
 )
