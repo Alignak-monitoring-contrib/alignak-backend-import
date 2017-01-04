@@ -45,31 +45,6 @@ from alignak_backend_import import __name__ as __pkg_name__
 
 package = import_module('alignak_backend_import')
 
-# Define paths
-if 'linux' in sys.platform or 'sunos5' in sys.platform:
-    paths = {
-        'bin':     "/usr/bin",
-        'var':     "/var/lib/alignak_backend_import/",
-        'share':   "/var/lib/alignak_backend_import/share",
-        'etc':     "/etc/alignak_backend_import",
-        'run':     "/var/run/alignak_backend_import",
-        'log':     "/var/log/alignak_backend_import",
-        'libexec': "/var/lib/alignak_backend_import/libexec",
-    }
-elif 'bsd' in sys.platform or 'dragonfly' in sys.platform:
-    paths = {
-        'bin':     "/usr/local/bin",
-        'var':     "/usr/local/libexec/alignak_backend_import",
-        'share':   "/usr/local/share/alignak_backend_import",
-        'etc':     "/usr/local/etc/alignak_backend_import",
-        'run':     "/var/run/alignak_backend_import",
-        'log':     "/var/log/alignak_backend_import",
-        'libexec': "/usr/local/libexec/alignak_backend_import/plugins",
-    }
-else:
-    print "Unsupported platform, sorry!"
-    exit(1)
-
 setup(
     name=__pkg_name__,
     version=__version__,
@@ -80,7 +55,7 @@ setup(
     author=__author__,
     author_email=__author_email__,
     keywords="alignak REST backend import tool",
-    url="https://github.com/Alignak-monitoring-contrib/alignak-webui",
+    url=__doc_url__,
     description=package.__doc__.strip(),
     long_description=open('README.rst').read(),
 
@@ -95,7 +70,6 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'alignak_backend_import = alignak_backend_import.cfg_to_backend:main_old',
             'alignak-backend-import = alignak_backend_import.cfg_to_backend:main'
         ],
     },

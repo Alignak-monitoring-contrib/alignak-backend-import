@@ -15,9 +15,17 @@ Alignak Backend import
     :target: http://alignak-backend-import.readthedocs.org/en/develop/?badge=develop
     :alt: Development documentation Status
 
-.. image:: https://badge.fury.io/py/alignak-backend-import.svg
-    :target: https://badge.fury.io/py/alignak-backend-import
-    :alt: Last PyPi version
+.. image:: https://readthedocs.org/projects/alignak-backend/badge/?version=develop
+    :target: http://alignak-backend.readthedocs.org/en/develop/?badge=develop
+    :alt: Development documentation Status
+
+.. image:: https://badge.fury.io/py/alignak_backend_import.svg
+    :target: https://badge.fury.io/py/alignak_backend_import
+    :alt: Most recent PyPi version
+
+.. image:: https://img.shields.io/badge/IRC-%23alignak-1e72ff.svg?style=flat
+    :target: http://webchat.freenode.net/?channels=%23alignak
+    :alt: Join the chat #alignak on freenode.net
 
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-blue.svg
     :target: http://www.gnu.org/licenses/agpl-3.0
@@ -28,6 +36,27 @@ Short description
 -----------------
 
 This package contains an utility tool `alignak_backend_import` that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
+
+
+Installation
+------------
+
+From PyPI
+~~~~~~~~~
+To install the package from PyPI:
+::
+
+   sudo pip install alignak-backend-import
+
+
+From source files
+~~~~~~~~~~~~~~~~~
+To install the package from the source files:
+::
+
+   git clone https://github.com/Alignak-monitoring-contrib/alignak-backend-import
+   cd alignak-backend-import
+   sudo pip install .
 
 
 Release strategy
@@ -42,5 +71,4 @@ client with a 0.4.x version of the Backend.
 Bugs, issues and contributing
 -----------------------------
 
-Please report any issue using the project `issues page <https://github.com/Alignak-monitoring-contrib/alignak-backend-import/issues>`_.
-
+Contributions to this project are welcome and encouraged ... `issues in the project repository <https://github.com/alignak-monitoring-contrib/alignak-backend-import/issues>`_ are the common way to raise an information.
