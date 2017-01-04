@@ -9,7 +9,7 @@
     an Alignak REST backend.
 """
 # Application version and manifest
-VERSION = (1, 0, 'rc2')
+VERSION = (1, 0, 'rc3')
 
 __application__ = u"Alignak backend import"
 __short_version__ = '.'.join((str(each) for each in VERSION[:2]))
@@ -34,4 +34,3 @@ __classifiers__ = [
     'Topic :: System :: Monitoring',
     'Topic :: System :: Systems Administration'
 ]
-
