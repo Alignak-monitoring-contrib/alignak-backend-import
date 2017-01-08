@@ -16,7 +16,7 @@
 # along with this script.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-backend_client command line interface::
+alignak_backend_cli command line interface::
 
     Usage:
         backend_client [-h]
@@ -109,9 +109,9 @@ import json
 import tempfile
 import logging
 
-from docopt import docopt, DocoptExit
-
 from alignak_backend_client.client import Backend, BackendException
+
+from docopt import docopt, DocoptExit
 
 # Configure logger
 logging.basicConfig(level=logging.DEBUG,
@@ -120,6 +120,7 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger('alignak_backend_client.client')
 
 __version__ = "0.4.1"
+
 
 class BackendUpdate(object):
     """
@@ -247,6 +248,7 @@ class BackendUpdate(object):
         logger.info("Item data provided: %s", self.data)
 
     def initialize(self):
+        # pylint: disable=attribute-defined-outside-init
         """
         Login on backend with username and password
 
@@ -302,15 +304,18 @@ class BackendUpdate(object):
 
             params = {'where': json.dumps({'_is_template': True})}
             templates = self.backend.get_all('host', params=params)
-            self.host_templates_names = sorted([template['name'] for template in templates['_items']])
+            self.host_templates_names = sorted([template['name']
+                                                for template in templates['_items']])
             logger.info("Existing host templates: %s", ','.join(self.hosts_names))
 
             params = {'where': json.dumps({'_is_template': True})}
             templates = self.backend.get_all('host', params=params)
-            self.service_templates_names = sorted([template['name'] for template in templates['_items']])
-            logger.info("Existing service templates: %s", ','.join(self.service_templates_names ))
+            self.service_templates_names = sorted([template['name']
+                                                   for template in templates['_items']])
+            logger.info("Existing service templates: %s", ','.join(self.service_templates_names))
 
     def get_resource_list(self, resource_name):
+        """Get a specific resource list"""
         try:
             logger.info("Trying to get %s list", resource_name)
 
@@ -318,9 +323,9 @@ class BackendUpdate(object):
             if resource_name in self.embedded_resources:
                 params.update({'embedded': json.dumps(self.embedded_resources[resource_name])})
 
-            response = self.backend.get_all(resource_name, params=params)
-            if len(response['_items']) > 0 and response['_status'] == 'OK':
-                response = response['_items']
+            rsp = self.backend.get_all(resource_name, params=params)
+            if len(rsp['_items']) > 0 and rsp['_status'] == 'OK':
+                response = rsp['_items']
 
                 logger.info("-> found %ss", resource_name)
 
@@ -337,7 +342,7 @@ class BackendUpdate(object):
 
                             # Filter fields prefixed with an _ in embedded items
                             if resource_name in self.embedded_resources and \
-                                            field in self.embedded_resources[resource_name]:
+                                    field in self.embedded_resources[resource_name]:
                                 # Embedded items may be a list or a simple dictionary,
                                 # always make it a list
                                 embedded_items = item[field]
@@ -357,12 +362,14 @@ class BackendUpdate(object):
                             print(dump)
                         try:
                             temp_d = tempfile.gettempdir()
-                            path = os.path.join(temp_d, 'alignak-object-list-%ss.json' % (resource_name))
+                            path = os.path.join(temp_d, 'alignak-object-list-%ss.json'
+                                                % (resource_name))
                             dfile = open(path, "wb")
                             dfile.write(dump)
                             dfile.close()
                         except (OSError, IndexError) as exp:
-                            logger.exception("Error when writing the list dump file %s : %s", path, str(exp))
+                            logger.exception("Error when writing the list dump file %s : %s",
+                                             path, str(exp))
 
                     logger.info("-> dumped %ss list", resource_name)
                 else:
@@ -381,6 +388,7 @@ class BackendUpdate(object):
             return False
 
     def get_resource(self, resource_name, name):
+        """Get a specific resource by name"""
         try:
             logger.info("Trying to get %s: '%s'", resource_name, name)
 
@@ -405,7 +413,7 @@ class BackendUpdate(object):
 
                         # Filter fields prefixed with an _ in embedded items
                         if resource_name in self.embedded_resources and \
-                                        field in self.embedded_resources[resource_name]:
+                                field in self.embedded_resources[resource_name]:
                             # Embedded items may be a list or a simple dictionary,
                             # always make it a list
                             embedded_items = response[field]
@@ -448,6 +456,7 @@ class BackendUpdate(object):
             return False
 
     def delete_resource(self, resource_name, name):
+        """Delete a specific resource by name"""
         try:
             logger.info("Trying to get %s: '%s'", resource_name, name)
 
@@ -476,7 +485,7 @@ class BackendUpdate(object):
 
                 return True
             else:
-                logger.warning("-> %s %s template '%s' not found", resource_name, name)
+                logger.warning("-> %s template '%s' not found", resource_name, name)
                 return False
 
         except BackendException as e:
@@ -489,17 +498,16 @@ class BackendUpdate(object):
         return True
 
     def create_update_resource(self, resource_name, name, update=False):
-        """
+        # pylint: disable=too-many-return-statements
+        """Create or update a specific resource
 
         :param resource_name: backend resource endpoint (eg. host, user, ...)
         :param name: name of the resource to create/update
         :param update: True to update an existing resource, else will try to create
         :return:
         """
-        self.update_backend_data = True
-
         if self.data is None:
-            data = {}
+            self.data = {}
 
         # If some data are provided, try to get them
         json_data = None
@@ -555,7 +563,7 @@ class BackendUpdate(object):
                     # Manage potential object link fields
                     if field in ['realm', 'command', 'timeperiod', 'host', 'grafana']:
                         try:
-                            id_value = int(item_data[field])
+                            int(item_data[field])
                         except ValueError:
                             # Not an integer, consider an item name
                             params = {'where': json.dumps({'name': item_data[field]})}
@@ -563,12 +571,12 @@ class BackendUpdate(object):
                             if len(response['_items']) > 0:
                                 response = response['_items'][0]
                                 logger.info("Replaced %s = %s with found item _id",
-                                            field, item_data[field], response['_id'])
+                                            field, item_data[field])
                                 item_data[field] = response['_id']
                         continue
 
                 if '_realm' not in item_data:
-                    item_data.update({ '_realm': self.realm_all })
+                    item_data.update({'_realm': self.realm_all})
 
                 # Exists in the backend, we should update if required...
                 if not self.dry_run:
@@ -622,7 +630,7 @@ class BackendUpdate(object):
                     # Manage potential object link fields
                     if field in ['realm', 'command', 'timeperiod', 'grafana']:
                         try:
-                            id_value = int(item_data[field])
+                            int(item_data[field])
                         except ValueError:
                             # Not an integer, consider an item name
                             params = {'where': json.dumps({'name': item_data[field]})}
@@ -635,7 +643,7 @@ class BackendUpdate(object):
                         continue
 
                 if '_realm' not in item_data:
-                    item_data.update({ '_realm': self.realm_all })
+                    item_data.update({'_realm': self.realm_all})
 
                 if not self.dry_run:
                     logger.info("-> trying to create the %s: %s, with: %s",
@@ -650,7 +658,7 @@ class BackendUpdate(object):
 
                 return True
         except BackendException as e:
-            print("Creation error for  '%s' : %s" % (resource_name, name))
+            print("Creation error for  '%s' : %s", resource_name, name)
             logger.exception(e)
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 5")
@@ -663,7 +671,7 @@ def main():
     """
     bc = BackendUpdate()
     bc.initialize()
-    logger.debug("backend_client, version: %s" % __version__)
+    logger.debug("backend_client, version: %s", __version__)
     logger.debug("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     success = False
@@ -680,7 +688,7 @@ def main():
         success = bc.delete_resource(bc.item_type, bc.item)
 
     if not success:
-        logger.error("%s '%s' %s failed" % (bc.item_type, bc.item, bc.action))
+        logger.error("%s '%s' %s failed", bc.item_type, bc.item, bc.action)
         if not bc.verbose:
             logger.warning("Set verbose mode to have more information (-v)")
         exit(2)
