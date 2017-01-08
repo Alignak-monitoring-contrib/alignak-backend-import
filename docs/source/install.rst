@@ -11,7 +11,7 @@ With pip
 
 You can install with pip::
 
-    pip install alignak_backend_import
+    pip install alignak-backend-import
 
 
 From source

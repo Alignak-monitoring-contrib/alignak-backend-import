@@ -3,15 +3,32 @@
 Utilities
 =========
 
+Alignak backend command line interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ ``alignak_backend_cli`` is an utility tool that can make simple operations with the Alignak backend.
+ It allows getting, updating, creating data from/into the backend.
+
+
+Usage
+-----
+The ``alignak_backend_cli`` script receives some command line parameters to define its behavior:
+
+
+Command line interface
+----------------------
+.. automodule:: alignak_backend_import.backend_client
+
+
 Alignak backend importation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
  ``alignak_backend_import`` is an utility tool that can import a monitoring configuration stored in Nagios-like flat files and send this configuration to Alignak backend.
  It allows importing an existing configuration from Nagios or Shinken.
 
 
 Usage
----------------------------
+-----
 The ``alignak_backend_import`` script receives some command line parameters to define its behavior:
 
     - main configuration file
@@ -76,9 +93,7 @@ The `--check` option do not change anything in the Alignak backend. This option 
 interesting if you simply want to check what will be done for an imported configuration.
 
 
-
-
 Command line interface
----------------------------
+----------------------
 .. automodule:: alignak_backend_import.cfg_to_backend
 

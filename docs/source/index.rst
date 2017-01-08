@@ -3,16 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Alignak Backend Import tools documentation!
-======================================================
+Alignak Backend Import tools documentation
+==========================================
 
 Project version:
---------------------------------------------------
+----------------
 
 Main version: |version|, release: |release|
 
 Documentation content:
---------------------------------------------------
+----------------------
 
 
 .. toctree::
