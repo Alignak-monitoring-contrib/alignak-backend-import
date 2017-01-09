@@ -96,7 +96,6 @@ setup(
     entry_points={
         'console_scripts': [
             'alignak-backend-import = alignak_backend_import.cfg_to_backend:main',
-            'alignak-backend-cli = alignak_backend_import.backend_client:main'
         ],
     },
 

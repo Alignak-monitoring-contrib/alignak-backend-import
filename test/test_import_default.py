@@ -59,6 +59,20 @@ class TestCfgToBackend(unittest2.TestCase):
         )
         assert exit_code == 0
 
+    def testImportAlignakDemo(self):
+        """
+        Import the alignak demo server configuration (updated after log + arbiter interface
+        modification)
+
+        :return:
+        """
+        print ("Feeding backend...")
+        exit_code = subprocess.call(
+            shlex.split('alignak-backend-import '
+                        '--delete alignak_cfg_files/alignak-demo/alignak-backend-import.cfg')
+        )
+        assert exit_code == 0
+
     def testImportAlignak1(self):
         """
         Import the alignak demo server configuration (updated after log + arbiter interface

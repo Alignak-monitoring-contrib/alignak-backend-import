@@ -76,9 +76,6 @@ Some specific features:
 The `--gps` option allows to define the default GPS coordinates to be used for hosts which
 position is not yet defined in the configuration files.
 
-The `--model` option imports all the hosts and services templates in the backend. The Alignak Web
-UI uses the templates to ease the creation of new hosts and services.
-
 The `--duplicate` option will try to find each imported object in the Alignak backend and will
 not import the object if it still exists. Thus, this option is very heavy because the scripts
 makes two request for each object ... but this option is very useful if you are wish to import
@@ -91,6 +88,9 @@ backend data; especially interesting to keep some checks results in the live sta
 
 The `--check` option do not change anything in the Alignak backend. This option is very 
 interesting if you simply want to check what will be done for an imported configuration.
+
+**Note**: The `--model` option has been deprecated. All the existing hosts, services or users templates are imported  in the backend. The Alignak Web
+UI uses the templates to ease the creation of new hosts, services or users.
 
 
 Command line interface
