@@ -31,8 +31,8 @@ class TestCfgToBackend(unittest2.TestCase):
 
         cls.pid = subprocess.Popen([
             'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
-            '/tmp/uwsgi.pid'
+            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads',
+            '--pidfile', '/tmp/uwsgi.pid'
         ])
         time.sleep(3)
 
@@ -64,7 +64,7 @@ class TestCfgToBackend(unittest2.TestCase):
         cls.backend.delete("livesynthesis", {})
 
     def test_timeperiod(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/timeperiods.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -101,7 +101,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
     def test_timeperiod_duplicates(self):
         # Do not allow duplicates ...
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/timeperiods_duplicate.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -148,7 +148,7 @@ class TestCfgToBackend(unittest2.TestCase):
 
     def test_timeperiod_update(self):
         # Delete the backend content and import a TP
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/timeperiods_duplicate.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -223,7 +223,7 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertTrue(found)
 
     def test_timeperiod_complex(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/timeperiods_complex.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -280,13 +280,13 @@ class TestCfgToBackend(unittest2.TestCase):
         :return: None
         """
         # host.hostgroups
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts_links_hostgroup.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         hosts = result['_items']
         self.assertEqual(len(hosts), 1)
         for host in hosts:
@@ -302,13 +302,13 @@ class TestCfgToBackend(unittest2.TestCase):
             # self.assertEqual(hostgroup['hosts'], [hosts[0]['_id']])
 
     def test_host_multiple_link_later(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts_links_parent.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         hosts = result['_items']
         self.assertEqual(len(hosts), 3)
         for host in hosts:
@@ -330,13 +330,13 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_hostgroups_links(self):
         """
         """
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hostgroups_links_hostgroup.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         hosts = result['_items']
         self.assertEqual(len(hosts), 1)
         host_id = hosts[0]['_id']
@@ -367,18 +367,18 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_servicegroups_links(self):
         """
         """
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/services_link_servicegroups.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         hosts = result['_items']
         self.assertEqual(len(hosts), 1)
         host_id = hosts[0]['_id']
 
-        result = self.backend.get('service')
+        result = self.backend.get('service', params={'where': json.dumps({'_is_template': False})})
         services = result['_items']
         self.assertEqual(len(services), 2)
         service_id = services[0]['_id']
@@ -407,13 +407,13 @@ class TestCfgToBackend(unittest2.TestCase):
     def test_usergroups_links(self):
         """
         """
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/users_link_usergroups.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        result = self.backend.get('user')
+        result = self.backend.get('user', params={'where': json.dumps({'_is_template': False})})
         users = result['_items']
         self.assertEqual(len(users), 5)
         user_id = users[0]['_id']
@@ -444,14 +444,14 @@ class TestCfgToBackend(unittest2.TestCase):
                 self.assertEqual(len(usergroup['users']), 2)
 
     def test_command_with_args(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
         c = self.backend.get('command')
-        self.assertEqual(len(c['_items']), 2)
+        self.assertEqual(len(c['_items']), 4)
         command_id = ''
         ev_handler_id = ''
         for co in c['_items']:
@@ -462,7 +462,8 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertNotEqual(command_id, '')
         self.assertNotEqual(ev_handler_id, '')
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
+        print(result)
         self.assertEqual(len(result['_items']), 3)
         for host in result['_items']:
             self.assertEqual(host['check_command'], command_id)
@@ -474,14 +475,14 @@ class TestCfgToBackend(unittest2.TestCase):
                 self.assertEqual(host['check_command_args'], '')
 
     def test_command_event_handler(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
         c = self.backend.get('command')
-        self.assertEqual(len(c['_items']), 2)
+        self.assertEqual(len(c['_items']), 4)
         command_id = ''
         ev_handler_id = ''
         for co in c['_items']:
@@ -492,7 +493,7 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertNotEqual(command_id, '')
         self.assertNotEqual(ev_handler_id, '')
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         self.assertEqual(len(result['_items']), 3)
         for host in result['_items']:
             print("Host: %s", host)
@@ -506,13 +507,13 @@ class TestCfgToBackend(unittest2.TestCase):
                 self.assertEqual(host['check_command_args'], '')
 
     def test_host_customvariables(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts_custom_variables.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        result = self.backend.get_all('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         hosts = result['_items']
         self.assertEqual(len(hosts), 1)
 
@@ -560,7 +561,7 @@ class TestContactsNW(unittest2.TestCase):
         time.sleep(2)
 
     def test_user_notification_ways(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/users.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -581,7 +582,7 @@ class TestContactsNW(unittest2.TestCase):
         self.assertIsNotNone(cmd_nh2)
         self.assertIsNotNone(cmd_ns)
 
-        result = self.backend.get_all('user')
+        result = self.backend.get_all('user', params={'where': json.dumps({'_is_template': False})})
         users = result['_items']
         self.assertEqual(len(users), 5)
 
@@ -636,8 +637,44 @@ class TestContacts(unittest2.TestCase):
         subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
         time.sleep(2)
 
+    def test_user_template(self):
+        """Tests users templates"""
+        # Import andf insert the templates into the backend (--model)
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
+                              'alignak_cfg_files/users.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        result = self.backend.get_all('user')
+        users = result['_items']
+        self.assertEqual(len(users), 6)
+
+        print("Found users: ")
+        self.generic_contact = None
+        for user in users:
+            print("-", user['name'], user)
+            # generic-contact only is a template
+            if user['name'] == 'generic-contact':
+                self.assertEqual(user['_is_template'], True)
+                self.generic_contact = user['_id']
+        self.assertIsNotNone(self.generic_contact)
+
+        print("Found users: ")
+        for user in users:
+            print("-", user['name'], user)
+            if user['name'] == 'generic-contact':
+                continue
+
+            self.assertEqual(user['_is_template'], False)
+            # Except the admin user, all are tagged with the generic-contact
+            if user['name'] != 'admin':
+                self.assertEqual(user['_templates'], [self.generic_contact])
+                self.assertEqual(user['tags'], ['generic-contact'])
+
     def test_user_direct_notification(self):
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        """Test user direct notifications"""
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/user_admin.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -713,7 +750,7 @@ class TestHosts(unittest2.TestCase):
 
     def test_hosts(self):
 
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
@@ -731,10 +768,10 @@ class TestHosts(unittest2.TestCase):
                 tp_default = tp['_id']
         self.assertEqual(len(tps), 2)
 
-        result = self.backend.get('host')
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
         hosts = result['_items']
-        # Backend dummy host + 3 newly created hosts
-        self.assertEqual(len(hosts), 4)
+        # 3 newly created hosts
+        self.assertEqual(len(hosts), 3)
         for host in hosts:
             if host['name'] == '_dummy':
                 continue
@@ -766,18 +803,75 @@ class TestHosts(unittest2.TestCase):
             self.assertIn('snapshot_period', host)
             self.assertEqual(host['snapshot_period'], tp_never)
 
-    def test_host_with_double_template(self):
-
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+    def test_hosts_template(self):
+        """Tests hosts templates"""
+        # Import andf insert the templates into the backend (--model)
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts_2_templates.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         self.assertEqual(exit_code, 0)
 
-        r = self.backend.get('host')
-        # Backend dummy host + 1 newly created host
-        self.assertEqual(len(r['_items']), 2)
-        for comm in r['_items']:
+        result = self.backend.get_all('host', params={'where': json.dumps({'_is_template': True})})
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 4)
+
+        print("Found hosts templates: ")
+        self.template1 = None
+        self.template2 = None
+        self.template3 = None
+        for host in hosts:
+            print("-", host['name'], host)
+            # template01 only is a template
+            if host['name'] == 'template01':
+                self.assertEqual(host['_is_template'], True)
+                self.template1 = host['_id']
+            # template02 only is a template
+            if host['name'] == 'template02':
+                self.assertEqual(host['_is_template'], True)
+                self.template2 = host['_id']
+            # template03 only is a template
+            if host['name'] == 'template03':
+                self.assertEqual(host['_is_template'], True)
+                self.template3 = host['_id']
+        self.assertIsNotNone(self.template1)
+        self.assertIsNotNone(self.template2)
+        self.assertIsNotNone(self.template3)
+
+        result = self.backend.get_all('host', params={'where': json.dumps({'_is_template': False})})
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 1)
+
+        print("Found hosts: ")
+        for host in hosts:
+            print("-", host['name'], host)
+            if host['name'] in ['template01', 'template02', '_dummy']:
+                self.assertEqual(host['_is_template'], True)
+                continue
+
+            if host['name'] in ['template03']:
+                self.assertEqual(host['_is_template'], True)
+                self.assertEqual(host['_templates'], [self.template2])
+                self.assertEqual(host['tags'], ['template02'])
+                continue
+
+            self.assertEqual(host['_is_template'], False)
+            if host['name'] == 'srv01':
+                self.assertEqual(host['_templates'], [self.template1, self.template3])
+                self.assertEqual(host['tags'], ['template01', 'template03'])
+
+    def test_host_with_double_template(self):
+
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
+                              'alignak_cfg_files/hosts_2_templates.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        result = self.backend.get('host', params={'where': json.dumps({'_is_template': False})})
+        # 1 newly created host
+        self.assertEqual(len(result['_items']), 1)
+        for comm in result['_items']:
             reg_comm = comm.copy()
 
         self.assertEqual(reg_comm['name'], 'srv01')
@@ -786,7 +880,7 @@ class TestHosts(unittest2.TestCase):
 
     def test_hosts_dependency(self):
 
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts_links_parent.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
