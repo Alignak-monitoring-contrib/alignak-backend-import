@@ -78,6 +78,11 @@ from copy import deepcopy
 
 from logging import getLogger, INFO
 
+from future.utils import iteritems
+
+from docopt import docopt
+from docopt import DocoptExit
+
 try:
     from alignak.daemons.arbiterdaemon import Arbiter
     from alignak.objects.item import Item
@@ -102,14 +107,9 @@ from alignak_backend.models import serviceescalation
 from alignak_backend.models import user
 from alignak_backend.models import usergroup
 
-from alignak_backend_import import __version__
-
 from alignak_backend_client.client import Backend, BackendException
 
-from future.utils import iteritems
-
-from docopt import docopt
-from docopt import DocoptExit
+from alignak_backend_import import __version__
 
 loggerClient = getLogger('alignak_backend_client.client')
 loggerClient.setLevel(INFO)
@@ -610,12 +610,17 @@ class CfgToBackend(object):
             if name is None:
                 continue
             service_description = getattr(services.templates[tpl_uuid],
-                                          'service_description', 'no_description')
+                                          'service_description', '')
+            # Set name as template name and service description
+            if service_description:
+                name = "%s_%s" % (name, service_description)
+
+            # Sanitize template name
             forbidden = '^[^`~!$%&*"|\'<>?,()=]+$ '
             for c in forbidden:
                 name = name.replace(c, '_')
             setattr(services.templates[tpl_uuid], 'name', name)
-            self.output("Service template: %s (%s)" % (name, service_description))
+            self.log("Service template: %s (from %s)" % (name, service_description))
 
             host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
             if not host_name:
@@ -630,6 +635,8 @@ class CfgToBackend(object):
                 if not found:
                     self.services_templates.append(services.templates[tpl_uuid])
                 continue
+            else:
+                self.log("Service template with an attached host: %s / %s" % (name, host_name))
 
             # Only the service templates that are declared host_name... service template
             # that may be related to an host template
@@ -641,13 +648,14 @@ class CfgToBackend(object):
             # Define a service template for each host and define a link from the service
             # template to the corresponding host template
             for host_name in host_names:
-                self.log("Service template with host: %s" % (name))
+                self.output(" - manage host: %s / %s" % (name, host_name))
                 for host_template in self.hosts_templates:
                     if host_name == host_template.get_name():
                         # self.log(" -> found host: %s" % (host_name))
                         if not hasattr(host_template, 'linked_services_templates'):
                             setattr(host_template, 'linked_services_templates', [tpl_uuid])
                         host_template.linked_services_templates.append(tpl_uuid)
+
                         if not hasattr(services.templates[tpl_uuid], 'linked_hosts_templates'):
                             setattr(services.templates[tpl_uuid],
                                     'linked_hosts_templates',
@@ -660,6 +668,7 @@ class CfgToBackend(object):
                         set(services.templates[tpl_uuid].linked_hosts_templates)
                 setattr(services.templates[tpl_uuid], 'host_name', host_name.strip())
 
+                # Add a service template in our list
                 found = False
                 for template in self.services_templates:
                     if getattr(template, 'name', '') == name:
@@ -667,9 +676,13 @@ class CfgToBackend(object):
                         break
                 if not found:
                     self.services_templates.append(services.templates[tpl_uuid])
-        self.output("Services templates:")
+
+        self.output("Services templates and relations:")
         for template in self.services_templates:
-            self.output("- %s" % getattr(template, 'name'))
+            self.output("- %s (host: %s) (linked hosts: %s)"
+                        % (getattr(template, 'name'),
+                           getattr(template, 'host_name'),
+                           getattr(template, 'linked_hosts_templates', 'none')))
 
     def recompose_dateranges(self):
         """
@@ -910,7 +923,6 @@ class CfgToBackend(object):
                     print("Inserted: %s" % self.inserted[item['resource']])
                     print("Inserted: %s" % self.inserted[item['resource']].values())
                     print("Inserted: %s" % self.inserted_uuid[item['resource']].values())
-                    # exit(12)
                 else:
                     if val in self.inserted[item['resource']]:
                         data[field] = self.inserted[item['resource']][val]
