@@ -90,7 +90,7 @@ setup(
     include_package_data=True,
 
     install_requires=[
-        'docopt', 'future'
+        'docopt', 'future', 'alignak-backend-client'
     ],
 
     entry_points={
