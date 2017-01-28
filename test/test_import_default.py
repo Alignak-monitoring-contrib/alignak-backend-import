@@ -8,44 +8,35 @@ import shlex
 import subprocess
 
 
+def setup_module(module):
+    # Set test mode for applications backend
+    os.environ['TEST_ALIGNAK_BACKEND'] = '1'
+    os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
+
+    # Delete used mongo DBs
+    exit_code = subprocess.call(
+        shlex.split('mongo %s --eval "db.dropDatabase()"'
+                    % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+    )
+    assert exit_code == 0
+    time.sleep(1)
+
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+    print("Current test directory: %s" % test_dir)
+
+    print("Starting Alignak backend...")
+    fnull = open(os.devnull, 'w')
+    subprocess.Popen(shlex.split('alignak-backend'), stdout=fnull)
+    print("Started")
+
+
+def teardown_module(module):
+    print("Stopping Alignak backend...")
+    subprocess.call(['pkill', 'alignak-backend'])
+    print("Stopped")
+
+
 class TestCfgToBackend(unittest2.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        """
-        This method:
-          * delete mongodb database
-          * start the backend with uwsgi
-
-        :return: None
-        """
-        # Set test mode for Alignak backend
-        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
-        os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
-
-        # Delete used mongo DBs
-        exit_code = subprocess.call(
-            shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
-        )
-        assert exit_code == 0
-
-        cls.p = subprocess.Popen(['uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-                                  '--socket', '0.0.0.0:5000',
-                                  '--protocol=http', '--enable-threads', '--pidfile',
-                                  '/tmp/uwsgi.pid'])
-        time.sleep(3)
-        cls.endpoint = 'http://127.0.0.1:5000'
-
-    @classmethod
-    def tearDownClass(cls):
-        """
-        Stop alignak backend
-
-        :return: None
-        """
-        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
 
     def testImportShinken1(self):
         """
@@ -53,24 +44,33 @@ class TestCfgToBackend(unittest2.TestCase):
         :return:
         """
         print ("Feeding backend...")
-        exit_code = subprocess.call(
-            shlex.split('alignak-backend-import '
-                        '--delete shinken_cfg_files/default/_main.cfg')
-        )
+        fnull = open(os.devnull, 'w')
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                              '--delete',
+                              '--quiet',
+                              'shinken_cfg_files/default/_main.cfg'],
+                             stdout=fnull)
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        print("Exited with: %d" % exit_code)
         assert exit_code == 0
 
     def testImportAlignakDemo(self):
         """
-        Import the alignak demo server configuration (updated after log + arbiter interface
-        modification)
+        Import the alignak demo server configuration
 
         :return:
         """
         print ("Feeding backend...")
-        exit_code = subprocess.call(
-            shlex.split('alignak-backend-import '
-                        '--delete alignak_cfg_files/alignak-demo/alignak-backend-import.cfg')
-        )
+        fnull = open(os.devnull, 'w')
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                              '--delete',
+                              # '--quiet',
+                              'alignak_cfg_files/alignak-demo/alignak-backend-import.cfg'],
+                             stdout=fnull)
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        print("Exited with: %d" % exit_code)
         assert exit_code == 0
 
     def testImportAlignak1(self):
@@ -81,8 +81,13 @@ class TestCfgToBackend(unittest2.TestCase):
         :return:
         """
         print ("Feeding backend...")
-        exit_code = subprocess.call(
-            shlex.split('alignak-backend-import '
-                        '--delete alignak_cfg_files/alignak_most_recent/alignak.backend-import.cfg')
-        )
+        fnull = open(os.devnull, 'w')
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                              '--delete',
+                              '--quiet',
+                              'alignak_cfg_files/alignak_most_recent/alignak-backend-import.cfg'],
+                             stdout=fnull)
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        print("Exited with: %d" % exit_code)
         assert exit_code == 0

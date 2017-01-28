@@ -15,25 +15,26 @@ from alignak_backend_client.client import Backend
 class TestCfgToBackend(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        print("start alignak backend")
-
-        cls.maxDiff = None
-
-        # Set DB name for tests
+        # Set test mode for applications backend
+        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
-            shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+            shlex.split('mongo %s --eval "db.dropDatabase()"'
+                        % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
+        time.sleep(1)
 
-        cls.pid = subprocess.Popen([
-            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads',
-            '--pidfile', '/tmp/uwsgi.pid'
-        ])
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        print("Current test directory: %s" % test_dir)
+
+        print("Starting Alignak backend...")
+        fnull = open(os.devnull, 'w')
+        cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
+        print("Started as %s" % cls.backend_process.pid)
+
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
@@ -51,10 +52,9 @@ class TestCfgToBackend(unittest2.TestCase):
 
         :return: None
         """
-        cls.backend.delete("host", {})
-
-        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
+        print("Stopping Alignak backend...")
+        cls.backend_process.kill()
+        print("Stopped")
 
     @classmethod
     def tearDown(cls):
@@ -526,29 +526,35 @@ class TestCfgToBackend(unittest2.TestCase):
 class TestContactsNW(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        print("start alignak backend")
-
-        cls.maxDiff = None
-
-        # Set DB name for tests
+        # Set test mode for applications backend
+        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
-            shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+            shlex.split('mongo %s --eval "db.dropDatabase()"'
+                        % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
+        time.sleep(1)
 
-        cls.pid = subprocess.Popen([
-            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
-            '/tmp/uwsgi.pid'
-        ])
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        print("Current test directory: %s" % test_dir)
+
+        print("Starting Alignak backend...")
+        fnull = open(os.devnull, 'w')
+        cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
+        print("Started as %s" % cls.backend_process.pid)
+
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
+
+        cls.backend.delete("host", {})
+        cls.backend.delete("service", {})
+        cls.backend.delete("command", {})
+        cls.backend.delete("livesynthesis", {})
 
     @classmethod
     def tearDownClass(cls):
@@ -557,9 +563,9 @@ class TestContactsNW(unittest2.TestCase):
 
         :return: None
         """
-        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
-
+        print("Stopping Alignak backend...")
+        cls.backend_process.kill()
+        print("Stopped")
     def test_user_notification_ways(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/users.cfg'])
@@ -603,29 +609,35 @@ class TestContactsNW(unittest2.TestCase):
 class TestContacts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        print("start alignak backend")
-
-        cls.maxDiff = None
-
-        # Set DB name for tests
+        # Set test mode for applications backend
+        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
-            shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+            shlex.split('mongo %s --eval "db.dropDatabase()"'
+                        % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
+        time.sleep(1)
 
-        cls.pid = subprocess.Popen([
-            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
-            '/tmp/uwsgi.pid'
-        ])
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        print("Current test directory: %s" % test_dir)
+
+        print("Starting Alignak backend...")
+        fnull = open(os.devnull, 'w')
+        cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
+        print("Started as %s" % cls.backend_process.pid)
+
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
+
+        cls.backend.delete("host", {})
+        cls.backend.delete("service", {})
+        cls.backend.delete("command", {})
+        cls.backend.delete("livesynthesis", {})
 
     @classmethod
     def tearDownClass(cls):
@@ -634,12 +646,13 @@ class TestContacts(unittest2.TestCase):
 
         :return: None
         """
-        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
+        print("Stopping Alignak backend...")
+        cls.backend_process.kill()
+        print("Stopped")
 
     def test_user_template(self):
         """Tests users templates"""
-        # Import andf insert the templates into the backend (--model)
+        # Import and insert the templates into the backend (--model)
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/users.cfg'])
         (_, _) = q.communicate()
@@ -714,29 +727,35 @@ class TestContacts(unittest2.TestCase):
 class TestHosts(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        print("start alignak backend")
-
-        cls.maxDiff = None
-
-        # Set DB name for tests
+        # Set test mode for applications backend
+        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
-            shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+            shlex.split('mongo %s --eval "db.dropDatabase()"'
+                        % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
+        time.sleep(1)
 
-        cls.pid = subprocess.Popen([
-            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
-            '/tmp/uwsgi.pid'
-        ])
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        print("Current test directory: %s" % test_dir)
+
+        print("Starting Alignak backend...")
+        fnull = open(os.devnull, 'w')
+        cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
+        print("Started as %s" % cls.backend_process.pid)
+
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
+
+        cls.backend.delete("host", {})
+        cls.backend.delete("service", {})
+        cls.backend.delete("command", {})
+        cls.backend.delete("livesynthesis", {})
 
     @classmethod
     def tearDownClass(cls):
@@ -745,8 +764,9 @@ class TestHosts(unittest2.TestCase):
 
         :return: None
         """
-        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
+        print("Stopping Alignak backend...")
+        cls.backend_process.kill()
+        print("Stopped")
 
     def test_hosts(self):
 
@@ -805,7 +825,7 @@ class TestHosts(unittest2.TestCase):
 
     def test_hosts_template(self):
         """Tests hosts templates"""
-        # Import andf insert the templates into the backend (--model)
+        # Import and insert the templates into the backend (--model)
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/hosts_2_templates.cfg'])
         (_, _) = q.communicate()
@@ -896,29 +916,35 @@ class TestHosts(unittest2.TestCase):
 class TestServices(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
-        print("start alignak backend")
-
-        cls.maxDiff = None
-
-        # Set DB name for tests
+        # Set test mode for applications backend
+        os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
-            shlex.split(
-                'mongo %s --eval "db.dropDatabase()"' % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
+            shlex.split('mongo %s --eval "db.dropDatabase()"'
+                        % os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'])
         )
         assert exit_code == 0
+        time.sleep(1)
 
-        cls.pid = subprocess.Popen([
-            'uwsgi', '--plugin', 'python', '-w', 'alignakbackend:app',
-            '--socket', '0.0.0.0:5000', '--protocol=http', '--enable-threads', '--pidfile',
-            '/tmp/uwsgi.pid'
-        ])
+        test_dir = os.path.dirname(os.path.realpath(__file__))
+        print("Current test directory: %s" % test_dir)
+
+        print("Starting Alignak backend...")
+        fnull = open(os.devnull, 'w')
+        cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
+        print("Started as %s" % cls.backend_process.pid)
+
         time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
+
+        cls.backend.delete("host", {})
+        cls.backend.delete("service", {})
+        cls.backend.delete("command", {})
+        cls.backend.delete("livesynthesis", {})
 
     @classmethod
     def tearDownClass(cls):
@@ -927,12 +953,13 @@ class TestServices(unittest2.TestCase):
 
         :return: None
         """
-        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
+        print("Stopping Alignak backend...")
+        cls.backend_process.kill()
+        print("Stopped")
 
     def test_services_template(self):
         """Tests hosts templates"""
-        # Import andf insert the templates into the backend (--model)
+        # Import and insert the templates into the backend (--model)
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
                               'alignak_cfg_files/hosts_services_templates.cfg'])
         (_, _) = q.communicate()
@@ -964,11 +991,11 @@ class TestServices(unittest2.TestCase):
         for service in services:
             print("-", service['name'])
             self.assertIn(service['name'], ['windows-passive-service',
-                                            'windows-passive-service_nsca_uptime',
-                                            'windows-passive-service_nsca_memory',
-                                            'windows-passive-service_nsca_cpu',
-                                            'windows-passive-service_nsca_disk',
-                                            'windows-passive-service_nsca_services'])
+                                            'nsca_uptime',
+                                            'nsca_memory',
+                                            'nsca_cpu',
+                                            'nsca_disk',
+                                            'nsca_services'])
 
         result = self.backend.get_all('host',
                                       params={'where': json.dumps({'_is_template': False})})

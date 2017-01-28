@@ -611,9 +611,13 @@ class CfgToBackend(object):
                 continue
             service_description = getattr(services.templates[tpl_uuid],
                                           'service_description', '')
+            self.log("Service template: %s / %s (from %s) - use: %s"
+                     % (name, service_description, tpl_uuid,
+                        getattr(services.templates[tpl_uuid], 'use', '')))
             # Set name as template name and service description
             if service_description:
                 name = "%s_%s" % (name, service_description)
+                name = service_description
 
             # Sanitize template name
             forbidden = '^[^`~!$%&*"|\'<>?,()=]+$ '
@@ -920,9 +924,11 @@ class CfgToBackend(object):
                    val not in self.inserted_uuid[item['resource']].values():
                     self.errors_found.append("# Unknown %s: %s for %s" % (item['resource'],
                                                                           val, resource))
-                    print("Inserted: %s" % self.inserted[item['resource']])
-                    print("Inserted: %s" % self.inserted[item['resource']].values())
-                    print("Inserted: %s" % self.inserted_uuid[item['resource']].values())
+                    self.log("Late update for: %s/%s -> %s / %s" % (resource, index, item, field))
+                    self.log("Resource: %s" % (self.inserted[item['resource']][index]))
+                    self.log("Inserted: %s" % self.inserted[item['resource']])
+                    self.log("Inserted: %s" % self.inserted[item['resource']].values())
+                    self.log("Inserted: %s" % self.inserted_uuid[item['resource']].values())
                 else:
                     if val in self.inserted[item['resource']]:
                         data[field] = self.inserted[item['resource']][val]
@@ -943,12 +949,19 @@ class CfgToBackend(object):
                         if val not in self.inserted[item['resource']] and \
                            val not in self.inserted[item['resource']].values() and \
                            val not in self.inserted_uuid[item['resource']].values():
+                            if field == '_templates':
+                                print("Late update for: %s/%s -> %s / %s"
+                                      % (resource, index, item, field))
+                                print("Resource: %s" % (self.inserted[item['resource']][index]))
+                                continue
                             self.errors_found.append("# Unknown %s: %s for %s" % (item['resource'],
                                                                                   val, resource))
-                            print("Inserted: %s" % self.inserted[item['resource']])
-                            print("Inserted: %s" % self.inserted[item['resource']].values())
-                            print("Inserted: %s" % self.inserted_uuid[item['resource']].values())
-                            # exit(13)
+                            self.log("Late update for: %s/%s -> %s / %s"
+                                     % (resource, index, item, field))
+                            self.log("Resource: %s" % (self.inserted[item['resource']][index]))
+                            self.log("Inserted: %s" % self.inserted[item['resource']])
+                            self.log("Inserted: %s" % self.inserted[item['resource']].values())
+                            self.log("Inserted: %s" % self.inserted_uuid[item['resource']].values())
                         else:
                             if val in self.inserted[item['resource']]:
                                 data[field].append(self.inserted[item['resource']][val])
@@ -2268,7 +2281,6 @@ class CfgToBackend(object):
         ]
         schema = service.get_schema()
         self.manage_resource('service', data_later, 'name', schema, template=True)
-        print("~~~~~~~~~~~~~~~~~~~~~~ update later ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         self.update_later('service', '_templates')
 
         print("~~~~~~~~~~~~~~~~~~~~~~ add services ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
