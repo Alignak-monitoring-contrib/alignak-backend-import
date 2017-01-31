@@ -560,6 +560,7 @@ class CfgToBackend(object):
         self.log("*** Parse templates ***")
 
         self.users_templates = []
+        self.log("Alignak users templates:")
         users = getattr(self.raw_conf, 'contacts')
         for tpl_uuid in users.templates:
             name = getattr(users.templates[tpl_uuid], 'name', None)
@@ -569,7 +570,8 @@ class CfgToBackend(object):
             for c in forbidden:
                 name = name.replace(c, '_')
             setattr(users.templates[tpl_uuid], 'name', name)
-            self.log("User template: %s" % (name))
+            self.log("- %s (from %s) - use: %s"
+                     % (name, tpl_uuid, getattr(users.templates[tpl_uuid], 'use', '')))
             found = False
             for template in self.users_templates:
                 if getattr(template, 'name', '') == name:
@@ -577,11 +579,14 @@ class CfgToBackend(object):
                     break
             if not found:
                 self.users_templates.append(users.templates[tpl_uuid])
+
+        # Dump users templates
         self.output("Users templates:")
         for template in self.users_templates:
             self.output("- %s" % getattr(template, 'name'))
 
         self.hosts_templates = []
+        self.log("Alignak hosts templates:")
         hosts = getattr(self.raw_conf, 'hosts')
         for tpl_uuid in hosts.templates:
             name = getattr(hosts.templates[tpl_uuid], 'name', None)
@@ -591,7 +596,8 @@ class CfgToBackend(object):
             for c in forbidden:
                 name = name.replace(c, '_')
             setattr(hosts.templates[tpl_uuid], 'name', name)
-            self.log("Host template: %s" % (name))
+            self.log("- %s (from %s) - use: %s"
+                     % (name, tpl_uuid, getattr(hosts.templates[tpl_uuid], 'use', '')))
             found = False
             for template in self.hosts_templates:
                 if getattr(template, 'name', '') == name:
@@ -599,11 +605,14 @@ class CfgToBackend(object):
                     break
             if not found:
                 self.hosts_templates.append(hosts.templates[tpl_uuid])
+
+        # Dump hosts templates
         self.output("Hosts templates:")
         for template in self.hosts_templates:
             self.output("- %s" % getattr(template, 'name'))
 
         self.services_templates = []
+        self.log("Alignak services templates:")
         services = getattr(self.raw_conf, 'services')
         for tpl_uuid in services.templates:
             name = getattr(services.templates[tpl_uuid], 'name', None)
@@ -611,7 +620,7 @@ class CfgToBackend(object):
                 continue
             service_description = getattr(services.templates[tpl_uuid],
                                           'service_description', '')
-            self.log("Service template: %s / %s (from %s) - use: %s"
+            self.log("- %s / %s (from %s) - use: %s"
                      % (name, service_description, tpl_uuid,
                         getattr(services.templates[tpl_uuid], 'use', '')))
             # Set name as template name and service description
@@ -628,19 +637,12 @@ class CfgToBackend(object):
 
             host_name = getattr(services.templates[tpl_uuid], 'host_name', None)
             if not host_name:
+                self.log("  no host")
                 # Use the backend default dummy host
-                setattr(services.templates[tpl_uuid], 'host_name', self.dummy_host)
-                self.log("Service template with no host: %s" % (name))
-                found = False
-                for template in self.services_templates:
-                    if getattr(template, 'name', '') == name:
-                        found = True
-                        break
-                if not found:
-                    self.services_templates.append(services.templates[tpl_uuid])
-                continue
+                host_name = "_dummy"
+                setattr(services.templates[tpl_uuid], 'host_name', "_dummy")
             else:
-                self.log("Service template with an attached host: %s / %s" % (name, host_name))
+                self.log("  attached host: %s" % (host_name))
 
             # Only the service templates that are declared host_name... service template
             # that may be related to an host template
@@ -652,7 +654,7 @@ class CfgToBackend(object):
             # Define a service template for each host and define a link from the service
             # template to the corresponding host template
             for host_name in host_names:
-                self.output(" - manage host: %s / %s" % (name, host_name))
+                self.output("  linked to host: %s" % (host_name))
                 for host_template in self.hosts_templates:
                     if host_name == host_template.get_name():
                         # self.log(" -> found host: %s" % (host_name))
@@ -681,6 +683,7 @@ class CfgToBackend(object):
                 if not found:
                     self.services_templates.append(services.templates[tpl_uuid])
 
+        # Dump services templates
         self.output("Services templates and relations:")
         for template in self.services_templates:
             self.output("- %s (host: %s) (linked hosts: %s)"
