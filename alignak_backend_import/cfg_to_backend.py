@@ -20,10 +20,10 @@
 # along with Alignak Backend Import.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-alignak_backend_import command line interface::
+alignak-backend-import command line interface::
 
     Usage:
-        {command} [-h] [-v] [-q] [-d] [-i] [-e] [-f] [-c]
+        {command} [-h] [-v] [-2] [-q] [-d] [-i] [-e] [-f] [-c]
                   [-b=url] [-u=username] [-p=password] [<cfg_file>...]
 
     Options:
@@ -36,7 +36,8 @@ alignak_backend_import command line interface::
         -i, --duplicate             Do not stop on duplicate items [default: False]
         -u, --username username     Backend login username [default: admin]
         -p, --password password     Backend login password [default: admin]
-        -v, --verbose               Run in verbose mode (more info to display)
+        -v, --verbose               Run in verbose mode (more info displayed)
+        -2, --very-verbose          Run in very verbose mode (more more info displayed ;)
         -q, --quiet                 Run in quiet mode (almost nothing displayed)
         -g, --gps lat,lng           Specify default GPS location [default: 46.60611,1.87528]
 
@@ -148,7 +149,7 @@ class CfgToBackend(object):
         except DocoptExit:
             print(
                 "Command line parsing error.\n"
-                "alignak_backend_import -h will display the command line parameters syntax."
+                "alignak-backend-import -h will display the command line parameters syntax."
             )
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 64")
@@ -158,6 +159,11 @@ class CfgToBackend(object):
         self.verbose = False
         if '--verbose' in args and args['--verbose']:
             self.verbose = True
+
+        # Very verbose
+        self.very_verbose = False
+        if '--very-verbose' in args and args['--very-verbose']:
+            self.very_verbose = True
 
         # Quiet mode
         self.quiet = False
@@ -169,15 +175,16 @@ class CfgToBackend(object):
         if '<cfg_file>' in args:
             cfg = args['<cfg_file>']
             self.log("Configuration to load: %s" % cfg)
-            print("Importing configuration: %s" % cfg)
         else:
             self.log("No configuration specified")
 
         if not cfg:
-            print("No configuration specified")
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            print("No configuration specified!")
+            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             print("Exiting with error code: 2")
             self.exit(2)
+
+        self.output("Importing configuration: %s" % cfg, forced=True)
 
         if not isinstance(cfg, list):
             cfg = [cfg]
@@ -186,7 +193,7 @@ class CfgToBackend(object):
         self.backend = None
         self.backend_url = args['--backend']
         self.log("Backend URL: %s" % self.backend_url)
-        print("Backend URL: %s" % self.backend_url)
+        self.output("Backend URL: %s" % self.backend_url, forced=True)
 
         self.username = args['--username']
         self.password = args['--password']
@@ -195,31 +202,31 @@ class CfgToBackend(object):
         # Dry-run mode?
         self.dry_run = args['--check']
         self.log("Dry-run mode (check only): %s" % self.dry_run)
-        print("Dry-run mode (check only): %s" % self.dry_run)
+        self.output("Dry-run mode (check only): %s" % self.dry_run, forced=True)
 
         # Delete all objects in backend ?
         self.destroy_backend_data = args['--delete']
         self.log("Delete existing backend data: %s" % self.destroy_backend_data)
-        print("Delete existing backend data: %s" % self.destroy_backend_data)
+        self.output("Delete existing backend data: %s" % self.destroy_backend_data, forced=True)
 
         # Update objects in the backend rather than create them
         self.update_backend_data = args['--update']
         self.log("Updating backend data: %s" % self.update_backend_data)
-        print("Updating backend data: %s" % self.update_backend_data)
+        self.output("Updating backend data: %s" % self.update_backend_data, forced=True)
 
         # Allow duplicate objects
         self.allow_duplicates = False
         if '--duplicate' in args:
             self.allow_duplicates = args['--duplicate']
         self.log("Allowing duplicate objects: %s" % self.allow_duplicates)
-        print("Allowing duplicate objects: %s" % self.allow_duplicates)
+        self.output("Allowing duplicate objects: %s" % self.allow_duplicates, forced=True)
 
         self.gps = {"type": "Point", "coordinates": [46.60611, 1.87528]}
         if '--gps' in args:
             point = args['--gps'].split(',')
             self.gps.coordinates = point
         self.log("Default host location: %s" % self.gps)
-        print("Default host location: %s" % self.gps)
+        self.output("Default host location: %s" % self.gps, forced=True)
 
         # Alignak arbiter configuration
         # - daemon configuration file
@@ -255,7 +262,8 @@ class CfgToBackend(object):
             self.exit(3)
 
         end = time.time()
-        print("Elapsed time after Arbiter has loaded the configuration: %s" % (end - start))
+        self.output("Elapsed time after Arbiter has loaded the configuration: %s" % (end - start),
+                    forced=True)
 
         # Authenticate on Backend
         self.authenticate()
@@ -263,7 +271,7 @@ class CfgToBackend(object):
         if self.dry_run:
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            print("alignak_backend_import is running in dry-run mode.")
+            print("alignak-backend-import is running in dry-run mode.")
             print("No data will be modified in the Alignak backend.")
             print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -326,18 +334,18 @@ class CfgToBackend(object):
 
         # Build templates lists from raw Arbiter objects
         self.build_templates()
-        print("-----")
-        print("Found %d hosts templates" % len(self.hosts_templates))
-        print("Found %d services templates" % len(self.services_templates))
+        self.output("-----")
+        self.output("Found %d hosts templates" % len(self.hosts_templates))
+        self.output("Found %d services templates" % len(self.services_templates))
 
         if not self.dummy_host:
-            print("**********")
-            print("No _dummy host found in the backend. "
+            self.output("**********")
+            self.output("No _dummy host found in the backend. "
                   "Importing service models may raise errors!")
-            print("**********")
+            self.output("**********")
 
         end = time.time()
-        print("Elapsed time after templates are built: %s" % (end - start))
+        self.output("Elapsed time after templates are built: %s" % (end - start))
 
         # Rebuild the date ranges in the raw Arbiter objects (raw objects are modified!)
         self.recompose_dateranges()
@@ -347,13 +355,13 @@ class CfgToBackend(object):
             self.delete_data()
 
         end = time.time()
-        print("Elapsed time after backend cleaning: %s" % (end - start))
+        self.output("Elapsed time after backend cleaning: %s" % (end - start))
 
         # Import the objects in the backend
         self.import_objects()
 
         end = time.time()
-        print("Elapsed time after importation: %s" % (end - start))
+        self.output("Elapsed time after importation: %s" % (end - start))
 
         if self.errors_found:
             print('############################# errors report ##################################')
@@ -380,7 +388,7 @@ class CfgToBackend(object):
 
         :return: None
         """
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~ Backend authentication ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Authenticating to the backend...", forced=True)
         try:
             # Backend authentication with token generation
             # headers = {'Content-Type': 'application/json'}
@@ -396,7 +404,7 @@ class CfgToBackend(object):
             print("Exiting with error code: 2")
             self.exit(2)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Authenticated ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Authenticated.", forced=True)
 
     def delete_data(self):
         """
@@ -406,7 +414,8 @@ class CfgToBackend(object):
         """
         try:
             headers = {'Content-Type': 'application/json'}
-            print("~~~~~~~~~~~~~~~~~~~~~~~~ Deleting existing backend data ~~~~~~~~~~~~~~~~~~~~~~")
+            self.output("~~~~~~~~~~~~~~~~~~~~~~~~ "
+                        "Deleting existing backend data ~~~~~~~~~~~~~~~~~~~~~~")
             self.output("Deleting realms")
             # Get realms in _level reverse order to be able to delete them ...
             elements = self.backend.get_all('realm', params={'sort': '-_level'})
@@ -514,7 +523,8 @@ class CfgToBackend(object):
             if not self.dry_run:
                 self.backend.delete('actionforcecheck', headers)
 
-            print("~~~~~~~~~~~~~~~~~~~~~~~~ Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
+            self.output("~~~~~~~~~~~~~~~~~~~~~~~~ "
+                        "Existing backend data destroyed ~~~~~~~~~~~~~~~~~~~~~")
         except BackendException as e:
             print("# Backend deletion error")
             print("***** Exception: %s" % str(e))
@@ -953,9 +963,10 @@ class CfgToBackend(object):
                            val not in self.inserted[item['resource']].values() and \
                            val not in self.inserted_uuid[item['resource']].values():
                             if field == '_templates':
-                                print("Late update for: %s/%s -> %s / %s"
-                                      % (resource, index, item, field))
-                                print("Resource: %s" % (self.inserted[item['resource']][index]))
+                                self.log("Late update for: %s/%s -> %s / %s"
+                                         % (resource, index, item, field))
+                                self.log("Resource: %s"
+                                         % (self.inserted[item['resource']][index]))
                                 continue
                             self.errors_found.append("# Unknown %s: %s for %s" % (item['resource'],
                                                                                   val, resource))
@@ -1160,26 +1171,23 @@ class CfgToBackend(object):
             if r_name == 'service':
                 elements = self.services_templates
 
-        count = 0
+        count = 1
         for item_obj in elements:
             if not item_obj:
                 continue
             item = {}
 
             self.log("...................................")
-            self.log("Manage resource %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
-            self.output("...................................")
+            self.log("Manage %s: %s (%s)" % (r_name, item_obj.uuid, item_obj.get_name()))
+            self.log("...................................")
             if template:
-                self.output("%d: Manage template %s: %s (%s) - %s" % (
-                    count, r_name, item_obj.uuid, getattr(item_obj, 'name'), item_obj
-                ))
                 item['name'] = getattr(item_obj, 'name')
-                if r_name == 'service':
-                    count += 1
+                self.output("- importing %s template #%d: %s"
+                            % (r_name, count, item_obj.get_name()), forced=True)
             else:
-                self.output("Manage resource %s: %s (%s)" % (
-                    r_name, item_obj.uuid, item_obj.get_name()
-                ))
+                self.output("- importing %s #%d: %s"
+                            % (r_name, count, item_obj.get_name()), forced=True)
+            count += 1
 
             # Only deal with properties,
             for prop in item_obj.properties.keys():
@@ -1752,7 +1760,7 @@ class CfgToBackend(object):
             # Elements common fields
             # ------------------------------------------------------------
             # - 'imported_from' with this script ...
-            item['imported_from'] = 'alignak_backend_import'
+            item['imported_from'] = 'alignak-backend-import'
 
             # item['name']      ok
             if id_name != 'name':
@@ -1937,7 +1945,7 @@ class CfgToBackend(object):
 
         :return: None
         """
-        print("~~~~~~~~~~~~~~~~~~~~~~ add realms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding realms...", forced=True)
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -1948,12 +1956,12 @@ class CfgToBackend(object):
         self.manage_resource('realm', data_later, 'realm_name', schema)
         self.update_later('realm', '_parent')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding commands...", forced=True)
         data_later = []
         schema = command.get_schema()
         self.manage_resource('command', data_later, 'command_name', schema)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add timeperiods ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding timeperiods...", forced=True)
         data_later = []
         schema = timeperiod.get_schema()
         self.manage_resource('timeperiod', data_later, 'timeperiod_name', schema)
@@ -1961,7 +1969,7 @@ class CfgToBackend(object):
         # ------------------------------
         # User part
         # ------------------------------
-        print("~~~~~~~~~~~~~~~~~~~~~~ add user templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding user templates...", forced=True)
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
@@ -1988,7 +1996,7 @@ class CfgToBackend(object):
         self.manage_resource('user', data_later, 'name', schema, template=True)
         self.update_later('user', '_templates')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add users ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding users...", forced=True)
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
@@ -2015,7 +2023,7 @@ class CfgToBackend(object):
         self.manage_resource('user', data_later, 'name', schema)
         self.update_later('user', '_templates')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add usergroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding users groups...", forced=True)
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -2038,7 +2046,7 @@ class CfgToBackend(object):
         # ------------------------------
         # Host part
         # ------------------------------
-        print("~~~~~~~~~~~~~~~~~~~~~~ add host templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding hosts templates...", forced=True)
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
@@ -2099,7 +2107,7 @@ class CfgToBackend(object):
         self.update_later('host', '_templates')
         self.update_later('host', 'parents')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add hosts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding hosts...", forced=True)
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
@@ -2155,7 +2163,7 @@ class CfgToBackend(object):
         self.update_later('host', '_templates')
         self.update_later('host', 'parents')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add hostdependencys ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding hosts dependencies...", forced=True)
         data_later = [
             {
                 'field': 'hosts', 'type': 'list',
@@ -2181,7 +2189,7 @@ class CfgToBackend(object):
         schema = hostdependency.get_schema()
         self.manage_resource('hostdependency', data_later, 'name', schema)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add hostgroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding hosts groups...", forced=True)
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -2205,7 +2213,7 @@ class CfgToBackend(object):
         self.update_later('hostgroup', '_parent')
         self.update_later('hostgroup', 'hostgroups')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add hostescalations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding hosts escalations...", forced=True)
         data_later = [
             {
                 'field': 'users', 'type': 'list',
@@ -2222,7 +2230,7 @@ class CfgToBackend(object):
         # ------------------------------
         # Service part
         # ------------------------------
-        print("~~~~~~~~~~~~~~~~~~~~~~ add service templates ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding services templates...", forced=True)
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
@@ -2286,7 +2294,7 @@ class CfgToBackend(object):
         self.manage_resource('service', data_later, 'name', schema, template=True)
         self.update_later('service', '_templates')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add services ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding services...", forced=True)
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
@@ -2354,7 +2362,7 @@ class CfgToBackend(object):
         self.manage_resource('service', data_later, 'service_description', schema)
         self.update_later('service', '_templates')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add servicedependencys ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding services dependencies...", forced=True)
         data_later = [
             {
                 'field': 'hosts', 'type': 'list',
@@ -2388,7 +2396,7 @@ class CfgToBackend(object):
         schema = servicedependency.get_schema()
         self.manage_resource('servicedependency', data_later, 'name', schema)
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add servicegroups ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding services groups...", forced=True)
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
@@ -2408,7 +2416,7 @@ class CfgToBackend(object):
         self.update_later('servicegroup', '_parent')
         self.update_later('servicegroup', 'servicegroups')
 
-        print("~~~~~~~~~~~~~~~~~~~~~~ add serviceescalations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        self.output("Adding services escalations...", forced=True)
         data_later = [
             {
                 'field': 'users', 'type': 'list',
@@ -2424,24 +2432,24 @@ class CfgToBackend(object):
 
     def log(self, message):
         """
+        Display message if in very verbose mode
+
+        :param message: message to display
+        :type message: str
+        :return: None
+        """
+        if self.very_verbose:
+            self.output(message, forced=True)
+
+    def output(self, message, forced=False):
+        """
         Display message if in verbose mode
 
         :param message: message to display
         :type message: str
         :return: None
         """
-        if self.verbose:
-            self.output(message)
-
-    def output(self, message):
-        """
-        Display message if in verbose mode
-
-        :param message: message to display
-        :type message: str
-        :return: None
-        """
-        if not self.quiet:
+        if forced or (not self.quiet and self.verbose):
             print(message)
 
 
@@ -2453,7 +2461,7 @@ def main():
 
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("alignak_backend_import, version: %s" % __version__)
+    print("alignak-backend-import, version: %s" % __version__)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
@@ -2461,61 +2469,65 @@ def main():
     if not fill.result:
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-        print("alignak_backend_import, some problems were encountered during importation")
+        print("alignak-backend-import, some problems were encountered during importation")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("Exiting with error code: 4")
         fill.exit(4)
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+    fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
     if len(fill.inserted):
-        print("alignak_backend_import, inserted elements: ")
+        fill.output("alignak-backend-import, inserted elements: ", forced=True)
         for object_type in sorted(fill.inserted):
             count = len(fill.inserted[object_type])
             if '%s_template' % object_type in fill.inserted:
                 count = count - len(fill.inserted['%s_template' % object_type])
             if count:
-                print(" - %s %s(s)" % (count, object_type))
+                fill.output(" - %s %s(s)" % (count, object_type), forced=True)
             else:
-                print(" - no %s(s)" % object_type)
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                fill.output(" - no %s(s)" % object_type, forced=True)
+        fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
+
     if len(fill.ignored):
-        print("alignak_backend_import, ignored elements: ")
+        fill.output("alignak-backend-import, ignored elements: ", forced=True)
         for object_type in sorted(fill.ignored):
             count = len(fill.ignored[object_type])
             if '%s_template' % object_type in fill.ignored:
                 count = count - len(fill.ignored['%s_template' % object_type])
             if count:
-                print(" - %s %s(s)" % (count, object_type))
+                fill.output(" - %s %s(s)" % (count, object_type), forced=True)
             else:
-                print(" - no %s(s)" % object_type)
+                fill.output(" - no %s(s)" % object_type, forced=True)
             for elt in sorted(fill.ignored[object_type]):
-                print("   %s: %s" % (object_type, fill.ignored[object_type][elt]))
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                fill.output("   %s: %s" % (object_type, fill.ignored[object_type][elt]),
+                            forced=True)
+        fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
     if len(fill.updated):
-        print("alignak_backend_import, updated elements: ")
+        self.output("alignak-backend-import, updated elements: ", forced=True)
         for object_type in sorted(fill.updated):
             count = len(fill.updated[object_type])
             if '%s_template' % object_type in fill.updated:
                 count = count - len(fill.updated['%s_template' % object_type])
             if count:
-                print(" - %s %s(s)" % (count, object_type))
+                fill.output(" - %s %s(s)" % (count, object_type), forced=True)
             else:
-                print(" - no %s(s)" % object_type)
+                fill.output(" - no %s(s)" % object_type, forced=True)
             for elt in sorted(fill.updated[object_type]):
-                print("   %s: %s" % (object_type, fill.updated[object_type][elt]))
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                fill.output("   %s: %s" % (object_type, fill.updated[object_type][elt]),
+                            forced=True)
+        fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
     else:
         if fill.update_backend_data:
-            print("alignak_backend_import, no elements were updated.")
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-                  "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            fill.output("alignak-backend-import, no elements were updated.", forced=True)
+            fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
 
     end = time.time()
-    print("Global configuration import duration: %s" % (end - start))
+    fill.output("Global configuration import duration: %s" % (end - start), forced=True)
 
 
 if __name__ == "__main__":  # pragma: no cover
