@@ -88,7 +88,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                    {u'friday': u'09:00-12:00,14:00-16:00'},
                                    {u'wednesday': u'09:00-17:00'},
                                    {u'thursday': u'09:00-17:00'}],
-                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
             del comm['_id']
@@ -135,7 +135,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                    {u'friday': u'09:00-12:00,14:00-16:00'},
                                    {u'wednesday': u'09:00-18:00'},
                                    {u'thursday': u'09:00-18:00'}],
-                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
             del comm['_id']
@@ -174,7 +174,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                    {u'friday': u'09:00-12:00,14:00-16:00'},
                                    {u'wednesday': u'09:00-18:00'},
                                    {u'thursday': u'09:00-18:00'}],
-                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
             del comm['_id']
@@ -211,7 +211,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                    {u'friday': u'09:00-12:00,14:00-16:00'},
                                    {u'wednesday': u'09:00-17:00'},
                                    {u'thursday': u'09:00-17:00'}],
-                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak_backend_import"
+                   u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
             del comm['_id']
@@ -243,7 +243,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                {u'wednesday': u'09:00-17:00'},
                                {u'thursday': u'09:00-17:00'}],
                u"exclude": [u'us-holidays'], u"is_active": False,
-               u"imported_from": u"alignak_backend_import"}
+               u"imported_from": u"alignak-backend-import"}
         comm = r[2]
         del comm['_links']
         del comm['_id']
@@ -263,7 +263,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                {u'january 1': u'00:00-00:00'},
                                {u'december 25': u'00:00-00:00'}, {u'july 4': u'00:00-00:00'}],
                u"exclude": [], u"is_active": False,
-               u"imported_from": u"alignak_backend_import"}
+               u"imported_from": u"alignak-backend-import"}
         comm = r[3]
         del comm['_links']
         del comm['_id']

@@ -341,7 +341,7 @@ class CfgToBackend(object):
         if not self.dummy_host:
             self.output("**********")
             self.output("No _dummy host found in the backend. "
-                  "Importing service models may raise errors!")
+                        "Importing service models may raise errors!")
             self.output("**********")
 
         end = time.time()
@@ -1367,7 +1367,8 @@ class CfgToBackend(object):
                             item['_realm'] = item['realm']
                     item.pop('realm', None)
 
-                if item['_realm'] == self.realm_all:
+                if item['_realm'] == self.realm_all and r_name not in ['host', 'hostgroup',
+                                                                       'service', 'servicegroup']:
                     item['_sub_realm'] = True
 
             # Special process for custom variables
@@ -2506,7 +2507,7 @@ def main():
         fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
     if len(fill.updated):
-        self.output("alignak-backend-import, updated elements: ", forced=True)
+        fill.output("alignak-backend-import, updated elements: ", forced=True)
         for object_type in sorted(fill.updated):
             count = len(fill.updated[object_type])
             if '%s_template' % object_type in fill.updated:
