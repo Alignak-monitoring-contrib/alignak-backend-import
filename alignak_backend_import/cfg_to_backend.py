@@ -1146,6 +1146,18 @@ class CfgToBackend(object):
                 ))
                 ug.properties['_parent'] = ug._parent
             elements = ugs
+        elif r_name == 'realm':
+            # Create a parent relation between the realms (this relation does not exist anymore...)
+            realms = getattr(self.arbiter.conf, 'realms')
+            for _realm in realms:
+                # Create a parent relation between the realms
+                # (this relation does not exist anymore...)
+                for pp_realm in getattr(self.arbiter.conf, 'realms'):
+                    if pp_realm.realm_members and _realm.get_name() in pp_realm.realm_members:
+                        _realm.higher_realms = [pp_realm.get_name()]
+                        break
+            elements = realms
+
         else:
             elements = getattr(self.arbiter.conf, alignak_resource)
 
