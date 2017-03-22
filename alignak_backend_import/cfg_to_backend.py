@@ -1448,6 +1448,7 @@ class CfgToBackend(object):
                 if template and item_obj.is_tpl():
                     self.output("Host is a template ...")
                     item['_is_template'] = True
+                    item['_sub_realm'] = True
                     if 'check_command' not in item:
                         item['check_command'] = ''
 
