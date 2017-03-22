@@ -1017,3 +1017,37 @@ class TestServices(unittest2.TestCase):
         print("Found services: ")
         for service in services:
             print("-", service['name'])
+
+    def test_services_hostgroup(self):
+        """Tests services / hostgroups (issue #65)"""
+        # Import and insert the templates into the backend (--model)
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete',
+                              'alignak_cfg_files/issue65.cfg'])
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        self.assertEqual(exit_code, 0)
+
+        # Get all hostgroups
+        result = self.backend.get_all('hostgroup')
+        hostgroups = result['_items']
+        self.assertEqual(len(hostgroups), 2)
+        print("Found hostgroups: ")
+        for hostgroup in hostgroups:
+            print("-", hostgroup['name'])
+
+        # Get all hosts
+        result = self.backend.get_all('host', params={'where': json.dumps({'_is_template': False})})
+        hosts = result['_items']
+        self.assertEqual(len(hosts), 3)
+        print("Found hosts: ")
+        for host in hosts:
+            print("-", host['name'])
+
+        # Get all services
+        result = self.backend.get_all('service',
+                                      params={'where': json.dumps({'_is_template': False})})
+        services = result['_items']
+        self.assertEqual(len(services), 3)
+        print("Found services: ")
+        for service in services:
+            print("-", service['name'])
