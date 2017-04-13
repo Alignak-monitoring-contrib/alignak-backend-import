@@ -1219,17 +1219,12 @@ class CfgToBackend(object):
             #  - admin user (managed later...)
 
             #  - default timeperiod
-            if r_name == 'timeperiod' and item[id_name] == "24x7":
+            if r_name == 'timeperiod' and item[id_name].lower() in ["24x7", "always"]:
                 self.output("-> do not change anything for default timeperiod.")
                 self.al_always = item_obj.uuid
                 continue
 
-            if r_name == 'timeperiod' and item[id_name] == "none":
-                self.al_none = item_obj.uuid
-                self.output("-> do not change anything for default timeperiod.")
-                continue
-
-            if r_name == 'timeperiod' and item[id_name] == "Never":
+            if r_name == 'timeperiod' and item[id_name].lower() in ["none", "never"]:
                 self.al_never = item_obj.uuid
                 self.output("-> do not change anything for default timeperiod.")
                 continue
@@ -1499,6 +1494,23 @@ class CfgToBackend(object):
 
             # Special case of hosts
             if r_name == 'host':
+                if 'display_name' in item and item['display_name']:
+                    if 'alias' not in item or not item['alias']:
+                        item['alias'] = item['display_name']
+
+                deprecated_fields = ['display_name', 'icon_image', 'icon_image_alt', 'icon_set',
+                                     'vrml_image', 'statusmap_image', '2d_coords', '3d_coords',
+                                     'custom_views']
+                for deprecated_field in deprecated_fields:
+                    if deprecated_field in item:
+                        if item[deprecated_field]:
+                            item['customs']['_' + deprecated_field.upper()] = item[deprecated_field]
+
+                        self.output("  removing '%s = %s' field from the %s '%s'"
+                                    % (deprecated_field, item[deprecated_field],
+                                       r_name, item['name']))
+                        item.pop(deprecated_field)
+
                 if template and item_obj.is_tpl():
                     self.output("Host is a template ...")
                     item['_is_template'] = True
@@ -1533,6 +1545,22 @@ class CfgToBackend(object):
 
             # Special case of services
             if r_name == 'service':
+                if 'display_name' in item and item['display_name']:
+                    if 'alias' not in item or not item['alias']:
+                        item['alias'] = item['display_name']
+
+                deprecated_fields = ['display_name', 'icon_image', 'icon_image_alt', 'icon_set',
+                                     'custom_views']
+                for deprecated_field in deprecated_fields:
+                    if deprecated_field in item:
+                        if item[deprecated_field]:
+                            item['customs']['_' + deprecated_field.upper()] = item[deprecated_field]
+
+                        self.output("  removing '%s = %s' field from the %s '%s'"
+                                    % (deprecated_field, item[deprecated_field],
+                                       r_name, item['name']))
+                        item.pop(deprecated_field)
+
                 if template and item_obj.is_tpl():
                     self.output("Service is a template ...")
                     item['_is_template'] = True
