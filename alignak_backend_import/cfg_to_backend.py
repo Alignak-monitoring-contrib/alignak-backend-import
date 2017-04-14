@@ -1888,7 +1888,7 @@ class CfgToBackend(object):
                         r_name, item['name']
                     ))
                 response = self.backend.get(r_name, params=params)
-                if len(response['_items']) > 0:
+                if response['_items']:
                     # Still exists in the backend, log and continue...
                     if r_name not in self.ignored:
                         self.ignored[r_name] = {}
@@ -1918,7 +1918,7 @@ class CfgToBackend(object):
                             'host': item['host']
                         })}
                     response = self.backend.get(r_name, params=params)
-                    if len(response['_items']) > 0:
+                    if response['_items']:
                         response = response['_items'][0]
 
                         # Exists in the backend, we can update...
@@ -2598,7 +2598,7 @@ def main():
 
     fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
-    if len(fill.inserted):
+    if fill.inserted:
         fill.output("alignak-backend-import, inserted elements: ", forced=True)
         for object_type in sorted(fill.inserted):
             count = len(fill.inserted[object_type])
@@ -2611,7 +2611,7 @@ def main():
         fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
 
-    if len(fill.ignored):
+    if fill.ignored:
         fill.output("alignak-backend-import, ignored elements: ", forced=True)
         for object_type in sorted(fill.ignored):
             count = len(fill.ignored[object_type])
@@ -2626,7 +2626,7 @@ def main():
                             forced=True)
         fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
-    if len(fill.updated):
+    if fill.updated:
         fill.output("alignak-backend-import, updated elements: ", forced=True)
         for object_type in sorted(fill.updated):
             count = len(fill.updated[object_type])
