@@ -520,7 +520,9 @@ class TestCfgToBackend(unittest2.TestCase):
         print("Found hosts: ")
         for host in hosts:
             print("- %s, customs: %s" % (host['name'], host['customs']))
-            self.assertEqual(host['customs'], {u'_LOC_LAT': u'45.054700', u'_LOC_LNG': u'5.080856'})
+            self.assertEqual(host['customs'], {
+                u'_DISPLAY_NAME': u'srv01', u'_LOC_LAT': u'45.054700', u'_LOC_LNG': u'5.080856'
+            })
 
 
 class TestContactsNW(unittest2.TestCase):
@@ -683,7 +685,8 @@ class TestContacts(unittest2.TestCase):
             # Except the admin user, all are tagged with the generic-contact
             if user['name'] != 'admin':
                 self.assertEqual(user['_templates'], [self.generic_contact])
-                self.assertEqual(user['tags'], ['generic-contact'])
+                # Tags remain empty
+                self.assertEqual(user['tags'], [])
 
     def test_user_direct_notification(self):
         """Test user direct notifications"""
@@ -872,13 +875,15 @@ class TestHosts(unittest2.TestCase):
             if host['name'] in ['template03']:
                 self.assertEqual(host['_is_template'], True)
                 self.assertEqual(host['_templates'], [self.template2])
-                self.assertEqual(host['tags'], ['template02'])
+                # Tags remain empty
+                self.assertEqual(host['tags'], [])
                 continue
 
             self.assertEqual(host['_is_template'], False)
             if host['name'] == 'srv01':
                 self.assertEqual(host['_templates'], [self.template1, self.template3])
-                self.assertEqual(host['tags'], ['template01', 'template03'])
+                # Tags remain empty
+                self.assertEqual(host['tags'], [])
 
     def test_host_with_double_template(self):
 

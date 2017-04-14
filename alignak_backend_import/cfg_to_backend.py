@@ -263,8 +263,8 @@ class CfgToBackend(object):
                 self.exit(3)
 
             end = time.time()
-            self.output("Elapsed time after Arbiter has loaded the configuration: %s" % (end - start),
-                        forced=True)
+            self.output("Elapsed time after Arbiter has loaded the configuration: %s"
+                        % (end - start), forced=True)
 
         # Authenticate on Backend
         self.authenticate()
@@ -1744,18 +1744,14 @@ class CfgToBackend(object):
             # ------------------------------------------------------------
             # - Template link...
             if 'use' in item:
-                # As of #95 in the alignak-backend, interesting to get used as tags ...
+                # Set 'used' templates as templates...
                 if item['use'] and r_name in ['host', 'service', 'user']:
-                    item['tags'] = item['use']
                     item['_templates'] = item['use']
-                    self.output("Set item 'tags' as: %s" % item['tags'])
                 self.log("removed 'use' field from: %s : %s:" % (r_name, item))
                 item.pop('use')
             else:
                 if r_name in ['host', 'service', 'user']:
-                    item['tags'] = []
                     item['_templates'] = []
-                    self.output("Set item 'tags' as: %s" % item['tags'])
 
             self.output("Creating links with other objects (data_later)")
             for dummy, values in enumerate(data_later):
