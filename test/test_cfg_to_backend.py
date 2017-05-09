@@ -568,6 +568,7 @@ class TestContactsNW(unittest2.TestCase):
         print("Stopping Alignak backend...")
         cls.backend_process.kill()
         print("Stopped")
+
     def test_user_notification_ways(self):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py', '--delete', '--quiet',
                               'alignak_cfg_files/users.cfg'])
@@ -598,7 +599,7 @@ class TestContactsNW(unittest2.TestCase):
         for user in users:
             print("-", user['name'])
             if user['name'] == 'admin':
-                self.assertEqual(user['is_admin'], False)
+                self.assertEqual(user['is_admin'], True)
                 self.assertEqual(user['back_role_super_admin'], True)
             else:
                 self.assertEqual(user['back_role_super_admin'], False)
@@ -716,7 +717,7 @@ class TestContacts(unittest2.TestCase):
         for user in users:
             print("-", user['name'], user)
             if user['name'] == 'admin':
-                self.assertEqual(user['is_admin'], False)
+                self.assertEqual(user['is_admin'], True)
                 self.assertEqual(user['back_role_super_admin'], True)
                 self.assertEqual(user['can_update_livestate'], True)
             else:
