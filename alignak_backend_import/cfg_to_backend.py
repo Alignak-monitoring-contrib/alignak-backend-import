@@ -1193,8 +1193,16 @@ class CfgToBackend(object):
                 self.output("- importing %s template #%d: %s"
                             % (r_name, count, item_obj.get_name()), forced=True)
             else:
-                self.output("- importing %s #%d: %s"
-                            % (r_name, count, item_obj.get_name()), forced=True)
+                if r_name == 'service':
+                    service_host_name = item_obj.host_name
+                    if item_obj.host_name in self.inserted['host']:
+                        service_host_name = self.inserted['host'][item_obj.host_name]
+                    self.output("- importing %s #%d: %s/%s"
+                                % (r_name, count, service_host_name,
+                                   item_obj.get_name()), forced=True)
+                else:
+                    self.output("- importing %s #%d: %s"
+                                % (r_name, count, item_obj.get_name()), forced=True)
             count += 1
 
             # Only deal with properties,
