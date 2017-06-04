@@ -80,7 +80,7 @@ setup(
     author=__author__,
     author_email=__author_email__,
     keywords="alignak REST backend import tool",
-    url="https://github.com/Alignak-monitoring-contrib/alignak-webui",
+    url="https://github.com/Alignak-monitoring-contrib/alignak-backend-import",
     description=package.__doc__.strip(),
     long_description=open('README.rst').read(),
 
