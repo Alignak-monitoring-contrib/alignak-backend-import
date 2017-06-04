@@ -39,7 +39,7 @@ alignak-backend-import command line interface::
         -v, --verbose               Run in verbose mode (more info displayed)
         -2, --very-verbose          Run in very verbose mode (more more info displayed ;)
         -q, --quiet                 Run in quiet mode (almost nothing displayed)
-        -g, --gps lat,lng           Specify default GPS location [default: 46.60611,1.87528]
+        -g, --gps lat,lng           Specify default GPS location [default: 48.858293, 2.294601]
 
     Use cases:
         Display help message:
@@ -202,7 +202,7 @@ class CfgToBackend(object):
         self.log("Allowing duplicate objects: %s" % self.allow_duplicates)
         self.output("Allowing duplicate objects: %s" % self.allow_duplicates, forced=True)
 
-        self.gps = {"type": "Point", "coordinates": [46.60611, 1.87528]}
+        self.gps = {"type": "Point", "coordinates": [48.858293, 2.294601]}
         if '--gps' in args:
             point = args['--gps'].split(',')
             self.gps.coordinates = point
