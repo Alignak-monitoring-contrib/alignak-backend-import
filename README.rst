@@ -27,9 +27,7 @@ Alignak Backend import
 Short description
 -----------------
 
-This package contains an utility tool `alignak_backend_import` that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
-
-It also contains a backend client CLI that allows to make some simple operations with the backend.
+This package contains an utility tool `alignak-backend-import` that allows to import a Nagios-like flat files monitoring configuration into an Alignak Backend.
 
 Release strategy
 ----------------
@@ -40,20 +38,12 @@ ensure compatibility between all the packages. Use 0.4.x version of Backend impo
 client with a 0.4.x version of the Backend.
 
 
-Backend client CLI
-------------------
+Alignak backend import
+----------------------
 
-This simple script may be used to make simple operations with the Alignak backend:
+The `alignak-backend-import` script may be used to import a Nagios like flat-files configuration into the Alignak backend.
 
-- create a new element based (or not) on a template
-
-- update a backend element
-
-- delete an element
-
-- get an element and dump its properties to the console or a file (in /tmp)
-
-- get (and dump) a list of elements
+The online `documentation<http://alignak-backend-import.readthedocs.io/en/latest/utilities.html#alignak-backend-importation>`_ exaplins all the command line parameters that may be used.
 
 A simple usage example for this script:
 ::
@@ -61,9 +51,10 @@ A simple usage example for this script:
     # Assuming that you installed: alignak, alignak-backend and alignak-backend-import
 
     # From the root of this repository
-    cd tests/cfg_passive_templates
+    cd tests/alignak_cfg_files
     # Import the test configuration in the Alignak backend
-    alignak-backend-import -d -m ./cfg_passive_templates.cfg
+    alignak-backend-import -d -m ./alignak-demo/alignak-backend-import.cfg
+
     # The script imports the configuration and makes some console logs:
         alignak_backend_import, inserted elements:
         - 6 command(s)
@@ -82,7 +73,7 @@ A simple usage example for this script:
         - 2 user(s)
         - 3 usergroup(s)
 
-    # Get an host from the backend
+    # To confirm, you easily can get an host from the backend
     backend_client -t host get test_host_0
 
     # The script dumps the json host on the console and creates a file: */tmp/alignak-object-dump-host-test_host_0.json*
@@ -100,7 +91,7 @@ A simple usage example for this script:
         ...
     }
 
-    # Get the list of all hosts from the backend
+    # Get the list of all imported hosts from the backend
     backend_client --list -t host get
 
     # The script dumps the json list of hosts on the console and creates a file: */tmp/alignak-object-list-hosts.json*
@@ -117,27 +108,6 @@ A simple usage example for this script:
         },
         ...
     }
-
-    # Create an host into the backend
-    backend_client -T windows-nsca-host -t host add myHost
-    # The script inform on the console
-        Created host 'myHost'
-
-    # Create an host into the backend with extra data
-    backend_client -T windows-nsca-host -t host --data='/tmp/create_data.json' add myHost
-    # The script reads the JSON content of the file /tmp/create_data.json and tries to create
-    # the host named myHost with the template and the read data
-
-    # Update an host into the backend
-    backend_client -t host --data='/tmp/update_data.json' update myHost
-    # The script reads the JSON content of the file /tmp/update_data.json and tries to update
-    # the host named myHost with the read data
-
-    # Delete an host from the backend
-    backend_client -T windows-nsca-host -t host delete myHost
-    # The script inform on the console
-        Deleted host 'myHost'
-
 
 Bugs, issues and contributing
 -----------------------------
