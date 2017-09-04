@@ -789,34 +789,64 @@ class CfgToBackend(object):
         for prop in source:
             # Notification ways
             if prop == 'notificationways':
+                self.output("  The user has some NWs: %s" % (source[prop]))
+                if 'host_notification_commands' in source:
+                    self.output("  The user has some host notification commands:")
+                    for c in source['host_notification_commands']:
+                        self.output("  - %s" % c.get_name())
+                if 'service_notification_commands' in source:
+                    self.output("  The user has some service notification commands:")
+                    for c in source['service_notification_commands']:
+                        self.output("  - %s" % c.get_name())
                 nws = getattr(self.arbiter.conf, 'notificationways')
-                for nw in nws:
-                    # Update user information with the notification way properties
-                    addprop['host_notifications_enabled'] = nw.host_notifications_enabled
-                    addprop['service_notifications_enabled'] = nw.service_notifications_enabled
-                    if nw.host_notification_period == self.al_always:
-                        addprop['host_notification_period'] = self.tp_always
-                    elif nw.host_notification_period == self.al_none:
-                        addprop['host_notification_period'] = self.tp_never
-                    elif nw.host_notification_period == self.al_never:
-                        addprop['host_notification_period'] = self.tp_never
-                    else:
-                        addprop['host_notification_period'] = nw.host_notification_period
-                    if nw.service_notification_period == self.al_always:
-                        addprop['service_notification_period'] = self.tp_always
-                    elif nw.service_notification_period == self.al_none:
-                        addprop['service_notification_period'] = self.tp_never
-                    elif nw.service_notification_period == self.al_never:
-                        addprop['service_notification_period'] = self.tp_never
-                    else:
-                        addprop['service_notification_period'] = nw.service_notification_period
-                    addprop['host_notification_options'] = nw.host_notification_options
-                    addprop['service_notification_options'] = nw.service_notification_options
-                    addprop['host_notification_commands'] = nw.host_notification_commands
-                    addprop['service_notification_commands'] = nw.service_notification_commands
-                    addprop['min_business_impact'] = nw.min_business_impact
-                    # Ignore other defined NW
-                    break
+                for user_nw in source[prop]:
+                    for nw in nws:
+                        if user_nw not in [nw.uuid, nw.get_name()]:
+                            continue
+                        self.output("  - found a matching NW: %s" % (nw.get_name()))
+
+                        # Update user information with the notification way properties
+                        addprop['host_notifications_enabled'] = nw.host_notifications_enabled
+                        addprop['service_notifications_enabled'] = nw.service_notifications_enabled
+                        if nw.host_notification_period == self.al_always:
+                            addprop['host_notification_period'] = self.tp_always
+                        elif nw.host_notification_period == self.al_none:
+                            addprop['host_notification_period'] = self.tp_never
+                        elif nw.host_notification_period == self.al_never:
+                            addprop['host_notification_period'] = self.tp_never
+                        else:
+                            addprop['host_notification_period'] = nw.host_notification_period
+                        if nw.service_notification_period == self.al_always:
+                            addprop['service_notification_period'] = self.tp_always
+                        elif nw.service_notification_period == self.al_none:
+                            addprop['service_notification_period'] = self.tp_never
+                        elif nw.service_notification_period == self.al_never:
+                            addprop['service_notification_period'] = self.tp_never
+                        else:
+                            addprop['service_notification_period'] = nw.service_notification_period
+                        addprop['host_notification_options'] = nw.host_notification_options
+                        addprop['service_notification_options'] = nw.service_notification_options
+                        if 'host_notification_commands' in source:
+                            addprop['host_notification_commands'] = \
+                                source['host_notification_commands']
+                            addprop['host_notification_commands'].extend(
+                                nw.host_notification_commands)
+                        else:
+                            addprop['host_notification_commands'] = nw.host_notification_commands
+                        if 'service_notification_commands' in source:
+                            addprop['service_notification_commands'] = \
+                                source['service_notification_commands']
+                            addprop['service_notification_commands'].extend(
+                                nw.service_notification_commands)
+                        else:
+                            addprop['service_notification_commands'] = \
+                                nw.service_notification_commands
+                        addprop['min_business_impact'] = nw.min_business_impact
+
+                        self.output("  updating user notifications with NW data: %s" % addprop,
+                                    forced=True)
+                        # And then ignore other defined NW
+                        break
         source.update(addprop)
 
         # Second iteration after update of notification ways (#19)
@@ -1634,6 +1664,17 @@ class CfgToBackend(object):
                     item.pop('expert')
                 # Waiting for manage the notification ways in the backend
                 # Delete (temporarily...) this property
+                if 'notificationways' in item:
+                    # Make commands a unique list
+                    item['host_notification_commands'] = \
+                        list(set(item['host_notification_commands']))
+                    item['service_notification_commands'] = \
+                        list(set(item['service_notification_commands']))
+
+                    self.output("  User host notification commands: %s"
+                                % item['host_notification_commands'])
+                    self.output("  User service notification commands: %s"
+                                % item['service_notification_commands'])
                 item.pop('notificationways')
 
                 if 'contact_name' in item:
