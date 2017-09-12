@@ -2,7 +2,7 @@ language: python
 sudo: true
 python:
   - "2.7"
-#  - "3.4"
+  # - "3.4"
 
 services:
   - mongodb
@@ -11,13 +11,19 @@ services:
 # some are only used for travis/coveralls so we are installing them here only
 install:
   - bash setup_test.sh
-
+# command to run tests
+# notice: the nose-cov is used because it is compatible with --processes, but produce a .coverage by process
+# so we must combine them in the end
 script:
-  - pip freeze  # so to help eventual debug: know what exact versions are in use can be rather useful.
+  # so to help eventual debug: knowing what exact versions are in use can be rather useful.
+  - pip freeze
+  # Code static analysis
   - pep8 --max-line-length=100 --exclude='*.pyc, *.cfg, *.log' --ignore='E402' alignak_backend_import/*
   - pylint --rcfile=.pylintrc alignak_backend_import/*
   - pep257 --select=D300 alignak_backend_import
+  # Code dynamic analysis
   - cd test
   # No coverage tests
-  - nosetests -xv --nologcapture --process-restartworker --processes=1 --process-timeout=300 test*.py
+#  - nosetests -xv --process-restartworker --processes=1 --process-timeout=300 test*.py
+  - pytest test_*.py
   - cd ..

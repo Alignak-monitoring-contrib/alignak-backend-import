@@ -1,14 +1,21 @@
-# this is the requirements dedicated to tests.
+# Python requirements for unit tests
 unittest2
-mock
-nose
+# Web test
+webtest
+# Use py.test as test-runner
+pytest
+pytest-cov
+# Let coverage use the most recent version
+coverage
+# Report coverage results to coveralls.io
+coveralls
+# Static code analysis libraries
 pylint
 pep8
 pep257
+# uWSGI server
 uwsgi
-# alignak
--e git+https://github.com/Alignak-monitoring/alignak.git@develop#egg=alignak
-# alignak_backend
+# alignak (most recent develop)
+-e git+git://github.com/Alignak-monitoring/alignak.git@develop#egg=alignak
+# alignak_backend (most recent develop)
 -e git+git://github.com/Alignak-monitoring-contrib/alignak-backend.git@develop#egg=alignak_backend
-# alignak_backend_client
--e git+git://github.com/Alignak-monitoring-contrib/alignak-backend-client.git@develop#egg=alignak_backend_client

@@ -1,3 +1,5 @@
+# Specific requirements for building the doc on read the docs
+
 docopt
 future
 # Include Alignak and satellite projects in the requirements (Git develop branches)

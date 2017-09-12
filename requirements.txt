@@ -1,5 +1,6 @@
 docopt
 future
+alignak-backend-client
 # Do not include Alignak in the requirements
 # alignak
 # -e git+git://github.com/Alignak-monitoring/alignak.git@develop#egg=alignak
