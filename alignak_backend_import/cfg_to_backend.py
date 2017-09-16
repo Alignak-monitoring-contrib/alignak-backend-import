@@ -531,18 +531,11 @@ class CfgToBackend(object):
             self.exit(5)
 
         try:
-            self.output("Deleting hosts retention data")
+            self.output("Deleting Alignak retention data")
             if not self.dry_run:
-                self.backend.delete('hostretention', headers)
+                self.backend.delete('alignakretention', headers)
         except BackendException as e:
-            print("Host retention not present")
-
-        try:
-            self.output("Deleting services retention data")
-            if not self.dry_run:
-                self.backend.delete('serviceretention', headers)
-        except BackendException as e:
-            print("Service retention not present")
+            print("Alignak retention does not exist.")
 
     def build_templates(self):
         """
