@@ -39,8 +39,7 @@ def teardown_module(module):
 class TestCfgToBackend(unittest2.TestCase):
 
     def testImportShinken1(self):
-        """
-        Import a complete shinken configuration
+        """Import a complete shinken configuration
         :return:
         """
         print ("Feeding backend...")
@@ -56,8 +55,7 @@ class TestCfgToBackend(unittest2.TestCase):
         assert exit_code == 0
 
     def testImportAlignakDemo(self):
-        """
-        Import the alignak demo server configuration
+        """Import the alignak demo server configuration
 
         :return:
         """
@@ -74,8 +72,7 @@ class TestCfgToBackend(unittest2.TestCase):
         assert exit_code == 0
 
     def testImportAlignak1(self):
-        """
-        Import the alignak demo server configuration (updated after log + arbiter interface
+        """Import the alignak default configuration (updated after log + arbiter interface
         modification)
 
         :return:
@@ -86,6 +83,23 @@ class TestCfgToBackend(unittest2.TestCase):
                               '--delete',
                               '--quiet',
                               'alignak_cfg_files/alignak_most_recent/alignak-backend-import.cfg'],
+                             stdout=fnull)
+        (_, _) = q.communicate()
+        exit_code = q.wait()
+        print("Exited with: %d" % exit_code)
+        assert exit_code == 0
+
+    def testImportIssue83(self):
+        """Import the alignak configuration that raised #83
+
+        :return:
+        """
+        print ("Feeding backend...")
+        fnull = open(os.devnull, 'w')
+        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
+                              '--delete',
+                              # '--quiet',
+                              'alignak_cfg_files/issue_83/imported.cfg'],
                              stdout=fnull)
         (_, _) = q.communicate()
         exit_code = q.wait()

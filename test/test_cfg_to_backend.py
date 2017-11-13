@@ -96,6 +96,7 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_created']
             del comm['_updated']
             del comm['_realm']
+            del comm['schema_version']
             self.assertEqual(comm, ref)
         self.assertTrue(found)
 
@@ -143,6 +144,7 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_created']
             del comm['_updated']
             del comm['_realm']
+            del comm['schema_version']
             self.assertEqual(comm, ref)
         self.assertTrue(found)
 
@@ -182,6 +184,7 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_created']
             del comm['_updated']
             del comm['_realm']
+            del comm['schema_version']
             self.assertEqual(comm, ref)
         self.assertTrue(found)
 
@@ -219,6 +222,7 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_created']
             del comm['_updated']
             del comm['_realm']
+            del comm['schema_version']
             self.assertEqual(comm, ref)
         self.assertTrue(found)
 
@@ -251,6 +255,7 @@ class TestCfgToBackend(unittest2.TestCase):
         del comm['_created']
         del comm['_updated']
         del comm['_realm']
+        del comm['schema_version']
         self.assertItemsEqual(comm, ref)
 
         ref = {u"name": u"us-holidays",
@@ -271,6 +276,7 @@ class TestCfgToBackend(unittest2.TestCase):
         del comm['_created']
         del comm['_updated']
         del comm['_realm']
+        del comm['schema_version']
         self.assertItemsEqual(comm, ref)
 
     def test_host_multiple_link_now(self):

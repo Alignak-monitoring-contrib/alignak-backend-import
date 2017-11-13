@@ -1663,7 +1663,6 @@ class CfgToBackend(object):
                 if 'expert' in item:
                     item.pop('expert')
                 # Waiting for manage the notification ways in the backend
-                # Delete (temporarily...) this property
                 if 'notificationways' in item:
                     # Make commands a unique list
                     item['host_notification_commands'] = \
@@ -1675,7 +1674,9 @@ class CfgToBackend(object):
                                 % item['host_notification_commands'])
                     self.output("  User service notification commands: %s"
                                 % item['service_notification_commands'])
-                item.pop('notificationways')
+
+                    # Delete (temporarily...) this property
+                    item.pop('notificationways')
 
                 if 'contact_name' in item:
                     item['name'] = item[id_name]
