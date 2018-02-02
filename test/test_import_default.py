@@ -26,7 +26,7 @@ def setup_module(module):
 
     print("Starting Alignak backend...")
     fnull = open(os.devnull, 'w')
-    subprocess.Popen(shlex.split('alignak-backend'), stdout=fnull)
+    subprocess.Popen(shlex.split('alignak-backend'))
     print("Started")
 
 
@@ -46,9 +46,8 @@ class TestCfgToBackend(unittest2.TestCase):
         fnull = open(os.devnull, 'w')
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
                               '--delete',
-                              '--quiet',
-                              'shinken_cfg_files/default/_main.cfg'],
-                             stdout=fnull)
+                              # '--quiet',
+                              'shinken_cfg_files/default/_main.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         print("Exited with: %d" % exit_code)
@@ -64,8 +63,7 @@ class TestCfgToBackend(unittest2.TestCase):
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
                               '--delete',
                               # '--quiet',
-                              'alignak_cfg_files/alignak-demo/alignak-backend-import.cfg'],
-                             stdout=fnull)
+                              'alignak_cfg_files/alignak-demo/alignak-backend-import.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         print("Exited with: %d" % exit_code)
@@ -81,9 +79,8 @@ class TestCfgToBackend(unittest2.TestCase):
         fnull = open(os.devnull, 'w')
         q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
                               '--delete',
-                              '--quiet',
-                              'alignak_cfg_files/alignak_most_recent/alignak-backend-import.cfg'],
-                             stdout=fnull)
+                              # '--quiet',
+                              'alignak_cfg_files/alignak_most_recent/alignak-backend-import.cfg'])
         (_, _) = q.communicate()
         exit_code = q.wait()
         print("Exited with: %d" % exit_code)
