@@ -18,6 +18,7 @@ class TestCfgToBackend(unittest2.TestCase):
         # Set test mode for applications backend
         os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
+        os.environ['ALIGNAK_BACKEND_CONFIGURATION_FILE'] = './cfg/settings/settings.json'
 
         # Delete used mongo DBs
         exit_code = subprocess.call(
@@ -34,6 +35,12 @@ class TestCfgToBackend(unittest2.TestCase):
         fnull = open(os.devnull, 'w')
         cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
         print("Started as %s" % cls.backend_process.pid)
+
+        # cls.p = subprocess.Popen(['uwsgi', '--plugin', 'python', '-w', 'alignak_backend.app:app',
+        #                           '--socket', '0.0.0.0:5000',
+        #                           '--protocol=http', '--enable-threads', '--pidfile',
+        #                           '/tmp/uwsgi.pid'])
+        # time.sleep(3)
 
         time.sleep(3)
 
@@ -53,7 +60,8 @@ class TestCfgToBackend(unittest2.TestCase):
         :return: None
         """
         print("Stopping Alignak backend...")
-        cls.backend_process.kill()
+        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
+        time.sleep(2)
         print("Stopped")
 
     @classmethod

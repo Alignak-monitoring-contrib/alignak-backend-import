@@ -1467,6 +1467,10 @@ class CfgToBackend(object):
 
             # Special case of servicedependency
             if r_name == 'servicedependency':
+                # Not useful to store this property into the backend
+                if 'explode_hostgroup' in item:
+                    item.pop('explode_hostgroup')
+
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1485,6 +1489,14 @@ class CfgToBackend(object):
                 if 'dependent_hostgroup_name' in item:
                     item['dependent_hostgroups'] = item['dependent_hostgroup_name']
                     item.pop('dependent_hostgroup_name')
+                # Not useful to store this property into the backend: not managed by Alignak!
+                if 'servicegroup_name' in item:
+                    # item['servicegroups'] = item['servicegroup_name']
+                    item.pop('servicegroup_name')
+                # Not useful to store this property into the backend: not managed by Alignak!
+                if 'dependent_servicegroup_name' in item:
+                    # item['dependent_servicegroups'] = item['dependent_servicegroup_name']
+                    item.pop('dependent_servicegroup_name')
 
                 if 'dependency_period' not in item or not item['dependency_period']:
                     item['dependency_period'] = self.tp_always
