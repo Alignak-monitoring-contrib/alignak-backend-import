@@ -9,14 +9,14 @@
     an Alignak REST backend.
 """
 # Application version and manifest
-VERSION = (1, 0, 1)
+VERSION = (1, 1, 0)
 
 __application__ = u"Alignak backend import"
 __short_version__ = '.'.join((str(each) for each in VERSION[:2]))
 __version__ = '.'.join((str(each) for each in VERSION[:4]))
 __author__ = u"Frédéric Mohier"
 __author_email__ = u"frederic.mohier@alignak.net"
-__copyright__ = u"(c) 2015-2016, %s" % __author__
+__copyright__ = u"(c) 2015-2018, %s" % __author__
 __license__ = u"GNU Affero General Public License, version 3"
 __description__ = u"Alignak backend import tools"
 __releasenotes__ = u"""Alignak Backend import tools"""

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (C) 2015-2016: Alignak team, see AUTHORS.txt file for contributors
+# Copyright (C) 2015-2018: Alignak team, see AUTHORS.txt file for contributors
 #
 # This file is part of Alignak Backend Import.
 #
@@ -85,11 +85,15 @@ from docopt import docopt
 from docopt import DocoptExit
 
 try:
+    from alignak.version import VERSION as ALIGNAK_VERSION
     from alignak.daemons.arbiterdaemon import Arbiter
     from alignak.objects.item import Item
     from alignak.objects.config import Config
-except ImportError:
+except ImportError as exp:
     print("Alignak is not installed...")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Import exception: %s" % str(exp))
+    print("***** Traceback: %s", traceback.format_exc())
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Exiting with error code: 1")
     exit(1)
@@ -531,18 +535,11 @@ class CfgToBackend(object):
             self.exit(5)
 
         try:
-            self.output("Deleting hosts retention data")
+            self.output("Deleting Alignak retention data")
             if not self.dry_run:
-                self.backend.delete('hostretention', headers)
+                self.backend.delete('alignakretention', headers)
         except BackendException as e:
-            print("Host retention not present")
-
-        try:
-            self.output("Deleting services retention data")
-            if not self.dry_run:
-                self.backend.delete('serviceretention', headers)
-        except BackendException as e:
-            print("Service retention not present")
+            print("Alignak retention does not exist.")
 
     def build_templates(self):
         """
@@ -1467,6 +1464,10 @@ class CfgToBackend(object):
 
             # Special case of servicedependency
             if r_name == 'servicedependency':
+                # Not useful to store this property into the backend
+                if 'explode_hostgroup' in item:
+                    item.pop('explode_hostgroup')
+
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1485,6 +1486,14 @@ class CfgToBackend(object):
                 if 'dependent_hostgroup_name' in item:
                     item['dependent_hostgroups'] = item['dependent_hostgroup_name']
                     item.pop('dependent_hostgroup_name')
+                # Not useful to store this property into the backend: not managed by Alignak!
+                if 'servicegroup_name' in item:
+                    # item['servicegroups'] = item['servicegroup_name']
+                    item.pop('servicegroup_name')
+                # Not useful to store this property into the backend: not managed by Alignak!
+                if 'dependent_servicegroup_name' in item:
+                    # item['dependent_servicegroups'] = item['dependent_servicegroup_name']
+                    item.pop('dependent_servicegroup_name')
 
                 if 'dependency_period' not in item or not item['dependency_period']:
                     item['dependency_period'] = self.tp_always
@@ -2633,6 +2642,9 @@ def main():
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("alignak-backend-import, version: %s" % __version__)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Loading configuration for Alignak, version: %s" % ALIGNAK_VERSION)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
