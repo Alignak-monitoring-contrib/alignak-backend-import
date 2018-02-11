@@ -17,10 +17,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Alignak.  If not, see <http://www.gnu.org/licenses/>.
 
-echo 'pep8 ...'
-pep8 --max-line-length=100 --exclude='*.pyc, *.ini'  --ignore='E402' alignak_backend_import/*
+echo 'pycodestyle ...'
+pycodestyle --max-line-length=100 --exclude='*.pyc, *.ini'  --ignore='E402' alignak_backend_import/*
 if [ $? -ne 0 ]; then
-    echo "pep8 not compliant"
+    echo "pycodestyle not compliant"
     exit
 fi
 echo 'pylint ...'
