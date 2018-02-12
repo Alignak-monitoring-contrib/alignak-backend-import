@@ -105,18 +105,3 @@ class TestCfgToBackend(unittest2.TestCase):
         exit_code = q.wait()
         print("Exited with: %d" % exit_code)
         assert exit_code == 0
-
-    def testImportBMar(self):
-        """Import the alignak configuration that raised #83
-
-        :return:
-        """
-        print ("Feeding backend...")
-        fnull = open(os.devnull, 'w')
-        q = subprocess.Popen(['../alignak_backend_import/cfg_to_backend.py',
-                              '--delete',
-                              'alignak_cfg_files/alignak.bmar/myConf/myConf.cfg'])
-        (_, _) = q.communicate()
-        exit_code = q.wait()
-        print("Exited with: %d" % exit_code)
-        assert exit_code == 0
