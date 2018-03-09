@@ -11,7 +11,7 @@ coverage
 coveralls
 # Static code analysis libraries
 pylint
-pep8
+pycodestyle
 pep257
 # uWSGI server
 uwsgi
