@@ -69,7 +69,6 @@ alignak-backend-import command line interface::
             64 if command line parameters are not used correctly
 """
 from __future__ import print_function
-from six import string_types
 import os
 import re
 import time
@@ -77,10 +76,9 @@ import json
 import traceback
 
 from copy import deepcopy
-
 from logging import getLogger, INFO
-
 from future.utils import iteritems
+from six import string_types
 
 from docopt import docopt
 from docopt import DocoptExit
@@ -275,9 +273,9 @@ class CfgToBackend(object):
             if self.alignak_version == '2':
                 # Read and parse the legacy configuration files
                 self.raw_objects = self.raw_conf.read_config_buf(
-                    self.raw_conf.read_legacy_cfg_files(cfg,
-                                                    self.arbiter.alignak_env.cfg_files
-                                                    if self.arbiter.alignak_env else None)
+                    self.raw_conf.read_legacy_cfg_files(
+                        cfg, self.arbiter.alignak_env.cfg_files
+                        if self.arbiter.alignak_env else None)
                 )
                 # Create objects for our arbiters and modules
                 self.raw_conf.early_create_objects(self.raw_objects)
@@ -566,7 +564,7 @@ class CfgToBackend(object):
         except BackendException as e:
             print("Alignak retention does not exist.")
 
-    def build_templates(self):
+    def build_templates(self):  # pylint:disable=too-many-locals
         """
         Get the templates from the raw objects and build templates lists
 
@@ -1923,8 +1921,8 @@ class CfgToBackend(object):
                         index = list(self.inserted[values['resource']].values()).index(
                             item[values['field']]
                         )
-                        item[values['field']] = list(self.inserted[
-                                                         values['resource']].keys())[index]
+                        item[values['field']] = \
+                            list(self.inserted[values['resource']].keys())[index]
                         self.log("***Found %s for %s = %s" % (
                             values['resource'], values['field'], item[values['field']]
                         ))
@@ -1933,8 +1931,8 @@ class CfgToBackend(object):
                         idx = list(self.inserted_uuid[values['resource']].values()).index(
                             item[values['field']]
                         )
-                        item[values['field']] = list(self.inserted_uuid[
-                                                         values['resource']].keys())[idx]
+                        item[values['field']] = \
+                            list(self.inserted_uuid[values['resource']].keys())[idx]
 
                     else:
                         later_tmp[values['field']] = item[values['field']]
@@ -1969,14 +1967,13 @@ class CfgToBackend(object):
                                 vallist in self.inserted[values['resource']].values():
                             v = list(self.inserted[values['resource']].values())
                             print("Value: %s / %s" % (type(v), v))
-                            index = list(self.inserted[
-                                             values['resource']].values()).index(vallist)
+                            index = list(self.inserted[values['resource']].values()).index(vallist)
                             objectsid.append(
                                 list(self.inserted[values['resource']].keys())[index])
                         elif values['resource'] in self.inserted_uuid and \
                                 vallist in self.inserted_uuid[values['resource']].values():
-                            idx = list(self.inserted_uuid[
-                                           values['resource']].values()).index(vallist)
+                            idx = \
+                                list(self.inserted_uuid[values['resource']].values()).index(vallist)
                             objectsid.append(
                                 list(self.inserted_uuid[values['resource']].keys())[idx])
                         else:

@@ -12,6 +12,7 @@ def setup_module(module):
     # Set test mode for applications backend
     os.environ['TEST_ALIGNAK_BACKEND'] = '1'
     os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
+    os.environ['ALIGNAK_BACKEND_CONFIGURATION_FILE'] = './cfg/settings/settings.json'
 
     # Delete used mongo DBs
     exit_code = subprocess.call(
@@ -25,14 +26,16 @@ def setup_module(module):
     print("Current test directory: %s" % test_dir)
 
     print("Starting Alignak backend...")
-    fnull = open(os.devnull, 'w')
-    subprocess.Popen(shlex.split('alignak-backend'))
-    print("Started")
+    subprocess.Popen(['uwsgi', '--plugin', 'python', '-w', 'alignak_backend.app:app',
+                      '--socket', '0.0.0.0:5000',
+                      '--protocol=http', '--enable-threads', '--pidfile',
+                      '/tmp/uwsgi.pid'])
+    time.sleep(1)
 
 
 def teardown_module(module):
     print("Stopping Alignak backend...")
-    subprocess.call(['pkill', 'alignak-backend'])
+    subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
     print("Stopped")
 
 
