@@ -20,6 +20,8 @@ class TestCfgToBackend(unittest2.TestCase):
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
         os.environ['ALIGNAK_BACKEND_CONFIGURATION_FILE'] = './cfg/settings/settings.json'
 
+        cls.maxDiff = None
+
         # Delete used mongo DBs
         exit_code = subprocess.call(
             shlex.split('mongo %s --eval "db.dropDatabase()"'
@@ -37,17 +39,7 @@ class TestCfgToBackend(unittest2.TestCase):
                                   '--protocol=http', '--enable-threads', '--pidfile',
                                   '/tmp/uwsgi.pid'])
         time.sleep(1)
-        # fnull = open(os.devnull, 'w')
-        # cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
         print("Started as %s" % cls.p.pid)
-
-        # cls.p = subprocess.Popen(['uwsgi', '--plugin', 'python', '-w', 'alignak_backend.app:app',
-        #                           '--socket', '0.0.0.0:5000',
-        #                           '--protocol=http', '--enable-threads', '--pidfile',
-        #                           '/tmp/uwsgi.pid'])
-        # time.sleep(3)
-
-        time.sleep(3)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin")
@@ -66,7 +58,6 @@ class TestCfgToBackend(unittest2.TestCase):
         """
         print("Stopping Alignak backend...")
         subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
-        time.sleep(2)
         print("Stopped")
 
     @classmethod
@@ -97,10 +88,11 @@ class TestCfgToBackend(unittest2.TestCase):
                    u"notes": u"",
                    u'_sub_realm': True,
                    u"alias": u"Normal Work Hours",
-                   u"dateranges": [{u'monday': u'09:00-17:00'}, {u'tuesday': u'09:00-17:00'},
-                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                   u"dateranges": [{u'monday': u'09:00-17:00'},
+                                   {u'tuesday': u'09:00-17:00'},
                                    {u'wednesday': u'09:00-17:00'},
-                                   {u'thursday': u'09:00-17:00'}],
+                                   {u'thursday': u'09:00-17:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'}],
                    u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
@@ -110,7 +102,13 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_updated']
             del comm['_realm']
             del comm['schema_version']
+            dr1 = comm.pop('dateranges')
+            dr2 = ref.pop('dateranges')
             self.assertEqual(comm, ref)
+            # Dateranges are the same ?
+            for dr in dr1:
+                assert dr in dr2
+            # assert not [k for k in dr1 if dr1[k] != dr2[k]]
         self.assertTrue(found)
 
     def test_timeperiod_duplicates(self):
@@ -145,10 +143,12 @@ class TestCfgToBackend(unittest2.TestCase):
                    u"notes": u"",
                    u'_sub_realm': True,
                    u"alias": u"Normal Work Hours",
-                   u"dateranges": [{u'monday': u'09:00-18:00'}, {u'tuesday': u'09:00-18:00'},
-                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                   u"dateranges": [{u'monday': u'09:00-18:00'},
+                                   {u'tuesday': u'09:00-18:00'},
+                                   {u'thursday': u'09:00-18:00'},
                                    {u'wednesday': u'09:00-18:00'},
-                                   {u'thursday': u'09:00-18:00'}],
+                                   {u'friday': u'09:00-12:00,14:00-16:00'}
+                                   ],
                    u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
@@ -158,7 +158,13 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_updated']
             del comm['_realm']
             del comm['schema_version']
+            dr1 = comm.pop('dateranges')
+            dr2 = ref.pop('dateranges')
             self.assertEqual(comm, ref)
+            # Dateranges are the same ?
+            for dr in dr1:
+                assert dr in dr2
+            # assert not [k for k in dr1 if dr1[k] != dr2[k]]
         self.assertTrue(found)
 
     def test_timeperiod_update(self):
@@ -185,10 +191,12 @@ class TestCfgToBackend(unittest2.TestCase):
                    u"notes": u"",
                    u'_sub_realm': True,
                    u"alias": u"Normal Work Hours",
-                   u"dateranges": [{u'monday': u'09:00-18:00'}, {u'tuesday': u'09:00-18:00'},
-                                   {u'friday': u'09:00-12:00,14:00-16:00'},
+                   u"dateranges": [{u'monday': u'09:00-18:00'},
+                                   {u'tuesday': u'09:00-18:00'},
                                    {u'wednesday': u'09:00-18:00'},
-                                   {u'thursday': u'09:00-18:00'}],
+                                   {u'thursday': u'09:00-18:00'},
+                                   {u'friday': u'09:00-12:00,14:00-16:00'}
+                                   ],
                    u"exclude": [], u"is_active": False, u"imported_from": u"alignak-backend-import"
                    }
             del comm['_links']
@@ -198,7 +206,13 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_updated']
             del comm['_realm']
             del comm['schema_version']
+            dr1 = comm.pop('dateranges')
+            dr2 = ref.pop('dateranges')
             self.assertEqual(comm, ref)
+            # Dateranges are the same ?
+            for dr in dr1:
+                assert dr in dr2
+            # assert not [k for k in dr1 if dr1[k] != dr2[k]]
         self.assertTrue(found)
 
         # Update an existing element
@@ -236,7 +250,13 @@ class TestCfgToBackend(unittest2.TestCase):
             del comm['_updated']
             del comm['_realm']
             del comm['schema_version']
+            dr1 = comm.pop('dateranges')
+            dr2 = ref.pop('dateranges')
             self.assertEqual(comm, ref)
+            # Dateranges are the same ?
+            for dr in dr1:
+                assert dr in dr2
+            # assert not [k for k in dr1 if dr1[k] != dr2[k]]
         self.assertTrue(found)
 
     def test_timeperiod_complex(self):
@@ -470,7 +490,7 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(exit_code, 0)
 
         c = self.backend.get('command')
-        self.assertEqual(len(c['_items']), 4)
+        self.assertEqual(len(c['_items']), 6)
         command_id = ''
         ev_handler_id = ''
         for co in c['_items']:
@@ -501,10 +521,11 @@ class TestCfgToBackend(unittest2.TestCase):
         self.assertEqual(exit_code, 0)
 
         c = self.backend.get('command')
-        self.assertEqual(len(c['_items']), 4)
+        self.assertEqual(len(c['_items']), 6)
         command_id = ''
         ev_handler_id = ''
         for co in c['_items']:
+            print("Command: %s" % co)
             if co['name'] == 'check_tcp':
                 command_id = co['_id']
             if co['name'] == 'my_host_event_handler':

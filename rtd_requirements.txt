@@ -1,7 +1,10 @@
 # Specific requirements for building the doc on read the docs
 
-docopt
-future
+# Needing six for python 2.7/3 compatibility
+future==0.16.0
+six==1.11.0
+docopt==0.6.2
+
 # Include Alignak and satellite projects in the requirements (Git develop branches)
 -e git+git://github.com/Alignak-monitoring/alignak.git@develop#egg=alignak
 -e git+git://github.com/Alignak-monitoring-contrib/alignak-backend.git@develop#egg=alignak-backend

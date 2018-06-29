@@ -19,6 +19,8 @@ class TestServices(unittest2.TestCase):
         os.environ['TEST_ALIGNAK_BACKEND'] = '1'
         os.environ['ALIGNAK_BACKEND_MONGO_DBNAME'] = 'alignak-backend-import-test'
 
+        cls.maxDiff = None
+
         # Delete used mongo DBs
         exit_code = subprocess.call(
             shlex.split('mongo %s --eval "db.dropDatabase()"'
@@ -31,11 +33,12 @@ class TestServices(unittest2.TestCase):
         print("Current test directory: %s" % test_dir)
 
         print("Starting Alignak backend...")
-        fnull = open(os.devnull, 'w')
-        cls.backend_process = subprocess.Popen(shlex.split('alignak-backend'))
-        print("Started as %s" % cls.backend_process.pid)
-
-        time.sleep(3)
+        cls.p = subprocess.Popen(['uwsgi', '--plugin', 'python', '-w', 'alignak_backend.app:app',
+                                  '--socket', '0.0.0.0:5000',
+                                  '--protocol=http', '--enable-threads', '--pidfile',
+                                  '/tmp/uwsgi.pid'])
+        time.sleep(1)
+        print("Started as %s" % cls.p.pid)
 
         cls.backend = Backend('http://127.0.0.1:5000')
         cls.backend.login("admin", "admin", "force")
@@ -53,7 +56,7 @@ class TestServices(unittest2.TestCase):
         :return: None
         """
         print("Stopping Alignak backend...")
-        cls.backend_process.kill()
+        subprocess.call(['uwsgi', '--stop', '/tmp/uwsgi.pid'])
         print("Stopped")
 
     def test_services_template(self):

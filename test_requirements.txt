@@ -4,11 +4,7 @@ unittest2
 webtest
 # Use py.test as test-runner
 pytest
-pytest-cov
-# Let coverage use the most recent version
-coverage
-# Report coverage results to coveralls.io
-coveralls
+
 # Static code analysis libraries
 pylint
 pycodestyle
@@ -16,6 +12,6 @@ pep257
 # uWSGI server
 uwsgi
 # alignak (most recent develop)
--e git+git://github.com/Alignak-monitoring/alignak.git@develop+environment#egg=alignak
+-e git+git://github.com/Alignak-monitoring/alignak.git@python3#egg=alignak
 # alignak_backend (most recent develop)
 -e git+git://github.com/Alignak-monitoring-contrib/alignak-backend.git@develop#egg=alignak_backend

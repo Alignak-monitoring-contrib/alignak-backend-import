@@ -69,6 +69,7 @@ alignak-backend-import command line interface::
             64 if command line parameters are not used correctly
 """
 from __future__ import print_function
+from six import string_types
 import os
 import re
 import time
@@ -252,10 +253,11 @@ class CfgToBackend(object):
                 args = {
                     'env_file': '',
                     'alignak_name': 'alignak-test', 'daemon_name': 'arbiter-master',
-                    'monitoring_files': cfg
+                    'legacy_cfg_files': cfg
                 }
                 self.arbiter = Arbiter(**args)
                 self.alignak_version = '2'
+            self.output("Using Alignak version: %s" % self.alignak_version, forced=True)
 
             # Configure the logger
             self.arbiter.log_level = 'ERROR'
@@ -270,10 +272,13 @@ class CfgToBackend(object):
 
             # Raw configuration
             self.raw_conf = Config()
-            buf = self.raw_conf.read_config(cfg)
-            self.raw_objects = self.raw_conf.read_config_buf(buf)
-
             if self.alignak_version == '2':
+                # Read and parse the legacy configuration files
+                self.raw_objects = self.raw_conf.read_config_buf(
+                    self.raw_conf.read_legacy_cfg_files(cfg,
+                                                    self.arbiter.alignak_env.cfg_files
+                                                    if self.arbiter.alignak_env else None)
+                )
                 # Create objects for our arbiters and modules
                 self.raw_conf.early_create_objects(self.raw_objects)
 
@@ -281,6 +286,10 @@ class CfgToBackend(object):
                 # # If no arbiter exists, create one with the provided data
                 # self.raw_conf.early_arbiter_linking('arbiter-master',
                 #                                     self.alignak_env.get_alignak_configuration())
+            else:
+                # Try old Arbiter file parsing...
+                buf = self.raw_conf.read_config(cfg)
+                self.raw_objects = self.raw_conf.read_config_buf(buf)
 
             end = time.time()
             self.output("Elapsed time after Arbiter has loaded the configuration: %s"
@@ -1022,15 +1031,15 @@ class CfgToBackend(object):
                     if val in self.inserted[item['resource']]:
                         data[field] = self.inserted[item['resource']][val]
                     elif val in self.inserted[item['resource']].values():
-                        idx = self.inserted[item['resource']].values().index(val)
-                        data[field] = self.inserted[item['resource']].keys()[idx]
+                        idx = list(self.inserted[item['resource']].values()).index(val)
+                        data[field] = list(self.inserted[item['resource']].keys())[idx]
                     elif val in self.inserted_uuid[item['resource']].values():
-                        idx = self.inserted_uuid[item['resource']].values().index(val)
-                        data[field] = self.inserted_uuid[item['resource']].keys()[idx]
+                        idx = list(self.inserted_uuid[item['resource']].values()).index(val)
+                        data[field] = list(self.inserted_uuid[item['resource']].keys())[idx]
                 self.output("Late update simple for: %s/%s -> %s" % (resource, index, data))
             elif item['type'] == 'list':
                 data = {field: []}
-                if isinstance(item['value'], basestring):
+                if isinstance(item['value'], string_types):
                     item['value'] = item['value'].split(',')
                 for val in item['value']:
                     val = val.strip()
@@ -1057,13 +1066,13 @@ class CfgToBackend(object):
                         if val in self.inserted[item['resource']]:
                             data[field].append(self.inserted[item['resource']][val])
                         elif val in self.inserted[item['resource']].values():
-                            idx = self.inserted[item['resource']].values().index(val)
-                            data[field].append(self.inserted[item['resource']].keys()[idx])
-                        elif val in self.inserted_uuid[item['resource']].values():
-                            idx = self.inserted_uuid[item['resource']].values().index(val)
+                            idx = list(self.inserted[item['resource']].values()).index(val)
                             data[field].append(
-                                self.inserted_uuid[item['resource']].keys()[idx]
-                            )
+                                list(self.inserted[item['resource']].keys())[idx])
+                        elif val in self.inserted_uuid[item['resource']].values():
+                            idx = list(self.inserted_uuid[item['resource']].values()).index(val)
+                            data[field].append(
+                                list(self.inserted_uuid[item['resource']].keys())[idx])
                 self.output("Late update list for: %s/%s -> %s" % (resource, index, data))
 
             endpoint = ''.join([resource, '/', index])
@@ -1288,7 +1297,7 @@ class CfgToBackend(object):
             count += 1
 
             # Only deal with properties and our own added property,
-            for prop in item_obj.properties.keys() + ['store_use']:
+            for prop in list(item_obj.properties.keys()) + ['store_use']:
                 if not hasattr(item_obj, prop):
                     continue
                 item[prop] = getattr(item_obj, prop)
@@ -1479,7 +1488,7 @@ class CfgToBackend(object):
             if 'customs' in schema['schema']:
                 item['customs'] = item_obj.customs
             elif 'allow_unknown' in schema and schema['allow_unknown']:
-                for prop in item_obj.customs.keys():
+                for prop in list(item_obj.customs.keys()):
                     item[prop] = item_obj.customs[prop]
 
             # Special case of hostdependency
@@ -1793,8 +1802,8 @@ class CfgToBackend(object):
                             item['name'], item['address6']
                         ))
                     if item['address6'] in self.inserted['realm'].values():
-                        index = self.inserted['realm'].values().index(item['address6'])
-                        item['_realm'] = self.inserted['realm'].keys()[index]
+                        index = list(self.inserted['realm'].values()).index(item['address6'])
+                        item['_realm'] = list(self.inserted['realm'].keys())[index]
                         self.output("-> import user '%s' in realm '%s'." % (
                             item['name'], item['address6']
                         ))
@@ -1911,19 +1920,21 @@ class CfgToBackend(object):
                         ))
 
                     elif item[values['field']] in self.inserted[values['resource']].values():
-                        index = self.inserted[values['resource']].values().index(
+                        index = list(self.inserted[values['resource']].values()).index(
                             item[values['field']]
                         )
-                        item[values['field']] = self.inserted[values['resource']].keys()[index]
+                        item[values['field']] = list(self.inserted[
+                                                         values['resource']].keys())[index]
                         self.log("***Found %s for %s = %s" % (
                             values['resource'], values['field'], item[values['field']]
                         ))
 
                     elif item[values['field']] in self.inserted_uuid[values['resource']].values():
-                        idx = self.inserted_uuid[values['resource']].values().index(
+                        idx = list(self.inserted_uuid[values['resource']].values()).index(
                             item[values['field']]
                         )
-                        item[values['field']] = self.inserted_uuid[values['resource']].keys()[idx]
+                        item[values['field']] = list(self.inserted_uuid[
+                                                         values['resource']].keys())[idx]
 
                     else:
                         later_tmp[values['field']] = item[values['field']]
@@ -1942,7 +1953,7 @@ class CfgToBackend(object):
                     objectsid = []
 
                     self.output("- %s '%s'" % (values['resource'], item[values['field']]))
-                    if isinstance(item[values['field']], basestring):
+                    if isinstance(item[values['field']], string_types):
                         item[values['field']] = item[values['field']].split()
 
                     for dummy, vallist in enumerate(item[values['field']]):
@@ -1956,15 +1967,18 @@ class CfgToBackend(object):
                             objectsid.append(vallist)
                         elif values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']].values():
-                            index = self.inserted[values['resource']].values().index(vallist)
-                            objectsid.append(self.inserted[values['resource']].keys()[index])
+                            v = list(self.inserted[values['resource']].values())
+                            print("Value: %s / %s" % (type(v), v))
+                            index = list(self.inserted[
+                                             values['resource']].values()).index(vallist)
+                            objectsid.append(
+                                list(self.inserted[values['resource']].keys())[index])
                         elif values['resource'] in self.inserted_uuid and \
                                 vallist in self.inserted_uuid[values['resource']].values():
-                            idx = self.inserted_uuid[values['resource']].values().index(
-                                vallist
-                            )
-                            objectsid.append(self.inserted_uuid[values['resource']].keys()[
-                                idx])
+                            idx = list(self.inserted_uuid[
+                                           values['resource']].values()).index(vallist)
+                            objectsid.append(
+                                list(self.inserted_uuid[values['resource']].keys())[idx])
                         else:
                             add = False
                     if add:
