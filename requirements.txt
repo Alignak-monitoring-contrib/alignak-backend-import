@@ -1,6 +1,14 @@
-docopt
+# Needing six for python 2.7/3 compatibility
 future
+six
+docopt
+
+# Alignak backend client
 alignak-backend-client
+
 # Do not include Alignak in the requirements
 # alignak
-# -e git+git://github.com/Alignak-monitoring/alignak.git@develop#egg=alignak
+# alignak (most recent develop)
+-e git+git://github.com/Alignak-monitoring/alignak.git@python3#egg=alignak
+# alignak_backend (most recent develop)
+-e git+git://github.com/Alignak-monitoring-contrib/alignak-backend.git@develop#egg=alignak_backend

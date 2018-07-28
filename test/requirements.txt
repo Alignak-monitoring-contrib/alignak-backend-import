@@ -1,0 +1,17 @@
+# Python requirements for unit tests
+# Include main application requirements
+-r ../requirements.txt
+
+# Python requirements for unit tests
+unittest2
+# Web test
+webtest
+# Use py.test as test-runner
+pytest
+
+# Static code analysis libraries
+pylint
+pycodestyle
+pep257
+# uWSGI server
+uwsgi
