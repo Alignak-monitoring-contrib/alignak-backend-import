@@ -59,7 +59,7 @@ jobs:
         file: dist/.bintray-deb.json
         on:
           all_branches: true
-        user: mohierf
+        user: alignak
         key:
           secure: "ARqItCMxxSnjCeo8eiLohcf0EWbmhdHAXeozYzVuelijrr4v4yW9VfwYB72kgD8vrM/4Yx1d2rnzJinPXzZjsYEsj52aVzYcJ17WkK0W9eYZSnxkD7YRBmpr5hiL34M3FRoIYsoLd8OLrZuFKbRWy6zy2kQqOQVHpXpunylGSMtMig4xkGQx+1fAlk9kzMiLZwmWeiQfO/NWWfKNxl4M37LqoT1xzYA3BQjgWgHv3iB16eCZEE78Tn7DajDmgNkmFlHy2i4oel9pD08ZiPTX2TAyS1pP4tdmHe4EXTL2O6OAKLyWyXsz+xqft0G7l0F+HwB835XtE3GlgMUnmkFm7iTwDnP9D/WlfmkP7F5w9MNLIOpwwcO9JLd2zES3A2Yf9AxMtOb/y9XOisZ9/NaFeAigYmAHvS0Xlqoq4XRrWFgqNoyK3r6naMtWqgGsbRJdTcixwWodTSs2NLOuwCVQu+m0SJRmA+gVfCrA3n4D3xf/tQR13bOgr8m5Dw7N7Wg1b4sBXCjjL/i+iPpl8CTb+I4qMvF2wevmtffx8nvfTYwUAvCy3OWfHfX74CetGzX4IgEarR+gi70UiUkhJI6ajbW20/PapY3H/VLhHyye6jnXf1k9VnQRJhF1+EZUhkj5NxU9yjEM8ARlEKQ8u0rcJ9lL4UmpjZWabBnqo12rhNs="
     - stage: RPM packaging
@@ -78,7 +78,7 @@ jobs:
         file: dist/.bintray-rpm.json
         on:
           all_branches: true
-        user: mohierf
+        user: alignak
         key:
           secure: "ARqItCMxxSnjCeo8eiLohcf0EWbmhdHAXeozYzVuelijrr4v4yW9VfwYB72kgD8vrM/4Yx1d2rnzJinPXzZjsYEsj52aVzYcJ17WkK0W9eYZSnxkD7YRBmpr5hiL34M3FRoIYsoLd8OLrZuFKbRWy6zy2kQqOQVHpXpunylGSMtMig4xkGQx+1fAlk9kzMiLZwmWeiQfO/NWWfKNxl4M37LqoT1xzYA3BQjgWgHv3iB16eCZEE78Tn7DajDmgNkmFlHy2i4oel9pD08ZiPTX2TAyS1pP4tdmHe4EXTL2O6OAKLyWyXsz+xqft0G7l0F+HwB835XtE3GlgMUnmkFm7iTwDnP9D/WlfmkP7F5w9MNLIOpwwcO9JLd2zES3A2Yf9AxMtOb/y9XOisZ9/NaFeAigYmAHvS0Xlqoq4XRrWFgqNoyK3r6naMtWqgGsbRJdTcixwWodTSs2NLOuwCVQu+m0SJRmA+gVfCrA3n4D3xf/tQR13bOgr8m5Dw7N7Wg1b4sBXCjjL/i+iPpl8CTb+I4qMvF2wevmtffx8nvfTYwUAvCy3OWfHfX74CetGzX4IgEarR+gi70UiUkhJI6ajbW20/PapY3H/VLhHyye6jnXf1k9VnQRJhF1+EZUhkj5NxU9yjEM8ARlEKQ8u0rcJ9lL4UmpjZWabBnqo12rhNs="
     - stage: FreeBSD packaging
@@ -98,6 +98,6 @@ jobs:
         file: dist/.bintray-freebsd.json
         on:
           all_branches: true
-        user: mohierf
+        user: alignak
         key:
           secure: "ARqItCMxxSnjCeo8eiLohcf0EWbmhdHAXeozYzVuelijrr4v4yW9VfwYB72kgD8vrM/4Yx1d2rnzJinPXzZjsYEsj52aVzYcJ17WkK0W9eYZSnxkD7YRBmpr5hiL34M3FRoIYsoLd8OLrZuFKbRWy6zy2kQqOQVHpXpunylGSMtMig4xkGQx+1fAlk9kzMiLZwmWeiQfO/NWWfKNxl4M37LqoT1xzYA3BQjgWgHv3iB16eCZEE78Tn7DajDmgNkmFlHy2i4oel9pD08ZiPTX2TAyS1pP4tdmHe4EXTL2O6OAKLyWyXsz+xqft0G7l0F+HwB835XtE3GlgMUnmkFm7iTwDnP9D/WlfmkP7F5w9MNLIOpwwcO9JLd2zES3A2Yf9AxMtOb/y9XOisZ9/NaFeAigYmAHvS0Xlqoq4XRrWFgqNoyK3r6naMtWqgGsbRJdTcixwWodTSs2NLOuwCVQu+m0SJRmA+gVfCrA3n4D3xf/tQR13bOgr8m5Dw7N7Wg1b4sBXCjjL/i+iPpl8CTb+I4qMvF2wevmtffx8nvfTYwUAvCy3OWfHfX74CetGzX4IgEarR+gi70UiUkhJI6ajbW20/PapY3H/VLhHyye6jnXf1k9VnQRJhF1+EZUhkj5NxU9yjEM8ARlEKQ8u0rcJ9lL4UmpjZWabBnqo12rhNs="
