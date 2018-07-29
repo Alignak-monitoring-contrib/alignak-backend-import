@@ -61,7 +61,7 @@ jobs:
           all_branches: true
         user: mohierf
         key:
-          secure: "ARqItCMxxSnjCeo8eiLohcf0EWbmhdHAXeozYzVuelijrr4v4yW9VfwYB72kgD8vrM/4Yx1d2rnzJinPXzZjsYEsj52aVzYcJ17WkK0W9eYZSnxkD7YRBmpr5hiL34M3FRoIYsoLd8OLrZuFKbRWy6zy2kQqOQVHpXpunylGSMtMig4xkGQx+1fAlk9kzMiLZwmWeiQfO/NWWfKNxl4M37LqoT1xzYA3BQjgWgHv3iB16eCZEE78Tn7DajDmgNkmFlHy2i4oel9pD08ZiPTX2TAyS1pP4tdmHe4EXTL2O6OAKLyWyXsz+xqft0G7l0F+HwB835XtE3GlgMUnmkFm7iTwDnP9D/WlfmkP7F5w9MNLIOpwwcO9JLd2zES3A2Yf9AxMtOb/y9XOisZ9/NaFeAigYmAHvS0Xlqoq4XRrWFgqNoyK3r6naMtWqgGsbRJdTcixwWodTSs2NLOuwCVQu+m0SJRmA+gVfCrA3n4D3xf/tQR13bOgr8m5Dw7N7Wg1b4sBXCjjL/i+iPpl8CTb+I4qMvF2wevmtffx8nvfTYwUAvCy3OWfHfX74CetGzX4IgEarR+gi70UiUkhJI6ajbW20/PapY3H/VLhHyye6jnXf1k9VnQRJhF1+EZUhkj5NxU9yjEM8ARlEKQ8u0rcJ9lL4UmpjZWabBnqo12rhNs="
+          secure: "hfnDvrdNgfbB2k7iD5p/Y+kW47C6Jx8zGy3WXZDPbWy/ef9QPCYhAyoEIXn+ABiFD34eA4qUrMUCcy+CfsrlKKn2vRT6BIFcv+WqcpRQiR2EIudtK+vJ9p14pb+bWW6+vgSnDG3A3Uj9+5TuF2r6AdRK+yXDHrqecjTMtfGA5d2OGxZQsHoNc0Vaf03oqLxYsWMPGnERB7V+/DaAsqrLYpyruzqT21gZ7Uq9TqtZ+QWGJrO2eWTf5c+l4X+H2i0eHjMptn8fwetLRIa4hQA475p0WO0uYEtIq9oqza0H48Ddk/3HWbbfMvhgqZHses18MiQHLTBE0plBWyu+ofMTNsCwd/W3Wy9c/4qjaZlVd7/JgwRs0uVKW1LtQAwQSGO+AddmUZz/qDJLFHMzY353JLp/JyrsX1f15OH/+tC+TFnlWBI/225kSyrgK4CKdegFvJbYU+GV8BgbqiATIZMNtFx/944jAmi+yqHDU7tgN22jJw24sQja8CtAS17YXaiiLfIyAMw/ElxQeQAHR8KvSrDPEH3b8wR9BkVy6yR71t/QSVvzvLua9Mj9pmMhNkndMYe/nwrczZ8CFLwRxJvxf0jDwdxDx7AZufgLaoPxtq+BDPdhrG6F/4LuArbBibR2YUskC5jPtDF+sfn79Txtc11lEIGsI7SiF+lcqPaXEBo="
     - stage: RPM packaging
       python: 2.7
       install:
@@ -80,7 +80,7 @@ jobs:
           all_branches: true
         user: mohierf
         key:
-          secure: "ARqItCMxxSnjCeo8eiLohcf0EWbmhdHAXeozYzVuelijrr4v4yW9VfwYB72kgD8vrM/4Yx1d2rnzJinPXzZjsYEsj52aVzYcJ17WkK0W9eYZSnxkD7YRBmpr5hiL34M3FRoIYsoLd8OLrZuFKbRWy6zy2kQqOQVHpXpunylGSMtMig4xkGQx+1fAlk9kzMiLZwmWeiQfO/NWWfKNxl4M37LqoT1xzYA3BQjgWgHv3iB16eCZEE78Tn7DajDmgNkmFlHy2i4oel9pD08ZiPTX2TAyS1pP4tdmHe4EXTL2O6OAKLyWyXsz+xqft0G7l0F+HwB835XtE3GlgMUnmkFm7iTwDnP9D/WlfmkP7F5w9MNLIOpwwcO9JLd2zES3A2Yf9AxMtOb/y9XOisZ9/NaFeAigYmAHvS0Xlqoq4XRrWFgqNoyK3r6naMtWqgGsbRJdTcixwWodTSs2NLOuwCVQu+m0SJRmA+gVfCrA3n4D3xf/tQR13bOgr8m5Dw7N7Wg1b4sBXCjjL/i+iPpl8CTb+I4qMvF2wevmtffx8nvfTYwUAvCy3OWfHfX74CetGzX4IgEarR+gi70UiUkhJI6ajbW20/PapY3H/VLhHyye6jnXf1k9VnQRJhF1+EZUhkj5NxU9yjEM8ARlEKQ8u0rcJ9lL4UmpjZWabBnqo12rhNs="
+          secure: "hfnDvrdNgfbB2k7iD5p/Y+kW47C6Jx8zGy3WXZDPbWy/ef9QPCYhAyoEIXn+ABiFD34eA4qUrMUCcy+CfsrlKKn2vRT6BIFcv+WqcpRQiR2EIudtK+vJ9p14pb+bWW6+vgSnDG3A3Uj9+5TuF2r6AdRK+yXDHrqecjTMtfGA5d2OGxZQsHoNc0Vaf03oqLxYsWMPGnERB7V+/DaAsqrLYpyruzqT21gZ7Uq9TqtZ+QWGJrO2eWTf5c+l4X+H2i0eHjMptn8fwetLRIa4hQA475p0WO0uYEtIq9oqza0H48Ddk/3HWbbfMvhgqZHses18MiQHLTBE0plBWyu+ofMTNsCwd/W3Wy9c/4qjaZlVd7/JgwRs0uVKW1LtQAwQSGO+AddmUZz/qDJLFHMzY353JLp/JyrsX1f15OH/+tC+TFnlWBI/225kSyrgK4CKdegFvJbYU+GV8BgbqiATIZMNtFx/944jAmi+yqHDU7tgN22jJw24sQja8CtAS17YXaiiLfIyAMw/ElxQeQAHR8KvSrDPEH3b8wR9BkVy6yR71t/QSVvzvLua9Mj9pmMhNkndMYe/nwrczZ8CFLwRxJvxf0jDwdxDx7AZufgLaoPxtq+BDPdhrG6F/4LuArbBibR2YUskC5jPtDF+sfn79Txtc11lEIGsI7SiF+lcqPaXEBo="
     - stage: FreeBSD packaging
       python: 3.6
       install:
@@ -100,4 +100,4 @@ jobs:
           all_branches: true
         user: mohierf
         key:
-          secure: "ARqItCMxxSnjCeo8eiLohcf0EWbmhdHAXeozYzVuelijrr4v4yW9VfwYB72kgD8vrM/4Yx1d2rnzJinPXzZjsYEsj52aVzYcJ17WkK0W9eYZSnxkD7YRBmpr5hiL34M3FRoIYsoLd8OLrZuFKbRWy6zy2kQqOQVHpXpunylGSMtMig4xkGQx+1fAlk9kzMiLZwmWeiQfO/NWWfKNxl4M37LqoT1xzYA3BQjgWgHv3iB16eCZEE78Tn7DajDmgNkmFlHy2i4oel9pD08ZiPTX2TAyS1pP4tdmHe4EXTL2O6OAKLyWyXsz+xqft0G7l0F+HwB835XtE3GlgMUnmkFm7iTwDnP9D/WlfmkP7F5w9MNLIOpwwcO9JLd2zES3A2Yf9AxMtOb/y9XOisZ9/NaFeAigYmAHvS0Xlqoq4XRrWFgqNoyK3r6naMtWqgGsbRJdTcixwWodTSs2NLOuwCVQu+m0SJRmA+gVfCrA3n4D3xf/tQR13bOgr8m5Dw7N7Wg1b4sBXCjjL/i+iPpl8CTb+I4qMvF2wevmtffx8nvfTYwUAvCy3OWfHfX74CetGzX4IgEarR+gi70UiUkhJI6ajbW20/PapY3H/VLhHyye6jnXf1k9VnQRJhF1+EZUhkj5NxU9yjEM8ARlEKQ8u0rcJ9lL4UmpjZWabBnqo12rhNs="
+          secure: "hfnDvrdNgfbB2k7iD5p/Y+kW47C6Jx8zGy3WXZDPbWy/ef9QPCYhAyoEIXn+ABiFD34eA4qUrMUCcy+CfsrlKKn2vRT6BIFcv+WqcpRQiR2EIudtK+vJ9p14pb+bWW6+vgSnDG3A3Uj9+5TuF2r6AdRK+yXDHrqecjTMtfGA5d2OGxZQsHoNc0Vaf03oqLxYsWMPGnERB7V+/DaAsqrLYpyruzqT21gZ7Uq9TqtZ+QWGJrO2eWTf5c+l4X+H2i0eHjMptn8fwetLRIa4hQA475p0WO0uYEtIq9oqza0H48Ddk/3HWbbfMvhgqZHses18MiQHLTBE0plBWyu+ofMTNsCwd/W3Wy9c/4qjaZlVd7/JgwRs0uVKW1LtQAwQSGO+AddmUZz/qDJLFHMzY353JLp/JyrsX1f15OH/+tC+TFnlWBI/225kSyrgK4CKdegFvJbYU+GV8BgbqiATIZMNtFx/944jAmi+yqHDU7tgN22jJw24sQja8CtAS17YXaiiLfIyAMw/ElxQeQAHR8KvSrDPEH3b8wR9BkVy6yR71t/QSVvzvLua9Mj9pmMhNkndMYe/nwrczZ8CFLwRxJvxf0jDwdxDx7AZufgLaoPxtq+BDPdhrG6F/4LuArbBibR2YUskC5jPtDF+sfn79Txtc11lEIGsI7SiF+lcqPaXEBo="
