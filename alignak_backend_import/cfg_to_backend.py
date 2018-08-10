@@ -608,7 +608,7 @@ class CfgToBackend(object):  # pylint: disable=useless-object-inheritance
         for tmp_user in users:
             for conf_user in getattr(self.arbiter.conf, 'contacts'):
                 if conf_user.contact_name == tmp_user.contact_name:
-                    print("User: %s" % tmp_user.__dict__)
+                    # print("User: %s" % tmp_user.__dict__)
                     if getattr(tmp_user, 'use', None):
                         setattr(conf_user, 'store_use', tmp_user.use)
         for tpl_uuid in users.templates:
@@ -1254,7 +1254,7 @@ class CfgToBackend(object):  # pylint: disable=useless-object-inheritance
         if not self.default_realm:
             realms = getattr(self.arbiter.conf, 'realms')
             default_realm = realms.get_default()
-            print("Realm: %s" % default_realm.__dict__)
+            # print("Realm: %s" % default_realm.__dict__)
             self.output("Realms: %s, default: %s" % (realms, default_realm))
             self.default_realm = default_realm.uuid
             self.output("*** Alignak default realm: %s (%s)" % (
@@ -1978,11 +1978,10 @@ class CfgToBackend(object):  # pylint: disable=useless-object-inheritance
                             objectsid.append(vallist)
                         elif values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']].values():
-                            v = list(self.inserted[values['resource']].values())
-                            print("Value: %s / %s" % (type(v), v))
-                            index = list(self.inserted[values['resource']].values()).index(vallist)
+                            idx = \
+                                list(self.inserted[values['resource']].values()).index(vallist)
                             objectsid.append(
-                                list(self.inserted[values['resource']].keys())[index])
+                                list(self.inserted[values['resource']].keys())[idx])
                         elif values['resource'] in self.inserted_uuid and \
                                 vallist in self.inserted_uuid[values['resource']].values():
                             idx = \
