@@ -120,7 +120,7 @@ Debian::
     sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv D401AB61
 
     sudo apt-get update
-    sudo apt install alignak-backend-import
+    sudo apt install python-alignak-backend-import
 
 CentOS::
 
@@ -135,6 +135,8 @@ CentOS::
     sudo yum repolist
 
     sudo yum install python-alignak-backend-import
+
+.. note:: for Python 3 version, replace ``python`` with ``python3`` in the packages name.
 
 From PyPI
 ~~~~~~~~~
