@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (C) 2015-2016: Alignak team, see AUTHORS.txt file for contributors
+# Copyright (C) 2015-2018: Alignak team, see AUTHORS.txt file for contributors
 #
 # This file is part of Alignak Backend Import.
 #
@@ -76,20 +76,23 @@ import json
 import traceback
 
 from copy import deepcopy
-
 from logging import getLogger, INFO
-
 from future.utils import iteritems
+from six import string_types
 
 from docopt import docopt
 from docopt import DocoptExit
 
 try:
+    from alignak.version import VERSION as ALIGNAK_VERSION
     from alignak.daemons.arbiterdaemon import Arbiter
     from alignak.objects.item import Item
     from alignak.objects.config import Config
-except ImportError:
+except ImportError as exp:
     print("Alignak is not installed...")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Import exception: %s" % str(exp))
+    print("***** Traceback: %s", traceback.format_exc())
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print("Exiting with error code: 1")
     exit(1)
@@ -116,7 +119,7 @@ loggerClient = getLogger('alignak_backend_client.client')
 loggerClient.setLevel(INFO)
 
 
-class CfgToBackend(object):
+class CfgToBackend(object):  # pylint: disable=useless-object-inheritance
     """
     Class to manage an item
     An Item is the base of many objects of Alignak. So it define common properties,
@@ -229,38 +232,64 @@ class CfgToBackend(object):
             if not isinstance(cfg, list):
                 cfg = [cfg]
 
-            # Alignak arbiter configuration
-            # - daemon configuration file
-            # - monitoring configuration files list
-            # - is_daemon
-            # - do_replace
-            # - verify_only
-            # - debug
-            # - debug_file
-            # - arbiter_name
-            # pylint: disable=too-many-function-args
             self.raw_conf = None
             try:
-                # Try new Arbiter signature...
+                # Try old Arbiter signature...
+                # - daemon configuration file
+                # - monitoring configuration files list
+                # - is_daemon
+                # - do_replace
+                # - verify_only
+                # - debug
+                # - debug_file
+                # - arbiter_name
+                # pylint: disable=too-many-function-args
                 self.arbiter = Arbiter(None, cfg, False, False, False, False, '', 'arbiter-master')
+                self.alignak_version = '1'
+            except Exception as exp:
+                self.output("Tried Alignak version 1, but: %s" % str(exp), forced=True)
+                # Using values that are usually provided by the command line parameters
+                args = {
+                    'env_file': '',
+                    'alignak_name': 'alignak-test', 'daemon_name': 'arbiter-master',
+                    'legacy_cfg_files': cfg
+                }
+                self.arbiter = Arbiter(**args)
+                self.alignak_version = '2'
+            self.output("Using Alignak version: %s" % self.alignak_version, forced=True)
 
-                # Configure the logger
-                self.arbiter.log_level = 'ERROR'
-                self.arbiter.setup_alignak_logger()
+            # Configure the logger
+            self.arbiter.log_level = 'ERROR'
+            self.arbiter.setup_alignak_logger()
 
-                # Get flat files configuration
-                self.arbiter.load_monitoring_config_file()
+            # Setup our modules manager
+            self.arbiter.load_modules_manager()
 
-                # Raw configuration
-                self.raw_conf = Config()
+            # Load and initialize the arbiter configuration
+            # This to check that the configuration is correct!
+            self.arbiter.load_monitoring_config_file(clean=False)
+
+            # Raw configuration
+            self.raw_conf = Config()
+            if self.alignak_version == '2':
+                # Read and parse the legacy configuration files
+                self.raw_objects = self.raw_conf.read_config_buf(
+                    self.raw_conf.read_legacy_cfg_files(
+                        cfg, self.arbiter.alignak_env.cfg_files
+                        if self.arbiter.alignak_env else None)
+                )
+                # Create objects for our arbiters and modules
+                self.raw_conf.early_create_objects(self.raw_objects)
+                self.raw_conf.create_objects(self.raw_objects)
+
+                # # Check that an arbiter link exists and create the appropriate relations
+                # # If no arbiter exists, create one with the provided data
+                # self.raw_conf.early_arbiter_linking('arbiter-master',
+                #                                     self.alignak_env.get_alignak_configuration())
+            else:
+                # Try old Arbiter file parsing...
                 buf = self.raw_conf.read_config(cfg)
                 self.raw_objects = self.raw_conf.read_config_buf(buf)
-            except Exception as e:
-                print("Configuration loading exception: %s" % str(e))
-                print("***** Traceback: %s", traceback.format_exc())
-                print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
-                print("Exiting with error code: 3")
-                self.exit(3)
 
             end = time.time()
             self.output("Elapsed time after Arbiter has loaded the configuration: %s"
@@ -531,43 +560,57 @@ class CfgToBackend(object):
             self.exit(5)
 
         try:
-            self.output("Deleting hosts retention data")
+            self.output("Deleting Alignak retention data")
             if not self.dry_run:
-                self.backend.delete('hostretention', headers)
+                self.backend.delete('alignakretention', headers)
         except BackendException as e:
-            print("Host retention not present")
+            print("Alignak retention does not exist.")
 
-        try:
-            self.output("Deleting services retention data")
-            if not self.dry_run:
-                self.backend.delete('serviceretention', headers)
-        except BackendException as e:
-            print("Service retention not present")
-
-    def build_templates(self):
+    def build_templates(self):  # pylint:disable=too-many-locals
         """
         Get the templates from the raw objects and build templates lists
 
         :return: None
         """
-        # Create objects from raw objects
-        self.raw_conf.create_objects(self.raw_objects)
-        # Create Template links
-        self.raw_conf.linkify_templates()
-        # All inheritances
-        self.raw_conf.apply_inheritance()
-        # Explode between types
-        self.raw_conf.explode()
-        # Implicit inheritance for services
-        self.raw_conf.apply_implicit_inheritance()
-        # Fill default values
-        self.raw_conf.fill_default()
+        if self.alignak_version not in ['2']:
+            # Create objects from raw objects
+            self.raw_conf.create_objects(self.raw_objects)
+            # Create Template links
+            self.raw_conf.linkify_templates()
+            # All inheritances
+            self.raw_conf.apply_inheritance()
+            # Explode between types
+            self.raw_conf.explode()
+            # Implicit inheritance for services
+            self.raw_conf.apply_implicit_inheritance()
+            # Fill default values
+            self.raw_conf.fill_default()
+
+            # Overrides specific service instances properties
+            self.raw_conf.override_properties()
+
+            # Linkify objects to each other
+            self.raw_conf.linkify()
+
+            # applying dependencies
+            self.raw_conf.apply_dependencies()
 
         self.log("*** Parse templates ***")
+
+        # The templates and use properties are removed from the items in the arbiter
+        # configuration by the Alignak configuration perser.
+        # As such, get them from the raw configuration and save them as renamed attributes
+        # in the configuration
 
         self.users_templates = []
         self.log("Alignak users templates:")
         users = getattr(self.raw_conf, 'contacts')
+        for tmp_user in users:
+            for conf_user in getattr(self.arbiter.conf, 'contacts'):
+                if conf_user.contact_name == tmp_user.contact_name:
+                    # print("User: %s" % tmp_user.__dict__)
+                    if getattr(tmp_user, 'use', None):
+                        setattr(conf_user, 'store_use', tmp_user.use)
         for tpl_uuid in users.templates:
             name = getattr(users.templates[tpl_uuid], 'name', None)
             if name is None:
@@ -589,11 +632,19 @@ class CfgToBackend(object):
         # Dump users templates
         self.output("Users templates:")
         for template in self.users_templates:
+            for conf_user in getattr(self.arbiter.conf, 'contacts'):
+                if conf_user.contact_name == template.name:
+                    setattr(conf_user, 'store_use', getattr(template, 'use', []))
             self.output("- %s" % getattr(template, 'name'))
+        users = getattr(self.arbiter.conf, 'contacts')
 
         self.hosts_templates = []
         self.log("Alignak hosts templates:")
         hosts = getattr(self.raw_conf, 'hosts')
+        for tmp_host in hosts:
+            for conf_host in getattr(self.arbiter.conf, 'hosts'):
+                if conf_host.host_name == tmp_host.host_name:
+                    setattr(conf_host, 'store_use', tmp_host.use)
         for tpl_uuid in hosts.templates:
             name = getattr(hosts.templates[tpl_uuid], 'name', None)
             if name is None:
@@ -615,11 +666,19 @@ class CfgToBackend(object):
         # Dump hosts templates
         self.output("Hosts templates:")
         for template in self.hosts_templates:
+            for conf_host in getattr(self.arbiter.conf, 'hosts'):
+                if conf_host.host_name == template.name:
+                    setattr(conf_host, 'store_use', getattr(template, 'use', []))
             self.output("- %s" % getattr(template, 'name'))
 
         self.services_templates = []
         self.log("Alignak services templates:")
         services = getattr(self.raw_conf, 'services')
+        for tmp_service in services:
+            for conf_service in getattr(self.arbiter.conf, 'services'):
+                if conf_service.service_description == tmp_service.service_description:
+                    if conf_service.host == tmp_service.host:
+                        setattr(conf_service, 'store_use', tmp_service.use)
         for tpl_uuid in services.templates:
             name = getattr(services.templates[tpl_uuid], 'name', None)
             if name is None:
@@ -692,6 +751,10 @@ class CfgToBackend(object):
         # Dump services templates
         self.output("Services templates and relations:")
         for template in self.services_templates:
+            for conf_service in getattr(self.arbiter.conf, 'services'):
+                if conf_service.service_description == getattr(template, 'service_description', ''):
+                    if conf_service.host == template.host:
+                        setattr(conf_service, 'store_use', getattr(template, 'use', []))
             self.output("- %s (host: %s) (linked hosts: %s)"
                         % (getattr(template, 'name'),
                            getattr(template, 'host_name'),
@@ -843,8 +906,7 @@ class CfgToBackend(object):
                                 nw.service_notification_commands
                         addprop['min_business_impact'] = nw.min_business_impact
 
-                        self.output("  updating user notifications with NW data: %s" % addprop,
-                                    forced=True)
+                        self.output("  updating user notifications with NW data: %s" % addprop)
                         # And then ignore other defined NW
                         break
         source.update(addprop)
@@ -972,47 +1034,48 @@ class CfgToBackend(object):
                     if val in self.inserted[item['resource']]:
                         data[field] = self.inserted[item['resource']][val]
                     elif val in self.inserted[item['resource']].values():
-                        idx = self.inserted[item['resource']].values().index(val)
-                        data[field] = self.inserted[item['resource']].keys()[idx]
+                        idx = list(self.inserted[item['resource']].values()).index(val)
+                        data[field] = list(self.inserted[item['resource']].keys())[idx]
                     elif val in self.inserted_uuid[item['resource']].values():
-                        idx = self.inserted_uuid[item['resource']].values().index(val)
-                        data[field] = self.inserted_uuid[item['resource']].keys()[idx]
+                        idx = list(self.inserted_uuid[item['resource']].values()).index(val)
+                        data[field] = list(self.inserted_uuid[item['resource']].keys())[idx]
                 self.output("Late update simple for: %s/%s -> %s" % (resource, index, data))
             elif item['type'] == 'list':
                 data = {field: []}
-                if isinstance(item['value'], basestring):
+                if isinstance(item['value'], string_types):
                     item['value'] = item['value'].split(',')
                 for val in item['value']:
                     val = val.strip()
-                    if val != '':
-                        if val not in self.inserted[item['resource']] and \
-                           val not in self.inserted[item['resource']].values() and \
-                           val not in self.inserted_uuid[item['resource']].values():
-                            if field == '_templates':
-                                self.log("Late update for: %s/%s -> %s / %s"
-                                         % (resource, index, item, field))
-                                self.log("Resource: %s"
-                                         % (self.inserted[item['resource']][index]))
-                                continue
-                            self.errors_found.append("# Unknown %s: %s for %s" % (item['resource'],
-                                                                                  val, resource))
+                    if not val:
+                        continue
+                    if val not in self.inserted[item['resource']] and \
+                       val not in self.inserted[item['resource']].values() and \
+                       val not in self.inserted_uuid[item['resource']].values():
+                        if field == '_templates':
                             self.log("Late update for: %s/%s -> %s / %s"
                                      % (resource, index, item, field))
-                            self.log("Resource: %s" % (self.inserted[item['resource']][index]))
-                            self.log("Inserted: %s" % self.inserted[item['resource']])
-                            self.log("Inserted: %s" % self.inserted[item['resource']].values())
-                            self.log("Inserted: %s" % self.inserted_uuid[item['resource']].values())
-                        else:
-                            if val in self.inserted[item['resource']]:
-                                data[field].append(self.inserted[item['resource']][val])
-                            elif val in self.inserted[item['resource']].values():
-                                idx = self.inserted[item['resource']].values().index(val)
-                                data[field].append(self.inserted[item['resource']].keys()[idx])
-                            elif val in self.inserted_uuid[item['resource']].values():
-                                idx = self.inserted_uuid[item['resource']].values().index(val)
-                                data[field].append(
-                                    self.inserted_uuid[item['resource']].keys()[idx]
-                                )
+                            self.log("Resource: %s"
+                                     % (self.inserted[item['resource']][index]))
+                            continue
+                        self.errors_found.append("# Unknown %s: %s for %s" % (item['resource'],
+                                                                              val, resource))
+                        self.log("Late update for: %s/%s -> %s / %s"
+                                 % (resource, index, item, field))
+                        self.log("Resource: %s" % (self.inserted[item['resource']][index]))
+                        self.log("Inserted: %s" % self.inserted[item['resource']])
+                        self.log("Inserted: %s" % self.inserted[item['resource']].values())
+                        self.log("Inserted: %s" % self.inserted_uuid[item['resource']].values())
+                    else:
+                        if val in self.inserted[item['resource']]:
+                            data[field].append(self.inserted[item['resource']][val])
+                        elif val in self.inserted[item['resource']].values():
+                            idx = list(self.inserted[item['resource']].values()).index(val)
+                            data[field].append(
+                                list(self.inserted[item['resource']].keys())[idx])
+                        elif val in self.inserted_uuid[item['resource']].values():
+                            idx = list(self.inserted_uuid[item['resource']].values()).index(val)
+                            data[field].append(
+                                list(self.inserted_uuid[item['resource']].keys())[idx])
                 self.output("Late update list for: %s/%s -> %s" % (resource, index, data))
 
             endpoint = ''.join([resource, '/', index])
@@ -1183,14 +1246,15 @@ class CfgToBackend(object):
                         _realm.higher_realms = [pp_realm.get_name()]
                         break
             elements = realms
-
         else:
             elements = getattr(self.arbiter.conf, alignak_resource)
+        self.log("Alignak (conf = %s): %s" % (self.arbiter.conf, elements))
 
         # Alignak defined realms
-        if self.default_realm == '':
+        if not self.default_realm:
             realms = getattr(self.arbiter.conf, 'realms')
             default_realm = realms.get_default()
+            # print("Realm: %s" % default_realm.__dict__)
             self.output("Realms: %s, default: %s" % (realms, default_realm))
             self.default_realm = default_realm.uuid
             self.output("*** Alignak default realm: %s (%s)" % (
@@ -1235,8 +1299,8 @@ class CfgToBackend(object):
                                 % (r_name, count, item_obj.get_name()), forced=True)
             count += 1
 
-            # Only deal with properties,
-            for prop in item_obj.properties.keys():
+            # Only deal with properties and our own added property,
+            for prop in list(item_obj.properties.keys()) + ['store_use']:
                 if not hasattr(item_obj, prop):
                     continue
                 item[prop] = getattr(item_obj, prop)
@@ -1297,8 +1361,8 @@ class CfgToBackend(object):
             # ------------------------------------------------------------
             # Special case of timeperiods (except maintenance_period and snapshot_period)
             for tp_name in ['host_notification_period', 'service_notification_period',
-                            'check_period', 'notification_period',
-                            'escalation_period', 'dependency_period']:
+                            'check_period', 'notification_period', 'escalation_period',
+                            'dependency_period']:
                 if tp_name not in item:
                     continue
 
@@ -1345,6 +1409,7 @@ class CfgToBackend(object):
                 elif isinstance(item[prop], list) and len(item[prop]) == 1 and item[prop][0] == '':
                     del item[prop][0]
             for prop in prop_to_del:
+                self.log("Delete %s property" % prop)
                 del item[prop]
 
             later_tmp = {}
@@ -1352,6 +1417,22 @@ class CfgToBackend(object):
             # Special process for realms
             if r_name == 'realm':
                 self.output(" --> realm: %s - %s" % (id_name, item))
+
+                if 'members' in item:
+                    # Remove this field
+                    item.pop('members')
+
+                if 'group_members' in item:
+                    # Remove this field
+                    item.pop('group_members')
+
+                if 'passively_checked_hosts' in item:
+                    # Remove this field
+                    item.pop('passively_checked_hosts')
+
+                if 'actively_checked_hosts' in item:
+                    # Remove this field
+                    item.pop('actively_checked_hosts')
 
                 if 'definition_order' in item:
                     # Remove this field
@@ -1418,7 +1499,7 @@ class CfgToBackend(object):
             if 'customs' in schema['schema']:
                 item['customs'] = item_obj.customs
             elif 'allow_unknown' in schema and schema['allow_unknown']:
-                for prop in item_obj.customs.keys():
+                for prop in list(item_obj.customs.keys()):
                     item[prop] = item_obj.customs[prop]
 
             # Special case of hostdependency
@@ -1441,12 +1522,25 @@ class CfgToBackend(object):
 
             # Special case of hostescalation
             if r_name == 'hostescalation':
+                # should not but the backend do not have default values!
+                item['first_notification'] = 0
+                item['last_notification'] = 0
+
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
+                else:
+                    item['hosts'] = []
                 if 'hostgroup_name' in item:
                     item['hostgroups'] = item['hostgroup_name']
                     item.pop('hostgroup_name')
+                else:
+                    item['hostgroups'] = []
+
+                if 'usergroup_name' not in item:
+                    item['usergroups'] = []
+                if 'contact_name' not in item:
+                    item['users'] = []
 
                 # Define a name if it does not exist
                 if id_name not in item or not item[id_name]:
@@ -1467,6 +1561,10 @@ class CfgToBackend(object):
 
             # Special case of servicedependency
             if r_name == 'servicedependency':
+                # Not useful to store this property into the backend
+                if 'explode_hostgroup' in item:
+                    item.pop('explode_hostgroup')
+
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
@@ -1485,6 +1583,14 @@ class CfgToBackend(object):
                 if 'dependent_hostgroup_name' in item:
                     item['dependent_hostgroups'] = item['dependent_hostgroup_name']
                     item.pop('dependent_hostgroup_name')
+                # Not useful to store this property into the backend: not managed by Alignak!
+                if 'servicegroup_name' in item:
+                    # item['servicegroups'] = item['servicegroup_name']
+                    item.pop('servicegroup_name')
+                # Not useful to store this property into the backend: not managed by Alignak!
+                if 'dependent_servicegroup_name' in item:
+                    # item['dependent_servicegroups'] = item['dependent_servicegroup_name']
+                    item.pop('dependent_servicegroup_name')
 
                 if 'dependency_period' not in item or not item['dependency_period']:
                     item['dependency_period'] = self.tp_always
@@ -1494,12 +1600,18 @@ class CfgToBackend(object):
                 if 'service_description' in item:
                     item['services'] = item['service_description']
                     item.pop('service_description')
+                else:
+                    item['services'] = []
                 if 'host_name' in item:
                     item['hosts'] = item['host_name']
                     item.pop('host_name')
+                else:
+                    item['hosts'] = []
                 if 'hostgroup_name' in item:
                     item['hostgroups'] = item['hostgroup_name']
                     item.pop('hostgroup_name')
+                else:
+                    item['hostgroups'] = []
 
                 # Define a name if it does not exist
                 if id_name not in item or not item[id_name]:
@@ -1662,20 +1774,20 @@ class CfgToBackend(object):
                     item.pop('usergroups')
                 if 'expert' in item:
                     item.pop('expert')
-                # Waiting for manage the notification ways in the backend
-                # Delete (temporarily...) this property
-                if 'notificationways' in item:
                     # Make commands a unique list
-                    item['host_notification_commands'] = \
-                        list(set(item['host_notification_commands']))
-                    item['service_notification_commands'] = \
-                        list(set(item['service_notification_commands']))
+                item['host_notification_commands'] = \
+                    list(set(item['host_notification_commands']))
+                item['service_notification_commands'] = \
+                    list(set(item['service_notification_commands']))
 
-                    self.output("  User host notification commands: %s"
-                                % item['host_notification_commands'])
-                    self.output("  User service notification commands: %s"
-                                % item['service_notification_commands'])
-                item.pop('notificationways')
+                self.output("  User host notification commands: %s"
+                            % item['host_notification_commands'], forced=True)
+                self.output("  User service notification commands: %s"
+                            % item['service_notification_commands'], forced=True)
+                # Waiting for manage the notification ways in the backend
+                if 'notificationways' in item:
+                    # Delete (temporarily...) this property
+                    item.pop('notificationways')
 
                 if 'contact_name' in item:
                     item['name'] = item[id_name]
@@ -1701,15 +1813,15 @@ class CfgToBackend(object):
                             item['name'], item['address6']
                         ))
                     if item['address6'] in self.inserted['realm'].values():
-                        index = self.inserted['realm'].values().index(item['address6'])
-                        item['_realm'] = self.inserted['realm'].keys()[index]
+                        index = list(self.inserted['realm'].values()).index(item['address6'])
+                        item['_realm'] = list(self.inserted['realm'].keys())[index]
                         self.output("-> import user '%s' in realm '%s'." % (
                             item['name'], item['address6']
                         ))
 
             # Special case of timeperiods for hosts and services
             # Always define timeperiods if they do not exist
-            if r_name == 'host' or r_name == 'service':
+            if r_name in ('host', 'service'):
                 # Always check and notify...
                 if 'check_period' not in item or \
                    not item['check_period']:
@@ -1792,12 +1904,15 @@ class CfgToBackend(object):
             # Remove unused fields
             # ------------------------------------------------------------
             # - Template link...
-            if 'use' in item:
+            if 'use' in item or 'store_use' in item:
+                if 'use' in item:
+                    item['store_use'] = item['use']
+                    item.pop('use')
                 # Set 'used' templates as templates...
-                if item['use'] and r_name in ['host', 'service', 'user']:
-                    item['_templates'] = item['use']
-                self.log("removed 'use' field from: %s : %s:" % (r_name, item))
-                item.pop('use')
+                if item['store_use'] and r_name in ['host', 'service', 'user']:
+                    item['_templates'] = item['store_use']
+                self.log("removed 'store_use' field from: %s : %s:" % (r_name, item))
+                item.pop('store_use')
             else:
                 if r_name in ['host', 'service', 'user']:
                     item['_templates'] = []
@@ -1816,19 +1931,21 @@ class CfgToBackend(object):
                         ))
 
                     elif item[values['field']] in self.inserted[values['resource']].values():
-                        index = self.inserted[values['resource']].values().index(
+                        index = list(self.inserted[values['resource']].values()).index(
                             item[values['field']]
                         )
-                        item[values['field']] = self.inserted[values['resource']].keys()[index]
+                        item[values['field']] = \
+                            list(self.inserted[values['resource']].keys())[index]
                         self.log("***Found %s for %s = %s" % (
                             values['resource'], values['field'], item[values['field']]
                         ))
 
                     elif item[values['field']] in self.inserted_uuid[values['resource']].values():
-                        idx = self.inserted_uuid[values['resource']].values().index(
+                        idx = list(self.inserted_uuid[values['resource']].values()).index(
                             item[values['field']]
                         )
-                        item[values['field']] = self.inserted_uuid[values['resource']].keys()[idx]
+                        item[values['field']] = \
+                            list(self.inserted_uuid[values['resource']].keys())[idx]
 
                     else:
                         later_tmp[values['field']] = item[values['field']]
@@ -1847,7 +1964,7 @@ class CfgToBackend(object):
                     objectsid = []
 
                     self.output("- %s '%s'" % (values['resource'], item[values['field']]))
-                    if isinstance(item[values['field']], basestring):
+                    if isinstance(item[values['field']], string_types):
                         item[values['field']] = item[values['field']].split()
 
                     for dummy, vallist in enumerate(item[values['field']]):
@@ -1861,15 +1978,16 @@ class CfgToBackend(object):
                             objectsid.append(vallist)
                         elif values['resource'] in self.inserted and \
                                 vallist in self.inserted[values['resource']].values():
-                            index = self.inserted[values['resource']].values().index(vallist)
-                            objectsid.append(self.inserted[values['resource']].keys()[index])
+                            idx = \
+                                list(self.inserted[values['resource']].values()).index(vallist)
+                            objectsid.append(
+                                list(self.inserted[values['resource']].keys())[idx])
                         elif values['resource'] in self.inserted_uuid and \
                                 vallist in self.inserted_uuid[values['resource']].values():
-                            idx = self.inserted_uuid[values['resource']].values().index(
-                                vallist
-                            )
-                            objectsid.append(self.inserted_uuid[values['resource']].keys()[
-                                idx])
+                            idx = \
+                                list(self.inserted_uuid[values['resource']].values()).index(vallist)
+                            objectsid.append(
+                                list(self.inserted_uuid[values['resource']].keys())[idx])
                         else:
                             add = False
                     if add:
@@ -1889,6 +2007,11 @@ class CfgToBackend(object):
                                 % (values['field'], item[values['field']]))
                     later_tmp[values['field']] = item[values['field']]
                     del item[values['field']]
+
+            # - Item alias...
+            if 'alias' in item and isinstance(item['alias'], tuple):
+                # This may happen... strange but true!
+                item['alias'] = ' '.join(item['alias'])
 
             # - Alignak uuid...
             if 'uuid' in item:
@@ -2141,7 +2264,7 @@ class CfgToBackend(object):
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
-                'resource': 'user', 'now': False
+                'resource': 'user', 'now': True
             },
             {
                 'field': 'host_notification_period', 'type': 'simple',
@@ -2162,13 +2285,13 @@ class CfgToBackend(object):
         ]
         schema = user.get_schema()
         self.manage_resource('user', data_later, 'name', schema)
-        self.update_later('user', '_templates')
+        # self.update_later('user', '_templates')
 
         self.output("Adding users groups...", forced=True)
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
-                'resource': 'usergroup', 'now': True
+                'resource': 'usergroup', 'now': False
             },
             {
                 'field': 'usergroups', 'type': 'list',
@@ -2252,7 +2375,7 @@ class CfgToBackend(object):
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
-                'resource': 'host', 'now': False
+                'resource': 'host', 'now': True
             },
             {
                 'field': 'parents', 'type': 'list',
@@ -2301,7 +2424,7 @@ class CfgToBackend(object):
         ]
         schema = host.get_schema()
         self.manage_resource('host', data_later, 'host_name', schema)
-        self.update_later('host', '_templates')
+        # self.update_later('host', '_templates')
         self.update_later('host', 'parents')
 
         self.output("Adding hosts dependencies...", forced=True)
@@ -2333,12 +2456,12 @@ class CfgToBackend(object):
         self.output("Adding hosts groups...", forced=True)
         data_later = [
             {
-                'field': '_parent', 'type': 'simple',
-                'resource': 'hostgroup', 'now': True
-            },
-            {
                 'field': '_realm', 'type': 'simple',
                 'resource': 'realm', 'now': True
+            },
+            {
+                'field': '_parent', 'type': 'simple',
+                'resource': 'hostgroup', 'now': False
             },
             {
                 'field': 'hostgroups', 'type': 'list',
@@ -2451,7 +2574,7 @@ class CfgToBackend(object):
         data_later = [
             {
                 'field': '_templates', 'type': 'list',
-                'resource': 'service', 'now': False
+                'resource': 'service', 'now': True
             },
             {
                 'field': 'host', 'type': 'simple',
@@ -2513,7 +2636,7 @@ class CfgToBackend(object):
         ]
         schema = service.get_schema()
         self.manage_resource('service', data_later, 'service_description', schema)
-        self.update_later('service', '_templates')
+        # self.update_later('service', '_templates')
 
         self.output("Adding services dependencies...", forced=True)
         data_later = [
@@ -2553,7 +2676,7 @@ class CfgToBackend(object):
         data_later = [
             {
                 'field': '_parent', 'type': 'simple',
-                'resource': 'servicegroup', 'now': True
+                'resource': 'servicegroup', 'now': False
             },
             {
                 'field': 'servicegroups', 'type': 'list',
@@ -2634,6 +2757,9 @@ def main():
     print("alignak-backend-import, version: %s" % __version__)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Loading configuration for Alignak, version: %s" % ALIGNAK_VERSION)
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     fill = CfgToBackend()
     if not fill.result:
@@ -2659,7 +2785,6 @@ def main():
                 fill.output(" - no %s(s)" % object_type, forced=True)
         fill.output("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", forced=True)
-
     if fill.ignored:
         fill.output("alignak-backend-import, ignored elements: ", forced=True)
         for object_type in sorted(fill.ignored):

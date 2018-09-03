@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (C) 2015-2016: Alignak team, see AUTHORS.txt file for contributors
+# Copyright (C) 2015-2018: Alignak team, see AUTHORS.txt file for contributors
 #
 # This file is part of Alignak Backend Import.
 #
@@ -29,12 +29,9 @@ cd $BASE_PATH
 echo 'Upgrade pip ...'
 pip install --upgrade pip
 
-echo 'Installing application requirements ...'
-pip install -r requirements.txt
-echo 'Installing application in development mode ...'
+# Install application AND tests requirements :
+pip install --upgrade -r test/requirements.txt
 pip install -e .
-echo 'Installing tests requirements ...'
-pip install --upgrade -r test_requirements.txt
 
 pyversion=$(python -c "import sys; print(''.join(map(str, sys.version_info[:2])))")
 if test -e "test_requirements.py${pyversion}.txt"

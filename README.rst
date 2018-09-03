@@ -32,10 +32,7 @@ This package contains an utility tool `alignak-backend-import` that allows to im
 Release strategy
 ----------------
 
-Alignak backend and its *satellites* (backend client, and backend import tools) must all have the
-same features level. As of it, take care to install the same minor version on your system to
-ensure compatibility between all the packages. Use 0.4.x version of Backend import and Backend
-client with a 0.4.x version of the Backend.
+Alignak backend and its *satellites* (backend client, and backend import tools) must all have the same features level. As of it, take care to install the same minor version on your system to ensure compatibility between all the packages. Use 0.4.x version of Backend import and Backend client with a 0.4.x version of the Backend.
 
 
 Alignak backend import
@@ -45,8 +42,7 @@ The `alignak-backend-import` script may be used to import a Nagios like flat-fil
 
 The online `documentation<http://alignak-backend-import.readthedocs.io/en/latest/utilities.html#alignak-backend-importation>`_ exaplins all the command line parameters that may be used.
 
-A simple usage example for this script:
-::
+A simple usage example for this script::
 
     # Assuming that you installed: alignak, alignak-backend and alignak-backend-import
 
@@ -74,7 +70,7 @@ A simple usage example for this script:
         - 3 usergroup(s)
 
     # To confirm, you easily can get an host from the backend
-    backend_client -t host get test_host_0
+    alignak-backend-cli -t host get test_host_0
 
     # The script dumps the json host on the console and creates a file: */tmp/alignak-object-dump-host-test_host_0.json*
     {
@@ -92,7 +88,7 @@ A simple usage example for this script:
     }
 
     # Get the list of all imported hosts from the backend
-    backend_client --list -t host get
+    alignak-backend-cli --list -t host get
 
     # The script dumps the json list of hosts on the console and creates a file: */tmp/alignak-object-list-hosts.json*
     {
@@ -108,6 +104,55 @@ A simple usage example for this script:
         },
         ...
     }
+
+Installation
+------------
+
+From Alignak packages repositories
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+More information in the online Alignak backend documentation. Here is only an abstract...
+
+Debian::
+
+    # Alignak DEB stable packages
+    sudo echo deb https://dl.bintray.com/alignak/alignak-deb-stable xenial main | sudo tee -a /etc/apt/sources.list.d/alignak.list
+    sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv D401AB61
+
+    sudo apt-get update
+    sudo apt install python-alignak-backend-import
+
+CentOS::
+
+    sudo vi /etc/yum.repos.d/alignak-stable.repo:
+       [Alignak-rpm-stable]
+       name=Alignak RPM stable packages
+       baseurl=https://dl.bintray.com/alignak/alignak-rpm-stable
+       gpgcheck=0
+       repo_gpgcheck=0
+       enabled=1
+
+    sudo yum repolist
+
+    sudo yum install python-alignak-backend-import
+
+.. note:: for Python 3 version, replace ``python`` with ``python3`` in the packages name.
+
+From PyPI
+~~~~~~~~~
+To install the package from PyPI::
+
+   sudo pip install alignak-backend-import
+
+
+From source files
+~~~~~~~~~~~~~~~~~
+To install the package from the source files::
+
+   git clone https://github.com/Alignak-monitoring-contrib/alignak-backend-import
+   cd alignak-backend-import
+   sudo pip install .
+
 
 Bugs, issues and contributing
 -----------------------------

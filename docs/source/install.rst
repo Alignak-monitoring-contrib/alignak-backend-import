@@ -3,6 +3,19 @@
 Installation
 ============
 
+Install from Alignak repositories
+---------------------------------
+
+If you installed the Alignak backend from the Alignak Debian / RPM packages repositories, you can install with::
+
+    # Debian
+    apt install python-alignak-backend-import
+
+    # RPM
+    yum install python-alignak-backend-import
+
+.. note:: for Python 3 version, replace ``python`` with ``python3`` in the packages name.
+
 Install with pip
 ----------------
 
