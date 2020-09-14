@@ -912,7 +912,7 @@ class CfgToBackend(object):  # pylint: disable=useless-object-inheritance
         source.update(addprop)
 
         # Second iteration after update of notification ways (#19)
-        for prop in source:
+        for prop in list(source):
             # Unique commands with arguments
             # Removed the event handlers and snapshot command parameters because of this issue:
             # https://github.com/Alignak-monitoring-contrib/alignak-backend/issues/119
